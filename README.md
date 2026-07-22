@@ -48,7 +48,7 @@ Stylistic set(s)
 ### `ss01`: nondescript `k`
 
 No ~~distractive~~ lovely loop.
-[Get the pre-activated version here](https://github.com/belluzj/fantasque-sans/releases/download/1.8.0/FantasqueSansMono-NoLoopK.zip)
+[Get the pre-activated version here](https://github.com/belluzj/fantasque-sans/releases/download/v1.8.0/FantasqueSansMono-NoLoopK.zip)
 or see the [issue #67](https://github.com/belluzj/fantasque-sans/issues/67)
 for techniques to activate the stylistic set.
 
@@ -76,7 +76,6 @@ useful for users of accented capitals. For more info, see the [CHANGELOG](CHANGE
 
 Automatic installation on macOS with [homebrew](https://brew.sh):
 
-    brew tap homebrew/cask-fonts #You only need to do this once for cask-fonts
     brew install --cask font-fantasque-sans-mono
 
 Instructions for other platforms might follow.
