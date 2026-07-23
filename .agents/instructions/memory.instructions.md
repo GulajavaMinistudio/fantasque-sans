@@ -6,89 +6,27 @@
 
 ---
 
-## 📝 Session Checkpoint: 2026-06-03
 
-- **Current SDLC Phase:** Infrastructure / SDLC Tooling Setup (Pre-Development)
-- **Active Artifacts:**
-  - `AGENTS.md` — Status: ✅ Finalized (Updated with paired Skills mapping)
-  - `.opencode/agents/*.md` — Status: ✅ Finalized (All 9 agents refactored to lean persona shells)
-  - `.opencode/skills/*/SKILL.md` — Status: ✅ Finalized (All 10 skills created)
-- **Achieved Milestones:**
-  - Analyzed user's custom SDLC workflow against GitHub Spec Kit; identified and closed gaps (added Clarification and Consistency Check phases)
-  - Created 2 new agents: `ClarificationAnalyst.md` and `ArtifactConsistencyChecker.md`
-  - Implemented full Separation of Concerns architecture: Agent (Persona/Rules) ↔ Skill (Workflow/Template) for all 9 agents
-  - Created 10 skill files total:
-    - `product-manager-prd/SKILL.md`
-    - `clarification-analyst/SKILL.md`
-    - `specification-architect/SKILL.md`
-    - `artifact-consistency-checker/SKILL.md`
-    - `planner-architect/SKILL.md`
-    - `karpathy-guidelines/SKILL.md` (Updated to associate with `@GodModeDev`)
-    - `expert-code-reviewer/SKILL.md`
-    - `bug-remediation-architect/SKILL.md`
-    - `diataxis-documentation-architect/SKILL.md`
-    - `memory-manager/SKILL.md`
-  - Updated `AGENTS.md` Custom Agents Usage section to list paired Skill names for every agent
-  - Updated `AGENTS.md` PROGRESS MEMORY TRACKING rule to delegate to `memory-manager` skill
-  - Adopted hybrid memory template inspired by Cline Memory Bank and Claude Session Handoff
-  - **Ecosystem Synchronization**: Cloned and adapted all Agents, Skills, and Instructions for native support in Google Antigravity (`.agents/`) and GitHub Copilot (`.github/`).
-  - Generated GitHub Copilot-specific `.agent.md` files with YAML frontmatter.
-- **Dead-Ends (Do NOT Repeat):**
-  - None encountered in this session.
-- **Updated Files:**
-  - `.opencode/agents/*.md` & `.opencode/skills/*/SKILL.md`
-  - `.agents/rules/*.md` (Antigravity Agent Personas)
-  - `.agents/skills/*/SKILL.md` (Antigravity Skills)
-  - `.agents/instructions/*.md` (Antigravity Global Rules)
-  - `.github/agents/*.agent.md` (Copilot Agent Personas)
-  - `.github/skills/*/SKILL.md` (Copilot Skills)
-  - `.github/instructions/*.md` & `.github/copilot-instructions.md` (Copilot Global Rules)
-  - `AGENTS.md` (Universal rules)
-- **Decisions Made:**
-  - Architecture: Agent files are "Persona", Skill files are "Procedure"
-  - Ecosystem scaling: `.opencode/` acts as the Master Source of Truth, which is mirrored/adapted into `.agents/` and `.github/` to ensure native compatibility across VS Code (Copilot), OpenCode, and Antigravity IDE.
-- **Next Action / Pending:**
-  - Begin actual product development using the newly established SDLC pipeline (start with PRD phase using `@ProductManagerPRD`)
-  - Optionally save this checkpoint to version control (`git commit`)
+## 🧠 Knowledge Base
 
-<!-- checkpoint-tail: Completed full Separation of Concerns refactoring for all 9 SDLC agents + 10 paired skills. Synchronized the entire architecture into .agents/ (Antigravity) and .github/ (Copilot) for cross-platform compatibility. Ready to begin actual product development (PRD Phase). -->
+> This section accumulates cross-session knowledge that must survive compaction.
+> Updated during Compaction Mode (Workflow 4). Do NOT delete entries here.
 
----
+### Architecture & Patterns
 
-## 📝 Session Checkpoint: 2026-07-23
+- **Agent ↔ Skill Separation of Concerns**: Agent files define persona, scope, and rules; Skill files define workflows and templates. Agents delegate execution to skills. [Source: Session 2026-06-03, still valid]
+- **Ecosystem Synchronization**: `.opencode/` is the Master Source of Truth; mirrored/adapted into `.agents/` (Antigravity) and `.github/` (Copilot) for native IDE compatibility. [Source: Session 2026-06-03, still valid]
+- **SDLC Phase Gates**: Strict sequential phases (Discovery → PRD → Clarification → Spec → Clarification → Consistency → Plan → Clarification → Code → Review → Docs). Each phase requires a new chat session (Strict Session Isolation). [Source: AGENTS.md institutionalized]
+- **Custom Build — configure.py on Host Runner**: `configure.py` (Python 3.14) runs on GitHub Actions host runner, not inside Docker. Passes resolved build args to Stage 1 via `docker build --build-arg BUILD_ARGS`. Stage 2 (Ubuntu 26.04 + Python 3.14) handles packaging tooling only. [Source: Spec v1.2 §1.2/§4.4/§4.5, ADR-0002 revision]
+- **Config Precedence**: `workflow_dispatch` form input > `config.json` > build defaults. `config_source` taxonomy: `defaults` | `config.json` | `form` | `form_override`. Naming: snake_case (form), PascalCase (config.json). [Source: PRD FR-3/FR-8, Spec v1.2 §9.1]
+- **Multi-Stage Docker with Deferred Engine Port (ADR-0002)**: Stage 1 (ubuntu:18.04 + Python 2.7 + FontForge) runs legacy `build.py`/`fontbuilder`/`features`. Engine port to Python 3.14 deferred to V2 because `build.py` imports both in-process (`from fontbuilder import *`). [Source: ADR-0002, Spec §7]
 
-- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
-- **Current SDLC Phase:** Phase 1 (PRD) — Completed
-- **Active Artifacts:**
-  - `docs/discovery-draft-20260723-1058-custom-build-workflow.md` — Status: ✅ Finalized (Phase 0, approved)
-  - `docs/prd-20260723-1130-custom-build-workflow.md` — Status: ✅ Finalized (DRAFT ready for stakeholder approval)
-  - `docs/ARCHITECTURE.md` — Status: ✅ Active (read for technical context)
-- **Achieved Milestones:**
-  - Activated `@ProductManagerPRD` persona and conducted 4 clarification questions with stakeholder
-  - Stakeholder decisions: (1) Dual persona priority (Casper casual + Penny power user equally), (2) Primary success metrics: adopsi & distribusi, (3) Scope V1: 3 boolean (LargeLineHeight, NoLoopK, NoCalt) + 1 spacing preset + use_hinted build flag, (4) Non-Goals: standar + no telemetry + no email/notification + no signed artifacts
-  - Generated comprehensive PRD (554 lines, 15 user stories GH-001..GH-015) strictly following Mandatory PRD Template from skill `product-manager-prd`
-  - Conducted self-review (Opsi B): identified 8 inconsistencies and applied all fixes — narrative scope creep (recurring weekly trigger removed), artifact naming discrepancy, config_source manifest taxonomy gap (added `form_override` and `form` values), edge case for release accumulation, checksum duplication clarified
-  - Final config_source taxonomy consolidated: `form` | `config.json` | `form_override` | `defaults` — consistently referenced across FR-8, US-001..004
-- **Dead-Ends (Do NOT Repeat):**
-  - None encountered in this session.
-- **Updated Files:**
-  - `docs/prd-20260723-1130-custom-build-workflow.md` — New file: 554-line PRD with 10 template sections, 15 user stories with SMART acceptance criteria, 11 functional requirements (P0/P1/P2), 6 business + 5 user + 6 technical success metrics, 6 user experience edge cases, 3 personas, 10 non-goals, 7 milestones, revision history, and SDLC next-phase handoff instructions
-- **Decisions Made:**
-  - Config precedence hierarchy (highest to lowest): `workflow_dispatch` form input > `config.json` > build defaults
-  - `config_source` manifest taxonomy: 4 values covering all configuration scenarios
-  - Naming convention: snake_case in form inputs, PascalCase in config.json — `configure.py` wrapper bridges the two
-  - Container base image: Ubuntu 22.04 or 24.04 LTS (not 18.04 EOL per Discovery Draft Decision #2)
-  - "Wrap, don't rewrite" strategy: existing Python 2.7 pipeline preserved as-is, wrapped by Python 3 `configure.py`
-  - Both user personas equally prioritized with separate documentation tracks in `docs/CUSTOM-BUILD.md`
-- **Next Action / Pending:**
-  - Open new chat session and invoke `@ClarificationAnalyst` with `@docs/prd-20260723-1130-custom-build-workflow.md` for recurring clarification checkpoint
-  - After clarification approval: invoke `@SpecificationArchitect` to produce `/spec/` technical specification documents
-  - After spec: invoke `@ArtifactConsistencyChecker` for recurring consistency audit (PRD ↔ Spec)
-  - After spec approved: invoke `@PlannerArchitect` to produce `/plan/` implementation plan
-  - After plan: invoke `@ArtifactConsistencyChecker` again (Spec ↔ Plan) then `@GodModeDev` to execute
-  - ⚠️ Strict Session Isolation enforced — each SDLC phase requires a new chat session
+### Dead-Ends (Do NOT Repeat)
 
-<!-- checkpoint-tail: Completed Phase 1 PRD for Custom Build GitHub Workflow feature. 15 user stories with SMART AC, dual persona design, 8 self-review inconsistency fixes applied. Stakeholder decisions locked: scope 3 bool + 1 spacing, primary metrics adopsi & distribusi. Ready for Clarification Checkpoint in new session. -->
+| # | Attempted | Why It Failed | Correct Solution |
+|---|-----------|---------------|------------------|
+| 1 | Include spacing presets in V1 | `Scripts/build.py` spacing block fully commented out — not production-ready | Defer spacing to V2 |
+| 2 | Run `configure.py` inside Stage 2 Docker container | Stage 1 needs resolved args before container build (chicken-and-egg) | Run `configure.py` on host runner; pass args via `docker build --build-arg` |
 
 ---
 
@@ -171,3 +109,36 @@
 
 ---
 
+---
+
+## 📝 Session Checkpoint: 2026-07-23 (Clarification — Spec & Cross-Doc Consistency)
+
+- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
+- **Current SDLC Phase:** Clarification Checkpoint (Recurring, Post-Spec) + Cross-Doc Consistency — Completed
+- **Active Artifacts:**
+  - `spec/spec-custom-build-workflow.md` — Status: ✅ Finalized (v1.2, clarified)
+  - `docs/prd-20260723-1130-custom-build-workflow.md` — Status: ✅ Finalized (FR-4 & §8.3 wording aligned)
+  - `docs/adr/0002-multi-stage-docker-deferred-engine-port.md` — Status: ✅ Accepted (Decision/Consequences corrected + Revision Note)
+  - `CONTEXT.md` — Status: ✅ Active (Domain Glossary, unchanged)
+- **Achieved Milestones:**
+  - Clarification Analyst re-audit of Spec v1.0 → identified 6 gaps/ambiguities; applied fixes → Spec v1.1
+  - Re-audit of Spec v1.1 → 3 residual grill issues resolved via Grill Me protocol → Spec v1.2
+  - Cross-document consistency sweep: corrected PRD FR-4 (×2), §8.3 Challenge 1, §8.3 Challenge 2, and ADR-0002 Decision/Consequences to align with the "configure.py runs on host runner" decision
+- **Dead-Ends (Do NOT Repeat):**
+  - None encountered in this session (all issues resolved via A/B grill options)
+- **Updated Files:**
+  - `spec/spec-custom-build-workflow.md` — v1.0 → v1.2: §1.2 (configure.py on host), §3.3 GUD-003 (retry), §4.4 (UseHinted + host execution), §4.5 (`ARG BUILD_ARGS`), §4.6 (`toolchain_versions` + `source_commit`), §4.7 (release body), §9.1 (`compute_config_source`)
+  - `docs/prd-20260723-1130-custom-build-workflow.md` — FR-4 (×2) & §8.3 Challenge 1/2: "Stage 2 hosts configure.py" → "configure.py runs on host runner; Stage 2 packaging only"
+  - `docs/adr/0002-multi-stage-docker-deferred-engine-port.md` — Decision + Consequences corrected; added Revision Note (2026-07-23)
+- **Decisions Made:**
+  - **Grill #1:** `configure.py` executes on GitHub Actions **host runner** (not inside container); Stage 2 provides Python 3.14 for packaging tooling only; args passed to Stage 1 via `docker build --build-arg BUILD_ARGS`
+  - **Grill #2:** `compute_config_source()` derives `"form"` from `sources` dict (`any(s == "form")`), not a `has_form_inputs` boolean — prevents false `"form"` when all form inputs are at defaults
+  - **Grill #3:** Manifest field renamed `commit_sha` → `source_commit` to match PRD FR-8/US-008
+  - **Cross-doc:** PRD + ADR-0002 aligned to the same "host runner" decision for full consistency
+- **Next Action / Pending:**
+  - Invoke `@ArtifactConsistencyChecker` for full PRD ↔ Spec ↔ Plan traceability audit (Spec v1.2, PRD v1.2, ADR-0002)
+  - After consistency check: invoke `@PlannerArchitect` to generate `/plan/` implementation plan
+  - After plan approved: invoke `@ArtifactConsistencyChecker` (Spec ↔ Plan), then `@GodModeDev` for Phase 6 execution
+  - ⚠️ Minor Plan-phase note: `manifest.json` transport from host-generated file → Stage 2 archive assembly (build-context COPY vs host-side packaging) still under-specified; resolve in `/plan/`
+
+<!-- checkpoint-tail: Completed Clarification Checkpoint on Spec v1.0→v1.2 (6 gaps + 3 grill fixes). Achieved full cross-doc consistency: fixed PRD FR-4/§8.3 and ADR-0002 to state configure.py runs on host runner, Stage 2 packaging only. Ready for @ArtifactConsistencyChecker then @PlannerArchitect. -->

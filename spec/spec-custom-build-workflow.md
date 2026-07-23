@@ -1,12 +1,12 @@
 ---
 title: Technical Specification — Custom Build via GitHub Workflow
-version: 1.0
+version: 1.2
 date_created: 2026-07-23
 last_updated: 2026-07-23
 owner: Fantasque Sans Mono Core Team
 tags: [spec, github-actions, custom-build, docker, python]
 ---
-
+<!-- markdownlint-disable-->
 # Introduction
 
 This document provides the definitive Technical Specification for the **Custom Build System** of Fantasque Sans Mono via GitHub Workflow. It specifies the configuration layer (`configure.py`), JSON Schema validation (`config.schema.json`), multi-stage Docker build architecture (ADR-0002), GitHub Actions workflow (`custom-build.yml`), manifest generation (`manifest.json`), and artifact/release publishing contracts.
@@ -14,13 +14,14 @@ This document provides the definitive Technical Specification for the **Custom B
 ## 1. Purpose & Scope
 
 ### 1.1 Purpose
+
 The purpose of this specification is to define the technical contracts, schema definitions, runtime architecture, configuration precedence rules, and acceptance criteria required to implement a cloud-hosted custom font compilation workflow without modifying the legacy Python 2.7 Makefile entry point (`Scripts/build.py`).
 
 ### 1.2 Scope
+
 - **In Scope**:
   - Configuration schema `config.schema.json` (JSON Schema draft-07) and repository root file `config.json`.
-  - Python 3.14 wrapper script (`Scripts/configure.py`) for options parsing, validation, resolution, and CLI translation.
-  - Multi-stage Dockerfile architecture (Stage 1: Python 2.7 + FontForge for compilation; Stage 2: Ubuntu 26.04 LTS + Python 3.14 for configuration, autohinting, webfont compression, and packaging).
+  - Multi-stage Dockerfile architecture (Stage 1: Python 2.7 + FontForge for compilation; Stage 2: Ubuntu 26.04 LTS + Python 3.14 for autohinting, webfont compression, and packaging. The configuration wrapper `configure.py` runs on the **GitHub Actions host runner** — not inside the container — and passes resolved build args to Stage 1 via `docker build --build-arg`, per §4.4).
   - GitHub Actions workflow (`.github/workflows/custom-build.yml`) featuring `workflow_dispatch` inputs and automated GitHub Release & Workflow Artifact publishing.
   - Build manifest format (`manifest.json`) and SHA-256 checksum generation.
 - **Out of Scope (Deferred to V2)**:
@@ -47,6 +48,7 @@ All terms used in this document strictly align with the project's Domain Glossar
 ## 3. Requirements, Constraints & Guidelines
 
 ### 3.1 Requirements
+
 - **REQ-001 (Config File)**: The repository root SHALL support a `config.json` file declaring four boolean options: `LargeLineHeight`, `NoLoopK`, `NoCalt`, and `UseHinted`.
 - **REQ-002 (Schema Validation)**: The build system SHALL validate `config.json` against `config.schema.json` (draft-07) prior to execution. Invalid configurations MUST fail the workflow with non-zero exit code and clear diagnostic messages.
 - **REQ-003 (Precedence Resolution)**: Options resolution SHALL follow strict hierarchy: `workflow_dispatch` form inputs > `config.json` > default values (`LargeLineHeight=false`, `NoLoopK=false`, `NoCalt=false`, `UseHinted=true`).
@@ -56,18 +58,22 @@ All terms used in this document strictly align with the project's Domain Glossar
 - **REQ-007 (Automated Release)**: Every successful run SHALL publish a GitHub Release tagged `custom-build-YYYYMMDD-HHMMSS-{run_id}-{run_attempt}` with auto-generated release notes and attached archives.
 
 ### 3.2 Constraints
+
 - **CON-001 (Legacy Code Preservation)**: `Scripts/build.py`, `Scripts/fontbuilder.py`, `Scripts/features.py`, and root `Makefile` MUST NOT be modified, renamed, or refactored in V1 (NG-9).
 - **CON-002 (Runner Scope)**: GitHub Actions workflow MUST run on `ubuntu-latest` GitHub-hosted runners using default `GITHUB_TOKEN` with `contents: write` permission.
 - **CON-003 (License Compliance)**: All distributed packages MUST maintain SIL Open Font License v1.1 (`LICENSE.txt`) and include `OFL-1.1` in the manifest.
 
 ### 3.3 Security & Guidelines
+
 - **SEC-001 (Least Privilege)**: Workflow permissions SHALL be explicitly restricted to `contents: write` for release publishing and `actions: read` for workflow metadata.
 - **GUD-001 (Forward Compatibility)**: Unknown keys in `config.json` MUST produce warnings but SHALL NOT fail schema validation or execution.
 - **GUD-002 (Idempotency)**: Release publishing MUST prevent duplicate releases within the same `run_attempt`.
+- **GUD-003 (Release Creation Retry)**: Network errors during release creation SHALL be retried with exponential backoff (up to 3 attempts: 1 s, 5 s, 25 s delays). If all retries are exhausted, the workflow SHALL fail with a clear error message identifying the failed step.
 
 ## 4. Interfaces & Data Contracts
 
 ### 4.1 `config.json` Data Contract
+
 Location: `/config.json` (repository root)
 
 ```json
@@ -80,6 +86,7 @@ Location: `/config.json` (repository root)
 ```
 
 ### 4.2 `config.schema.json` (JSON Schema Draft-07)
+
 Location: `/config.schema.json`
 
 ```json
@@ -114,16 +121,18 @@ Location: `/config.schema.json`
 ```
 
 ### 4.3 `workflow_dispatch` Input Schema
+
 Location: `.github/workflows/custom-build.yml`
 
-| Input Key | Type | Default | Description |
-|---|---|---|---|
-| `large_line_height` | boolean | `false` | Enable larger line height variant |
-| `no_loop_k` | boolean | `false` | Enable non-looped 'k' glyph variant |
-| `no_calt` | boolean | `false` | Disable contextual alternates (ligatures) |
-| `use_hinted` | boolean | `true` | Enable TTF bytecode auto-hinting |
+| Input Key           | Type    | Default | Description                               |
+| ------------------- | ------- | ------- | ----------------------------------------- |
+| `large_line_height` | boolean | `false` | Enable larger line height variant         |
+| `no_loop_k`         | boolean | `false` | Enable non-looped 'k' glyph variant       |
+| `no_calt`           | boolean | `false` | Disable contextual alternates (ligatures) |
+| `use_hinted`        | boolean | `true`  | Enable TTF bytecode auto-hinting          |
 
 ### 4.4 Wrapper Interface (`configure.py`)
+
 Location: `Scripts/configure.py` (Python 3.14)
 
 ```text
@@ -140,12 +149,18 @@ Options:
   --generate-manifest PATH Path to write output manifest.json
 ```
 
-Output CLI arguments for `Scripts/build.py`:
+Output CLI arguments for `Scripts/build.py` (Stage 1):
+
 - `LargeLineHeight=true` → `--line-height`
 - `NoLoopK=true` → `--no-loop-k`
 - `NoCalt=true` → `--no-calt`
 
+The `UseHinted` option does **not** map to a `build.py` argument — it controls whether `ttfautohint` is invoked on TTF outputs in the packaging stage (Stage 2). Its resolved value is written into `resolved_options` within the generated `manifest.json` (via `--generate-manifest`). The workflow YAML reads this value from the manifest (e.g., `jq '.resolved_options.UseHinted' manifest.json`) to conditionally execute `ttfautohint`.
+
+`configure.py` executes on the **GitHub Actions runner host** (not inside the Docker container) using the host's Python 3.14 runtime. It validates `config.json`, resolves options, and produces two artifacts consumed by subsequent steps: the build args file (passed to Stage 1 via `docker build --build-arg`) and the manifest (used by Stage 2 packaging).
+
 ### 4.5 Multi-Stage Docker Architecture (ADR-0002 Contract)
+
 Location: `/Dockerfile`
 
 ```dockerfile
@@ -161,11 +176,11 @@ RUN apt-get update && apt-get install -y \
     python2.7 \
     make \
     && rm -rf /var/lib/apt/lists/*
-
 WORKDIR /build
 COPY . /build
-# Executes legacy Python 2.7 compilation in-process
-RUN python2.7 Scripts/build.py
+# Receives CLI arguments from configure.py via docker build --build-arg
+ARG BUILD_ARGS
+RUN python2.7 Scripts/build.py $BUILD_ARGS
 
 # Stage 2: Modern Packaging Environment (Ubuntu 26.04 + Python 3.14)
 FROM ubuntu:26.04 AS final
@@ -191,6 +206,7 @@ COPY . /app
 ```
 
 ### 4.6 `manifest.json` Schema
+
 Location: Inside `.zip` and `.tar.gz` root directory
 
 ```json
@@ -201,17 +217,17 @@ Location: Inside `.zip` and `.tar.gz` root directory
   "required": [
     "manifest_version",
     "build_timestamp",
-    "commit_sha",
-    "config_source",
+    "source_commit",
     "workflow_version",
     "resolved_options",
+    "toolchain_versions",
     "font_files",
     "spdx_license"
   ],
   "properties": {
     "manifest_version": { "type": "string", "example": "1.0" },
     "build_timestamp": { "type": "string", "format": "date-time" },
-    "commit_sha": { "type": "string" },
+    "source_commit": { "type": "string" },
     "config_source": {
       "type": "string",
       "enum": ["defaults", "config.json", "form", "form_override"]
@@ -224,6 +240,15 @@ Location: Inside `.zip` and `.tar.gz` root directory
         "NoLoopK": { "type": "boolean" },
         "NoCalt": { "type": "boolean" },
         "UseHinted": { "type": "boolean" }
+      }
+    },
+    "toolchain_versions": {
+      "type": "object",
+      "description": "Versions of key build toolchain components used in this build.",
+      "properties": {
+        "python": { "type": "string", "description": "Python version used by configure.py (e.g., 3.14.x)" },
+        "fontforge": { "type": "string", "description": "FontForge version used in Stage 1" },
+        "ttfautohint": { "type": "string", "description": "ttfautohint version used in Stage 2" }
       }
     },
     "font_files": {
@@ -240,8 +265,19 @@ Location: Inside `.zip` and `.tar.gz` root directory
     },
     "spdx_license": { "type": "string", "const": "OFL-1.1" }
   }
-}
 ```
+
+### 4.7 Release Body Format
+
+Location: GitHub Release auto-generated notes body
+
+Every successful build SHALL publish a GitHub Release whose body (auto-generated notes) includes the following sections:
+
+1. **Resolved Options Table**: A markdown table listing all four options (`LargeLineHeight`, `NoLoopK`, `NoCalt`, `UseHinted`) with their resolved boolean values.
+2. **Included Font Files Summary**: A markdown table listing each font file name, format (TTF/OTF/WOFF/WOFF2/SVG), weight, and SHA-256 checksum. This is a summary — the full manifest with complete checksums is available inside the archive.
+3. **Build Metadata**: Build timestamp (ISO 8601 UTC), source commit SHA (linked to the commit on GitHub), and a direct link back to the workflow run.
+
+The release body is generated programmatically by the workflow (e.g., via a script that reads `manifest.json` and formats it into markdown). The full `manifest.json` is included in the archive — the release body provides a human-readable preview.
 
 ## 5. Acceptance Criteria
 
@@ -280,6 +316,7 @@ Location: Inside `.zip` and `.tar.gz` root directory
 ## 6. Test Automation Strategy
 
 ### 6.1 Test Levels
+
 1. **Micro Level (Unit Tests)**:
    - Python unit tests (`tests/test_configure.py`) targeting `configure.py`:
      - Test precedence resolution logic (`form` vs `config.json` vs `defaults`).
@@ -292,6 +329,7 @@ Location: Inside `.zip` and `.tar.gz` root directory
    - Local workflow test via `act` or dry-run GitHub Actions script.
 
 ### 6.2 Test Data & CI/CD Integration
+
 - Test fixtures located in `tests/fixtures/configs/` (`valid_config.json`, `invalid_config.json`, `empty_config.json`).
 - All python unit tests MUST execute via `pytest` in CI before invoking Docker compilation.
 
@@ -307,15 +345,18 @@ Location: Inside `.zip` and `.tar.gz` root directory
 ## 8. Dependencies & External Integrations
 
 ### 8.1 External Systems
+
 - **EXT-001**: GitHub Actions API & Runner Environment (`ubuntu-latest`).
 - **EXT-002**: GitHub Releases & Artifacts Storage Service.
 
 ### 8.2 Third-Party Services / Tooling
+
 - **SVC-001**: `ppa:fontforge/fontforge` (Stage 1 FontForge + Python 2.7 dependencies).
 - **SVC-002**: `ppa:deadsnakes/ppa` (Stage 2 Python 3.14 package distribution).
 - **SVC-003**: `ttfautohint`, `woff-tools`, `woff2` (Ubuntu 26.04 universe binaries).
 
 ### 8.3 Infrastructure & Data Dependencies
+
 - **INF-001**: GitHub Actions runner disk space (minimum 10 GB available for multi-stage Docker build).
 - **DAT-001**: Upstream `.sfdir` source font files in `Sources/`.
 
@@ -355,23 +396,47 @@ def resolve_options(config_data, form_inputs):
         else:
             sources[key] = "defaults"
             resolved[key] = default_val
-            
+
     return resolved, sources
+
+
+def compute_config_source(sources, has_config_file):
+    """Compute build-level config_source from per-option sources.
+
+    Hierarchy (highest priority wins as single string):
+      1. If ANY option source == "form_override" → "form_override"
+      2. elif has_config_file and sources has "config.json" entries
+         without any "form" entries → "config.json"
+      3. elif any source == "form" (a form input differed from default,
+         no config.json present) → "form"
+      4. else → "defaults"
+    """
+    if "form_override" in sources.values():
+        return "form_override"
+    if has_config_file and not any(s == "form" for s in sources.values()):
+        if any(s == "config.json" for s in sources.values()):
+            return "config.json"
+    if any(s == "form" for s in sources.values()):
+        return "form"
+    return "defaults"
 ```
+
+`sources` (per-option) is used for debug logging in the workflow output — one line per option naming its source. The single `config_source` value written to `manifest.json` is computed by `compute_config_source()` using the hierarchy above. When no `config.json` is present and form inputs are provided, the per-option source is `"form"` and the build-level `config_source` is also `"form"`. When a form input overrides a `config.json` value, the per-option source is `"form_override"` and the overall `config_source` becomes `"form_override"` (even if other options still come from `config.json`).
 
 ### 9.2 Release Title Generator Matrix
 
-| Resolved Options | Release Title |
-|---|---|
-| All Defaults | `Custom Build: Normal (default)` |
-| `LargeLineHeight=true` | `Custom Build: LargeLineHeight` |
-| `NoLoopK=true`, `NoCalt=true` | `Custom Build: NoLoopK + NoCalt` |
+| Resolved Options                 | Release Title                     |
+| -------------------------------- | --------------------------------- |
+| All Defaults                     | `Custom Build: Normal (default)`  |
+| `LargeLineHeight=true`           | `Custom Build: LargeLineHeight`   |
+| `NoLoopK=true`, `NoCalt=true`    | `Custom Build: NoLoopK + NoCalt`  |
 | `NoCalt=true`, `UseHinted=false` | `Custom Build: NoCalt (unhinted)` |
-| `UseHinted=false` | `Custom Build: Normal (unhinted)` |
+| `UseHinted=false`                | `Custom Build: Normal (unhinted)` |
 
 ## 10. Validation Criteria
 
 To achieve full compliance with this Technical Specification, implementation artifacts MUST satisfy:
+
 1. `config.schema.json` validates against JSON Schema Draft-07 standard using `jsonschema`.
 2. `Scripts/configure.py` passes 100% of unit tests covering precedence, validation, and manifest output.
 3. Multi-stage `Dockerfile` completes `docker build` cleanly without stage coupling failures.
