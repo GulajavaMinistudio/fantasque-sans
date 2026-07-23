@@ -2,7 +2,7 @@
 title: "PRD — Custom Build via GitHub Workflow"
 status: DRAFT (Phase 1 — pending approval)
 date: 2026-07-23
-version: 1.1
+version: 1.2
 phase: SDLC Phase 1 (PRD)
 project: Fantasque Sans Mono
 upstream_discovery: docs/discovery-draft-20260723-1058-custom-build-workflow.md
@@ -16,7 +16,7 @@ downstream_phase: "@ClarificationAnalyst → @SpecificationArchitect"
 ### 1.1 Document title and version
 
 - **PRD**: Custom Build via GitHub Workflow
-- **Version**: 1.0 (DRAFT — pending stakeholder approval)
+- **Version**: 1.2 (DRAFT — pending stakeholder approval)
 - **SDLC Phase**: Phase 1 (PRD) — upstream: Phase 0 Discovery (approved); downstream: Clarification Checkpoint → Technical Specification
 - **Date**: 2026-07-23
 - **Author**: Product Manager PRD persona
@@ -26,9 +26,9 @@ downstream_phase: "@ClarificationAnalyst → @SpecificationArchitect"
 
 ### 1.2 Product summary
 
-This PRD defines the requirements for a **Custom Build System** that lets any GitHub user produce a personalized variant of the Fantasque Sans Mono font directly from the cloud, without installing FontForge, Python 2.7, or any other local build toolchain. Users fork the repository, declare their preferred variant combination through either a `config.json` file or an interactive `workflow_dispatch` form, and receive a fully compiled font bundle (`.zip` and `.tar.gz`) published automatically as a GitHub Release and a Workflow Artifact.
+This PRD defines the requirements for a **Custom Build System** that lets any GitHub user produce a personalized variant of the Fantasque Sans Mono font directly from the cloud, without installing FontForge, Python, or any other local build toolchain locally — the entire build runs in a cloud-hosted Docker container. Users fork the repository, declare their preferred variant combination through either a `config.json` file or an interactive `workflow_dispatch` form, and receive a fully compiled font bundle (`.zip` and `.tar.gz`) published automatically as a GitHub Release and a Workflow Artifact.
 
-The architecture, inspired by [Maple Mono's build workflow](https://github.com/subframe7536/maple-font), follows a "wrap, don't rewrite" strategy: the existing Python 2.7 build pipeline (`Scripts/build.py`, `Scripts/fontbuilder.py`, `Scripts/features.py`) is preserved as-is and only wrapped by a modern Python 3 configuration layer (`configure.py`) plus a `custom-build.yml` GitHub Actions workflow. This preserves the proven variant engine while modernizing the user-facing configuration and distribution surfaces.
+The architecture, inspired by [Maple Mono's build workflow](https://github.com/subframe7536/maple-font), uses a **configuration-layer strategy**: the Makefile entry-point script (`Scripts/build.py`) is preserved in Python 2.7 to keep the local `make` workflow unchanged, and the variant engine and feature generator (`Scripts/fontbuilder.py`, `Scripts/features.py`) **also remain in Python 2.7 for V1 — their port to Python 3.14 is deferred to V2** (see §8.3 Challenge 1). A new Python 3.14 configuration layer (`configure.py`) and a `custom-build.yml` GitHub Actions workflow orchestrate the build and translate user-facing configuration into pipeline arguments. This preserves the proven Makefile entry point and the existing font compilation pipeline while modernizing only the user-facing configuration and the distribution surfaces.
 
 The system targets **two user personas with equal priority** (per Phase 1 clarification, 2026-07-23): (1) **Casper**, a non-technical end-user who wants a pre-configured variant through a web form, and (2) **Penny**, a developer or power user who wants declarative, version-controlled configuration through `config.json`. The success of V1 will be measured primarily by **adoption and distribution** — number of forks that trigger builds, number of published releases, and total download count.
 
@@ -62,8 +62,9 @@ The following items are **explicitly excluded** from V1 and will not be delivere
 - **NG-6**: Telemetry, usage analytics, crash reporting, or any data collection from fork users — privacy by default
 - **NG-7**: Email, Slack, Discord, or any push-notification system for build status — users monitor their own builds via the GitHub Actions tab
 - **NG-8**: Cryptographic signing (GPG, cosign, sigstore) of built artifacts — the security model relies on GitHub's existing trust mechanisms
-- **NG-9**: Rewriting, refactoring, or modernizing the existing `Scripts/` build pipeline — the legacy Python 2.7 code is preserved as-is and only wrapped
+- **NG-9**: Full rewrite of `Scripts/build.py` (the Makefile entry point) to Python 3 — `Scripts/build.py` remains Python 2.7 in V1 to keep the local `make` workflow stable. NOTE: `Scripts/fontbuilder.py` and `Scripts/features.py` also remain Python 2.7 in V1 (their port to Python 3.14 is **deferred to V2**, see §8.3 Challenge 1); only the new `configure.py` wrapper runs on Python 3.14
 - **NG-10**: Multi-tenant or shared release channels — each fork publishes only to its own Releases namespace
+- **NG-11**: Custom spacing presets (`spacing` choice: `normal` | `loose` | `half-loose` | `half-tight` | `tight`) — **deferred to V2**. Originally scoped into V1 by the Discovery "Grilling Decision #1"; excluded from V1 to keep the configuration surface to four boolean options (`LargeLineHeight`, `NoLoopK`, `NoCalt`, `UseHinted`) and to align with the deferred engine port (Clarification Resolution #3).
 
 ## 3. User personas
 
@@ -130,15 +131,15 @@ Quinn's success criteria: verify a fork's output quickly by reading the `manifes
   1. `workflow_dispatch` form input (highest)
   2. `config.json` value in the repository
   3. Build defaults baked into the workflow (lowest)
-- The resolution logic shall be implemented in a Python 3 wrapper script (`configure.py`) that translates the resolved options into command-line arguments for the existing build pipeline
-- The resolution shall be logged in the workflow output, one line per option, naming the source (`form`, `config.json`, or `default`)
+- The resolution logic shall be implemented in a Python 3.14 wrapper script (`configure.py`) that translates the resolved options into command-line arguments for the build pipeline (passed to `Scripts/build.py` for V1)
+- The resolution shall be logged in the workflow output, one line per option, naming the source (`form`, `config.json`, or `default`). When no `config.json` is present and form inputs are provided, the per-option source is `form`; when a form input overrides a `config.json` value, the source is logged as `form_override` for that option (see FR-8 for the `config_source` manifest value mapping)
 - The `UseHinted` option can be set via both the `config.json` key and the form input (`use_hinted`), resolved with the same precedence rules as all other options
 
 ### 4.4 FR-4: Build Execution — Priority P0 (Must Have)
 
-- The workflow shall execute the build inside an isolated environment using a Docker container based on **Ubuntu 24.04 LTS** (primary) or **Ubuntu 22.04 LTS** (fallback) — the `ubuntu:18.04` base image in the existing `Dockerfile` is end-of-life and shall not be used (per Discovery Draft §3, Decision #2)
-- The container shall bundle all required dependencies: FontForge (from a multi-stage Docker build — Stage 1 `ubuntu:18.04` + `ppa:fontforge/fontforge` menyediakan FontForge dengan dukungan Python 2.7, Stage 2 `ubuntu:24.04` menyalin binary dan dependency-nya; lihat [ADR-0001](/docs/adr/0001-multi-stage-docker-legacy-tools.md)), `ttfautohint`, `sfnt2woff` (dari paket `woff-tools`), dan `woff2_compress` (dari Google WOFF2 tools)
-- The build shall invoke the existing `Scripts/build.py` and `Scripts/fontbuilder.py` pipeline as-is, without modification (per Discovery Draft §3, "Wrap, Don't Rewrite" decision)
+The workflow shall execute the build inside an isolated environment using a Docker container based on **Ubuntu 26.04 LTS** (latest LTS as of V1 release) — the `ubuntu:18.04` base image in the existing `Dockerfile` is end-of-life and shall not be used. The multi-stage build retains a separate Stage 1 image that provides a Python 2.7 runtime (required to execute `Scripts/build.py` and the variant engine); Stage 2 uses Ubuntu 26.04 LTS and hosts the Python 3.14 configuration layer (`configure.py`) plus the packaging tooling
+The container shall bundle all required dependencies: a multi-stage Docker build where Stage 1 provides a Python 2.7 + FontForge pair (built against Python 2.7, executed by `Scripts/build.py`) and runs the variant engine (`Scripts/fontbuilder.py`, `Scripts/features.py`) in the same Python 2.7 process; Stage 2 uses **Ubuntu 26.04 LTS** with **Python 3.14** (installed explicitly via deadsnakes PPA or pyenv, since the distro default may be 3.13), and hosts the wrapper `configure.py` plus post-build packaging tools. Modern tooling (`ttfautohint`, `sfnt2woff` from the `woff-tools` package, and `woff2_compress` from the Google WOFF2 tools) is installed directly from the Ubuntu 26.04 universe repository. **ADR-0001 is *Superseded*; ADR-0002 (multi-stage Docker: Stage 1 Python 2.7 + Stage 2 Ubuntu 26.04/Python 3.14) must be created in the Spec/Plan phase** to document this new architecture; for V1, see the description in §8.3 Challenge 1 & 2
+The build shall invoke `Scripts/build.py` (preserved as Python 2.7) for the Makefile entry point and orchestration; `Scripts/build.py` imports `Scripts/fontbuilder.py` and `Scripts/features.py` in-process (all on Python 2.7) for variant generation and OpenType feature compilation — their port to Python 3.14 is deferred to V2 (see §8.3 Challenge 1). The local `make` workflow remains unchanged because `Scripts/build.py` is untouched
 - The build shall produce TTF, OTF, WOFF, WOFF2, and SVG outputs for all 4 weights of Fantasque Sans Mono (Regular, Bold, Italic, Bold Italic) with the resolved variant options applied
 - The `use_hinted` form input shall control whether `ttfautohint` is invoked on the TTF outputs (default: yes)
 
@@ -156,7 +157,7 @@ Quinn's success criteria: verify a fork's output quickly by reading the `manifes
 - The release tag shall follow the pattern `custom-build-YYYYMMDD-HHMMSS-{run_id}-{run_attempt}` (UTC, to avoid timezone ambiguity). The `{run_id}` and `{run_attempt}` suffix prevents tag collision when concurrent workflow runs target the same fork
 - The release title shall be human-readable and reflect the resolved variant combination — for example: `Custom Build: LargeLineHeight + NoLoopK` or `Custom Build: Normal (default)`. When `UseHinted=false`, append `(unhinted)` — for example: `Custom Build: NoCalt (unhinted)`
 - The release body (auto-generated notes) shall include: resolved options table, list of included font files with SHA-256 checksums (a summary — the full manifest with complete checksums is inside the archive), build timestamp, source commit SHA, and a link back to the workflow run
-- Only one release shall be created per workflow run; the workflow shall not re-publish on retries
+- Only one release shall be created per workflow **run attempt** (`run_attempt`); the workflow shall not create a duplicate release within the same `run_attempt`. A manual workflow re-run produces a new `run_attempt` and therefore a new, uniquely tagged release (by design, per US-006). Internal network retries of the release-creation API call (see FR-10) are idempotent and do not create additional releases
 
 ### 4.7 FR-7: Configuration Schema Validation — Priority P1 (Should Have)
 
@@ -169,7 +170,7 @@ Quinn's success criteria: verify a fork's output quickly by reading the `manifes
 ### 4.8 FR-8: Build Manifest — Priority P1 (Should Have)
 
 - Every archive shall include a `manifest.json` file at the root level
-- The manifest shall contain: `build_timestamp` (ISO 8601 UTC), `resolved_options` (object), `font_files` (array of `{name, format, size_bytes, sha256}`), `toolchain_versions` (object: `fontforge`, `ttfautohint`, `python2`, `python3`, etc.), `source_commit` (full SHA), `config_source` (one of `form` | `config.json` | `form_override` | `defaults`), and `workflow_version` (semver or commit SHA). `config_source: "defaults"` applies when no `config.json` is present, when the file is an empty object (`{}`), or when the file contains no overrides and no form inputs are provided — an empty `config.json` is treated identically to a missing file
+  - `config_source` (one of `form` | `config.json` | `form_override` | `defaults`), and `workflow_version` (semver or commit SHA). `config_source: "defaults"` applies when no `config.json` is present, when the file is an empty object (`{}`), or when the file contains no overrides and no form inputs are provided — an empty `config.json` is treated identically to a missing file. `config_source: "form"` applies when one or more `workflow_dispatch` form inputs differ from the build defaults **and no `config.json` is present** in the fork (the form is the sole source of configuration). `config_source: "config.json"` applies when a `config.json` is present and supplies the resolved values without any form override. `config_source: "form_override"` applies when a form input overrides a value present in `config.json`
 - SHA-256 checksums in the manifest shall match the actual file checksums (verified by re-hashing during CI)
 - The manifest shall be valid JSON (passes `python -m json.tool`)
 
@@ -244,12 +245,12 @@ Quinn's success criteria: verify a fork's output quickly by reading the `manifes
 - **Edge case — user forks but never triggers a build**: No side effects; no orphan artifacts, no releases, no GitHub Actions minutes consumed
 - **Edge case — GitHub API rate limit hit during release creation**: Workflow retries with exponential backoff (up to 3 attempts, 1s/5s/25s delays); if all retries fail, the workflow fails with a clear message
 - **Edge case — fork is private**: Releases on a private fork are not discoverable by the public; this is expected GitHub behavior, not a system bug
-- **Edge case — user triggers many builds over time**: Each successful build creates a new GitHub Release, which accumulates over time. Fork owners who experiment with many configurations may accumulate dozens of releases. **Mitigasi**: workflow summary menampilkan jumlah total release yang ada di fork dan peringatan bila jumlahnya > 20 (misalnya, "⚠️ Your fork has 25 releases. Consider deleting old releases to keep your repository organized. See troubleshooting guide."). Dokumentasi troubleshooting (`docs/CUSTOM-BUILD.md`) menyertakan panduan menghapus release lama via GitHub UI dan `gh release delete` CLI. V1 tidak menyediakan automated release cleanup
+- **Edge case — user triggers many builds over time**: Each successful build creates a new GitHub Release, which accumulates over time. Fork owners who experiment with many configurations may accumulate dozens of releases. **Mitigation**: the workflow summary displays the total number of releases present in the fork and warns when the count exceeds 20 (for example: "⚠️ Your fork has 25 releases. Consider deleting old releases to keep your repository organized. See troubleshooting guide."). The troubleshooting documentation (`docs/CUSTOM-BUILD.md`) includes a guide for deleting old releases via the GitHub UI and the `gh release delete` CLI. V1 does not provide automated release cleanup
 - **Accessibility**: All form inputs have descriptive labels and `description` fields; error messages include the input name and the actual value received for screen-reader compatibility
 
 ## 6. Narrative
 
-Imagine a graphic designer, **Casper**, who has been using Fantasque Sans Mono for years but always wished for a version with larger line height to better accommodate accented capitals in their client work. Before V1, Casper would have had to install FontForge, Python 2.7, and a long list of system libraries, then run `make` from a terminal — a non-starter for someone who only wants a font. After V1, Casper visits the Fantasque Sans Mono GitHub page, clicks the prominent "Custom Build" link, follows a 3-step illustrated guide, and downloads their custom font bundle as a `.zip` file within five minutes — no terminal, no Python, no toolchain. The `.zip` contains every weight, every format, and a `manifest.json` that records exactly what was built and when.
+Imagine a graphic designer, **Casper**, who has been using Fantasque Sans Mono for years but always wished for a version with larger line height to better accommodate accented capitals in their client work. Before V1, Casper would have had to install FontForge, a Python 2.7 runtime (for the Makefile entry point), a Python 3.14 runtime (for the variant engine), and a long list of system libraries, then run `make` from a terminal — a non-starter for someone who only wants a font. After V1, Casper visits the Fantasque Sans Mono GitHub page, clicks the prominent "Custom Build" link, follows a 3-step illustrated guide, and downloads their custom font bundle as a `.zip` file within five minutes — no terminal, no Python, no toolchain. The `.zip` contains every weight, every format, and a `manifest.json` that records exactly what was built and when.
 
 Across town, **Penny**, a senior developer and font enthusiast, maintains a curated fork for their open-source team's monospace needs. They commit a `config.json` to their fork declaring `{"NoLoopK": true, "UseHinted": false}` and trigger the build whenever they update their configuration. Each new release comes with auto-generated notes; every team member can `gh release download` the latest bundle without ever cloning the repository or installing build tools. **Quinn**, the original maintainer, is happy because they no longer receive "can you add a no-loop K variant?" issues, and because the system requires zero ongoing maintenance from them — the workflow is self-contained in the upstream repository. The result: Casper gets exactly what they want, Penny's team gets a reliable automated pipeline, and Quinn keeps their evenings free.
 
@@ -288,8 +289,8 @@ Across town, **Penny**, a senior developer and font enthusiast, maintains a cura
 - **GitHub Actions** — `workflow_dispatch` event for manual triggering; `ubuntu-latest` hosted runner for execution
 - **GitHub Releases API** — auto-creation of releases with tagged artifacts (implementation will be evaluated by the Engineering Team; candidates include `softprops/action-gh-release` and the official `gh` CLI)
 - **GitHub Artifacts API** — upload of `.zip` and `.tar.gz` archives as workflow artifacts
-- **Docker Hub or GitHub Container Registry** — V1 builds the container image on-the-fly di dalam workflow (`docker build` langsung di runner), tanpa mengandalkan registry eksternal (GHCR maupun Docker Hub). Tidak ada image pre-built yang di-push ke registry publik. Setiap workflow run membangun image dari Dockerfile yang ada di repository
-- **Existing build pipeline** — `Scripts/build.py`, `Scripts/fontbuilder.py`, `Scripts/features.py` are wrapped but not modified
+- **Docker Hub or GitHub Container Registry** — V1 builds the container image on-the-fly within the workflow (`docker build` directly on the runner), without relying on an external registry (neither GHCR nor Docker Hub). No pre-built image is pushed to a public registry. Every workflow run builds the image from the `Dockerfile` present in the repository
+  - **Existing build pipeline** — `Scripts/build.py` (Python 2.7) is preserved unchanged for the local `make` workflow and imports `Scripts/fontbuilder.py`/`Scripts/features.py` in-process (all Python 2.7). The port of `Scripts/fontbuilder.py` and `Scripts/features.py` to Python 3.14 is **deferred to V2** (see §8.3 Challenge 1); for V1 they remain Python 2.7 and run in Stage 1
 - **JSON Schema (draft-07)** — `config.schema.json` for validation and editor auto-completion in IDEs
 - **SIL Open Font License (OFL)** — every archive must include the original `LICENSE.txt`; the license permits subsetting, modification, and redistribution without renaming, so custom builds are license-compliant by default
 
@@ -304,8 +305,8 @@ Across town, **Penny**, a senior developer and font enthusiast, maintains a cura
 
 ### 8.3 Scalability & potential technical challenges
 
-- **Challenge 1 — Python 2.7 EOL (2020-01-01)**: Pipeline build existing (`Scripts/build.py`, `Scripts/fontbuilder.py`) ditulis dalam Python 2.7 dan memerlukan FontForge yang dikompilasi dengan dukungan Python 2.7. DeadSnakes PPA tidak menyediakan Python 2.7 untuk Ubuntu 24.04 (memerlukan `libssl<3` yang tidak tersedia di Noble). Solusi: multi-stage Docker — Stage 1 (`ubuntu:18.04` + `ppa:fontforge/fontforge`) menyediakan binary Python 2.7 dan FontForge, Stage 2 (`ubuntu:24.04`) menyalin binary beserta library dependencies-nya. Lihat [ADR-0001](/docs/adr/0001-multi-stage-docker-legacy-tools.md)
-- **Challenge 2 — Container base image upgrade**: The existing `Dockerfile` uses `ubuntu:18.04` (EOL April 2023). V1 must upgrade to `ubuntu:24.04` or `ubuntu:22.04` LTS and verify that all build tools remain compatible — early prototyping by the Engineering Team will confirm or refute this
+- **Challenge 1 — Python 2.7 EOL (2020-01-01)**: `Scripts/build.py` (the Makefile entry point) remains written in Python 2.7 for V1 to preserve the stability of the local `make` workflow. `Scripts/fontbuilder.py` and `Scripts/features.py` **have not been ported and remain running on Python 2.7 for V1** — the port to Python 3.14 is **deferred to V2** (clarification result: `build.py` imports both in-process via `from fontbuilder import *`, so splitting them across Python versions is impossible without violating NG-9). The Stage 1 Docker build provides a Python 2.7 + FontForge runtime compiled with Python 2.7 support and executes the entire font compilation (build.py + fontbuilder + features). Stage 2 (`ubuntu:26.04` with Python 3.14) only hosts `configure.py` and the packaging tooling. The Engineering Team must verify that the Stage 1 FontForge binary is compatible with the Stage 2 environment, and this architecture will be formally documented as **ADR-0002** in the next Spec/Plan phase (replacing the *Superseded* status of ADR-0001).
+- **Challenge 2 — Container base image upgrade (Stage 2)**: The Stage 2 multi-stage Docker build uses **Ubuntu 26.04 LTS** with **Python 3.14 installed explicitly** via the deadsnakes PPA or pyenv (the Ubuntu 26.04 default Python is likely 3.13, so 3.14 cannot be relied upon from the distro). The Engineering Team must verify that `ttfautohint`, `sfnt2woff`, `woff2_compress`, and `configure.py` (Python 3.14) are compatible with the Ubuntu 26.04 system libraries. Stage 1 continues to use the legacy image that provides the Python 2.7 runtime for font compilation (see Challenge 1)
 - **Challenge 3 — Build time**: The full pipeline (4 weights × format conversion × ZIP packaging) takes significant time on a single runner. A future optimization could parallelize per-weight builds via a matrix strategy, but V1 runs them sequentially to keep the implementation simple
 - **Challenge 4 — GITHUB_TOKEN permissions**: The release-creation step requires `contents: write` permission, which is broader than the read-only default. The workflow must declare this explicitly in the `permissions:` block to follow the principle of least privilege and pass GitHub's security audits
 - **Challenge 5 — Fork isolation**: Each fork has its own release namespace, but artifact storage is per-repository. The workflow must ensure artifacts are uploaded using the **fork's** token, not the upstream's token, so the artifacts land in the correct namespace
@@ -451,7 +452,7 @@ Across town, **Penny**, a senior developer and font enthusiast, maintains a cura
 - **Priority**: P2
 - **Acceptance criteria**:
   - [ ] `make` at the repository root still produces `Variants/Normal/FantasqueSansMono.zip` exactly as before
-  - [ ] No files in `Scripts/` are modified by the custom build system (verifiable via `git diff` of `Scripts/` between pre-V1 and post-V1 commits)
+  - [ ] The custom build system adds new files (`configure.py`, `custom-build.yml`, `Dockerfile`, `config.schema.json`) but does **not** modify `Scripts/build.py`, `Scripts/fontbuilder.py`, `Scripts/features.py`, or the root `Makefile` in V1 (the engine port is deferred to V2, see §8.3 Challenge 1); verifiable via `git diff Scripts/ Makefile` between pre-V1 and post-V1 commits showing zero changes to existing `Scripts/` files and `Makefile`
   - [ ] The custom build system adds new files but does not remove or rename any existing files
   - [ ] The legacy `Dockerfile` (if replaced) continues to support `docker build && docker run` as a documented alternative
 
@@ -464,7 +465,7 @@ Across town, **Penny**, a senior developer and font enthusiast, maintains a cura
   - [ ] Workflow uses `ubuntu-latest` (or a pinned LTS version) GitHub-hosted runner
   - [ ] Build runs inside a Docker container specified by the workflow
   - [ ] Container is built from a `Dockerfile` (or workflow-defined image) with all dependencies pre-installed
-  - [ ] Container base image is Ubuntu 22.04 LTS or 24.04 LTS (not 18.04, which is EOL)
+  - [ ] Container Stage 2 base image is Ubuntu 26.04 LTS (latest LTS as of V1 release); Stage 1 may use a legacy image only to provide a Python 2.7 runtime for `Scripts/build.py` (see §8.3 Challenge 1)
   - [ ] Each workflow run starts with a fresh container (no persistent state between runs)
   - [ ] No data from one user's build is visible to another user's build (cross-fork isolation)
 
@@ -534,7 +535,9 @@ Across town, **Penny**, a senior developer and font enthusiast, maintains a cura
 | Version | Date       | Author                      | Changes                                                                              |
 | ------- | ---------- | --------------------------- | ------------------------------------------------------------------------------------ |
 | 1.0     | 2026-07-23 | Product Manager PRD persona | Initial DRAFT based on `docs/discovery-draft-20260723-1058-custom-build-workflow.md` |
-| 1.1     | 2026-07-23 | Product Manager PRD persona | Clarification Checkpoint update — 12 perubahan: hapus spacing (tunda V2), hapus UG-5 (tunda V2), tambah UseHinted di config.json, FR-4 multi-stage Docker, FR-6 format tag & judul release, SM-T2 8→15 menit, §8.1 build on-the-fly tanpa registry, §8.3 Challenge 1 mekanisme Python 2.7 via multi-stage Docker, §5.3 mitigasi release accumulation, US-004 empty config ≡ missing file, bersihkan referensi spacing di seluruh user stories & narrative |
+| 1.1     | 2026-07-23 | Product Manager PRD persona | Clarification Checkpoint update — 12 changes: removed spacing (deferred to V2), removed UG-5 (deferred to V2), added UseHinted to config.json, FR-4 multi-stage Docker, FR-6 tag format & release title, SM-T2 8→15 minutes, §8.1 on-the-fly build without registry, §8.3 Challenge 1 Python 2.7 mechanism via multi-stage Docker, §5.3 release accumulation mitigation, US-004 empty config ≡ missing file, cleaned up spacing references across all user stories & narrative |
+| 1.2     | 2026-07-23 | Product Manager PRD persona | Team decision: switch to Ubuntu 26.04 LTS + Python 3.14; retain Scripts/build.py in Python 2.7 for Makefile compatibility; **subsequently corrected by Clarification 1.3 — the port of Scripts/fontbuilder.py and Scripts/features.py to Python 3.14 is deferred to V2**; update FR-3, FR-4, NG-9, §1.2, §6, §8.1, §8.3 Challenge 1 & 2, US-009 & US-010; ADR-0001 deferred to Spec/Plan phase |
+| 1.3     | 2026-07-23 | Clarification Analyst        | Clarification checkpoint resolutions: deferred the port of Scripts/fontbuilder.py and Scripts/features.py to Python 3.14 to V2 (they remain Python 2.7 in V1, running in Stage 1 with Scripts/build.py); locked Stage 2 to Ubuntu 26.04 LTS + Python 3.14 for configure.py + packaging; added NG-11 (spacing deferred to V2); clarified config_source 'form' mapping (FR-3, FR-8); clarified FR-6 retry semantics vs FR-10; ADR-0001 marked *Superseded*, ADR-0002 required in Spec/Plan |
 
 ---
 

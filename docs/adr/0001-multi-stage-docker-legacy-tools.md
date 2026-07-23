@@ -1,20 +1,29 @@
-# 0001 - Multi-Stage Docker Build untuk Legacy Toolchain
-
-**Date:** 2026-07-23  
-**Status:** Accepted  
+# 0001 - Multi-Stage Docker Build for Legacy Toolchain
+**Date:** 2026-07-23
+**Status:** Superseded by ADR-0002
 
 ## Context
-Pipeline build Fantasque Sans Mono (`Scripts/build.py`, `Scripts/fontbuilder.py`) ditulis dalam Python 2.7 dan memerlukan FontForge yang dikompilasi dengan dukungan Python 2.7. Kedua dependensi ini tidak tersedia di Ubuntu 24.04 LTS: DeadSnakes PPA tidak lagi membuild Python 2.7 untuk Ubuntu 22.04+ (memerlukan `libssl<3`), dan `ppa:fontforge/fontforge` tidak mendukung rilis setelah Eoan 19.10. Di sisi lain, V1 Custom Build memerlukan container berbasis Ubuntu 24.04 (atau 22.04) untuk keamanan dan dukungan jangka panjang — `ubuntu:18.04` sudah EOL sejak April 2023. Prinsip "Wrap, Don't Rewrite" melarang modifikasi atau rewrite pipeline build yang sudah ada.
+The Fantasque Sans Mono build pipeline (`Scripts/build.py`, `Scripts/fontbuilder.py`) is written in Python 2.7 and requires FontForge compiled with Python 2.7 support. Both dependencies are unavailable on Ubuntu 24.04 LTS: the DeadSnakes PPA no longer builds Python 2.7 for Ubuntu 22.04+ (it requires `libssl<3`), and `ppa:fontforge/fontforge` does not support releases after Eoan 19.10. On the other hand, the V1 Custom Build requires a container based on a modern Ubuntu LTS (24.04 or 22.04) for security and long-term support — `ubuntu:18.04` has been EOL since April 2023. The "Wrap, Don't Rewrite" principle forbids modifying or rewriting the existing build pipeline.
 
 ## Decision
-Menggunakan strategi **multi-stage Docker build**: Stage 1 (`ubuntu:18.04` + `ppa:fontforge/fontforge`) menyediakan binary Python 2.7 dan FontForge (dengan dukungan Python 2.7). Stage 2 (`ubuntu:24.04`) menyalin binary tersebut beserta library dependencies-nya, dan berfungsi sebagai container final tempat build berjalan. Tool modern lainnya (`ttfautohint`, `sfnt2woff`, `woff2_compress`) diinstal langsung dari repository Ubuntu 24.04 universe.
+Use a **multi-stage Docker build** strategy: Stage 1 (`ubuntu:18.04` + `ppa:fontforge/fontforge`) provides the Python 2.7 and FontForge binaries (with Python 2.7 support). Stage 2 (`ubuntu:24.04`) copies those binaries together with their library dependencies and serves as the final container where the build runs. Other modern tools (`ttfautohint`, `sfnt2woff`, `woff2_compress`) are installed directly from the Ubuntu 24.04 universe repository.
 
 ## Consequences
-- **Positif**: Pipeline build existing tidak disentuh sama sekali — mematuhi "Wrap, Don't Rewrite" sepenuhnya. Container final berjalan di Ubuntu 24.04 yang masih menerima security patch hingga 2029.
-- **Negatif**: Dockerfile menjadi lebih kompleks (dua stage, penyalinan binary manual). Binary compatibility Python 2.7 dan FontForge lintas versi glibc (2.27 → 2.39) perlu diverifikasi dan berpotensi menimbulkan masalah runtime yang sulit didebug. Jika GitHub Actions suatu saat men-drop dukungan untuk container `ubuntu:18.04`, Stage 1 harus diganti dengan mekanisme alternatif.
-- **Risiko jangka panjang**: Ini adalah solusi taktis, bukan strategis. Pipeline build suatu saat harus dimigrasikan ke Python 3 — ketika itu terjadi, ADR ini menjadi usang dan multi-stage build bisa dihilangkan.
+- **Positive**: The existing build pipeline is left entirely untouched — fully honoring "Wrap, Don't Rewrite". The final container runs on Ubuntu 24.04, which still receives security patches until 2029.
+- **Negative**: The Dockerfile becomes more complex (two stages, manual binary copying). Python 2.7 and FontForge binary compatibility across glibc versions (2.27 → 2.39) must be verified and may cause hard-to-debug runtime issues. If GitHub Actions ever drops support for the `ubuntu:18.04` container, Stage 1 must be replaced with an alternative mechanism.
+- **Long-term risk**: This is a tactical, not strategic, solution. The build pipeline must eventually be migrated to Python 3 — when that happens, this ADR becomes obsolete and the multi-stage build can be removed.
 
 ## Considered Options
-- **Rewrite build scripts ke Python 3**: Ditolak karena melanggar "Wrap, Don't Rewrite" secara fundamental dan memerlukan verifikasi penuh terhadap output font (reproduksibilitas, kompatibilitas FontForge Python 3 API).
-- **Turun ke Ubuntu 22.04 + repo focal**: Ditolak karena mixing repository Ubuntu berbeda versi berisiko menimbulkan konflik dependensi yang sulit di-maintain, dan tidak menyelesaikan masalah Python 2.7 (tetap tidak tersedia di 22.04).
-- **Gunakan base image `python:2.7-slim` (Debian Buster)**: Ditolak karena mencampur ekosistem Debian dan Ubuntu dalam satu container meningkatkan risiko inkompatibilitas library, dan Debian Buster juga sudah EOL.
+- **Rewrite build scripts to Python 3**: Rejected because it fundamentally violates "Wrap, Don't Rewrite" and requires full verification of font output (reproducibility, FontForge Python 3 API compatibility).
+- **Drop to Ubuntu 22.04 + focal repo**: Rejected because mixing different Ubuntu version repositories risks dependency conflicts that are hard to maintain, and does not solve the Python 2.7 problem (still unavailable on 22.04).
+- **Use base image `python:2.7-slim` (Debian Buster)**: Rejected because mixing Debian and Ubuntu ecosystems in one container increases library incompatibility risk, and Debian Buster is also EOL.
+
+## Supersession Note (2026-07-23)
+
+This decision was superseded by the clarified PRD v1.2 (after the Clarification Analyst checkpoint), which further revised the strategy from **"Wrap, Don't Rewrite"** to a **deferred-engine-port** approach:
+
+- **`Scripts/build.py`** (Makefile entry point) remains in Python 2.7 — Stage 1 Docker is still required to provide the Python 2.7 + FontForge runtime.
+- **`Scripts/fontbuilder.py`** and **`Scripts/features.py`** are **NOT ported**; they remain on Python 2.7 for V1 and run in Stage 1 alongside `build.py` (because `build.py` imports them in-process via `from fontbuilder import *`, splitting across Python versions is impossible without violating NG-9). Their port to Python 3.14 is **deferred to V2**.
+- **Stage 2** uses **Ubuntu 26.04 LTS** (up from 24.04) with **Python 3.14** (installed explicitly via deadsnakes PPA or pyenv), hosting only `configure.py` (Python 3.14) and the post-build packaging tooling.
+
+ADR-0002 documents this new multi-stage Docker architecture formally. Until ADR-0002 is ratified in the Spec/Plan phase, PRD v1.2 §8.3 Challenge 1 & 2 is the authoritative reference for the build architecture decision.
