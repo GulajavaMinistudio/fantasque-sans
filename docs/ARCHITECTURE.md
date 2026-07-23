@@ -1,7 +1,7 @@
 ---
 goal: Repository Architecture and Structure Documentation
 date_created: 2026-07-22
-last_updated: 2026-07-22
+last_updated: 2026-07-23
 status: 'Active'
 ---
 
@@ -142,6 +142,8 @@ The build system generates all possible variants using a binary bitmap approach 
 | **fpm** (Effing Package Management) | Build `.deb` and `.rpm` OS packages | Optional |
 | **Python 2.7** | Required by FontForge's Python scripting interface | Yes — build |
 
+> **Note:** The `Dockerfile` currently pins `ubuntu:18.04`, which is end-of-life. A base-image upgrade is captured as future work in `docs/discovery-draft-20260723-1058-custom-build-workflow.md`.
+
 > **Important:** Ubuntu's default FontForge package is often outdated. The Dockerfile and README both recommend the [FontForge PPA](https://launchpad.net/~fontforge/+archive/ubuntu/fontforge) for reliable builds.
 
 ## 5. Directory Tree Map
@@ -164,7 +166,7 @@ fantasque-sans/
 │   │   ├── PlannerArchitect.md
 │   │   ├── ProductManagerPRD.md
 │   │   └── SpecificationArchitect.md
-│   ├── skills/                       # Agent skill workflows (10+ skills)
+│   ├── skills/                       # Agent skill workflows (18 skills)
 │   │   ├── artifact-consistency-checker/
 │   │   ├── brainstorming-explorer/
 │   │   ├── bug-remediation-architect/
@@ -190,7 +192,8 @@ fantasque-sans/
 │       ├── ADR-FORMAT.md             # Architecture Decision Record template
 │       └── CONTEXT-FORMAT.md         # Domain glossary template
 ├── docs/                             # Project documentation
-│   └── ARCHITECTURE.md               # This file
+│   ├── ARCHITECTURE.md               # This file
+│   └── discovery-draft-20260723-1058-custom-build-workflow.md  # Phase 0 draft (Custom Build GitHub Workflow)
 ├── Scripts/                          # Build pipeline (executable scripts)
 │   ├── build.py                      # Main build orchestrator
 │   ├── fontbuilder.py               # Font variant generation engine
@@ -245,10 +248,10 @@ fantasque-sans/
 | `Variants/` | Build output | Generated TTF, OTF, WOFF, WOFF2, SVG files per variant | Gitignored; recreated by `make`; consumed by `pkg.sh` for OS packaging |
 | `.agents/` | AI agent infrastructure | Agent personas, skill workflows, instructions, documentation standards | Read by AI coding agents at session start; defines entire SDLC pipeline |
 | `.agents/rules/` | Agent personas | 9 markdown files defining agent identities, scope boundaries, pushback rules | Each agent has a strict phase boundary; cross-phase work must be refused |
-| `.agents/skills/` | Agent capabilities | 10+ SKILL.md files with step-by-step workflows | Skill = Procedure, Agent = Persona; skills may or may not trigger session lock |
+| `.agents/skills/` | Agent capabilities | 18 SKILL.md files with step-by-step workflows | Skill = Procedure, Agent = Persona; skills may or may not trigger session lock |
 | `.agents/instructions/` | Global AI rules | Clean code guidelines, markdown formatting rules, memory persistence | Checked at session start; priority order defined in AGENTS.md |
 | `.agents/standards/` | Documentation templates | ADR format and CONTEXT (domain glossary) format | All documentation must follow these formats |
-| `docs/` | Project docs | ARCHITECTURE.md, future: ADRs, context maps | Created lazily as needed per SDLC standards |
+| `docs/` | Project docs | ARCHITECTURE.md, `discovery-draft-20260723-1058-custom-build-workflow.md` (Phase 0 draft), future: ADRs, context maps | Created lazily as needed per SDLC standards |
 | `AGENTS.md` | Master rulebook | Universal AI agent rules, SDLC workflow, communication policy, custom agent usage | Highest-priority instruction file; overrides all other rules except direct user command |
 | `Makefile` | Build entry | Discovers `Sources/*.sfdir`, triggers `generate-font-variants` per source, then `zip-all-variants` | Target: `all` → `Variants/Normal/FantasqueSansMono.zip` |
 | `Dockerfile` | Containerized build | Ubuntu 18.04 + FontForge PPA + all build deps | `docker build` then `docker run -v $(pwd)/Variants:/fantasque/Variants` |
@@ -298,3 +301,11 @@ fantasque-sans/
 - **No Unsolicited Changes:** Agents must not refactor, clean up, or "fix" adjacent code not targeted by the current task.
 - **Font Source Files:** The `.sfdir` directories in `Sources/` are FontForge-native format. They must not be modified by text editors — only through FontForge itself or via FontForge's Python API in the build scripts.
 - **Build Prerequisites:** Any modification to the `.sfdir` sources or build scripts must be verified by running `make` to ensure fonts still generate correctly.
+
+## 12. Known Tech Debt & Current Constraints
+
+This section captures current-state limitations in the build pipeline that are already true in the repository today. The proposed remediation for each item is tracked separately in `docs/discovery-draft-20260723-1058-custom-build-workflow.md` (Phase 0 draft, not yet implemented).
+
+- **Python 2.7 EOL:** `Scripts/build.py` and `Scripts/fontbuilder.py` require Python 2.7 (shebang `#!/usr/bin/env python2.7` in `build.py` line 1). The Python 2.7 interpreter reached end-of-life on 2020-01-01. The legacy build must run as-is until a Python 3 wrapper is introduced.
+- **Docker base image EOL:** `Dockerfile` line 1 pins `FROM ubuntu:18.04`, which reached end-of-standard-support in April 2023. A planned upgrade to a current Ubuntu LTS is described in the discovery draft above.
+- **Hardcoded variant options:** Font variant toggles (`LargeLineHeight`, `NoLoopK` active; `NoCalt` commented out) are defined inline in `Scripts/build.py` lines 32–52. There is currently no external configuration file; an external `config.json` driver is proposed in the discovery draft above but not yet implemented.

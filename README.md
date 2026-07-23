@@ -1,6 +1,6 @@
 Fantasque Sans Mono
 ===================
-
+<!-- markdownlint-disable -->
 A programming font, designed with functionality in mind, and with some
 wibbly-wobbly handwriting-like fuzziness that makes it unassumingly cool.
 [Download](https://github.com/belluzj/fantasque-sans/releases/latest) or 
