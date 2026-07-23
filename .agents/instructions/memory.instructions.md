@@ -134,3 +134,40 @@
 <!-- checkpoint-tail: Completed Clarification Checkpoint on PRD. Codebase-verified; 3 critical blockers found (commented-out spacing, dead PPA, no Python 2.7 on Noble). 12 ambiguities resolved via Grill Me protocol. Created CONTEXT.md (7 terms) and ADR-0001 (multi-stage Docker). PRD needs 12 updates before Spec phase. Spacing + UG-5 deferred to V2. -->
 
 ---
+
+## 📝 Session Checkpoint: 2026-07-23 (Technical Specification)
+
+- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
+- **Current SDLC Phase:** Phase Spec (Technical Specification) — Completed
+- **Active Artifacts:**
+  - `docs/prd-20260723-1130-custom-build-workflow.md` — Status: ✅ Finalized
+  - `docs/adr/0002-multi-stage-docker-deferred-engine-port.md` — Status: ✅ Accepted
+  - `spec/spec-custom-build-workflow.md` — Status: ✅ Finalized
+  - `CONTEXT.md` — Status: ✅ Active (Domain Glossary)
+- **Achieved Milestones:**
+  - Activated `@SpecificationArchitect` persona and drafted comprehensive Technical Specification in `spec/spec-custom-build-workflow.md` based on PRD v1.2 and ADR-0002
+  - Defined data contracts for `config.json` and `config.schema.json` (Draft-07 schema for 4 boolean options: `LargeLineHeight`, `NoLoopK`, `NoCalt`, `UseHinted`)
+  - Specified wrapper CLI & precedence resolution interface for `Scripts/configure.py` (Python 3.14)
+  - Specified multi-stage Docker compilation architecture per ADR-0002 (Stage 1: legacy Python 2.7 + FontForge for `build.py` / `fontbuilder.py` / `features.py`; Stage 2: Ubuntu 26.04 LTS + Python 3.14 for `configure.py`, `ttfautohint`, `woff-tools`, `woff2`, and packaging)
+  - Specified `.github/workflows/custom-build.yml` with `workflow_dispatch` form inputs and auto-publishing to GitHub Release and Workflow Artifacts
+  - Specified `manifest.json` schema (`config_source` taxonomy, SHA-256 checksums, `OFL-1.1`)
+  - Defined Given-When-Then Acceptance Criteria (AC-001..AC-005) and two-layer test strategy (micro pytest for `configure.py` + macro container smoke tests)
+  - Verified visual and functional alignment with user-provided Maple Mono workflow reference image
+  - Conducted self-audit and consistency verification against PRD, ADR-0002, and `CONTEXT.md`
+- **Dead-Ends (Do NOT Repeat):**
+  - None encountered in this session
+- **Updated Files:**
+  - `spec/spec-custom-build-workflow.md` — New file: Technical Specification (11 sections covering contracts, schemas, Docker multi-stage build, workflow, acceptance criteria, test strategy, and ADR references)
+- **Decisions Made:**
+  - Multi-stage Docker contract: Stage 1 = Python 2.7 + FontForge; Stage 2 = Ubuntu 26.04 + Python 3.14 (ADR-0002)
+  - Engine port to Python 3.14 deferred to V2 because `build.py` imports `fontbuilder`/`features` in-process
+  - Release title naming matrix & `(unhinted)` suffix rules locked
+- **Next Action / Pending:**
+  - Invoke `@ClarificationAnalyst` or `@ArtifactConsistencyChecker` for recurring checkpoint audit (PRD ↔ Spec) before moving to Implementation Plan
+  - After consistency check: invoke `@PlannerArchitect` to generate `/plan/` implementation plan documents
+  - After plan approved: invoke `@ArtifactConsistencyChecker` (Spec ↔ Plan), then `@GodModeDev` for Phase 6 execution
+
+<!-- checkpoint-tail: Completed Technical Specification phase. Drafted spec/spec-custom-build-workflow.md covering schemas, configure.py wrapper API, ADR-0002 multi-stage Docker build, workflow dispatch UI contracts, manifest format, acceptance criteria, and test strategy. Confirmed UI compatibility with Maple Mono reference. Ready for Clarification/Consistency Audit checkpoint. -->
+
+---
+
