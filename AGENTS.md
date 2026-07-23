@@ -173,6 +173,12 @@ If the mandatory files are not provided in the prompt context, the agent must ha
 - **Managed by:** `memory-manager` skill
 - **Last Recorded:** 2026-07-07
 
+## Project Reference Documents
+
+The following documents must be read by agents before navigating or modifying the codebase:
+
+- **Project Architecture Map:** Read [/docs/ARCHITECTURE.md](/docs/ARCHITECTURE.md) to understand the directory structure, build pipeline architecture, technical constraints, and the purpose of each file. Agents **MUST** read this document before making code changes or exploring the codebase.
+
 ## Agents Specific Guidelines
 
 ### 1. Core Directives & Hierarchy (Absolute Rules)
