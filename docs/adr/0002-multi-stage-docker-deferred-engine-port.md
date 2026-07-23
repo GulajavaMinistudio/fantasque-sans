@@ -1,7 +1,7 @@
 # 0002 - Multi-Stage Docker Build with Deferred Engine Port
 
 **Date:** 2026-07-23
-**Status:** Proposed
+**Status:** Accepted
 
 ## Context
 The V1 Custom Build must compile the font in a cloud-hosted container. The existing build pipeline (`Scripts/build.py`, `Scripts/fontbuilder.py`, `Scripts/features.py`) is written in Python 2.7 (EOL 2020-01-01) and requires FontForge compiled with Python 2.7 support — these are unavailable on modern Ubuntu LTS. `Scripts/build.py` is the Makefile entry point and, per NG-9, must remain unchanged in V1; critically, `build.py` imports `fontbuilder` and `features` **in-process** (`from fontbuilder import *`), so the variant engine cannot be split onto a different Python version than `build.py` without rewriting `build.py` (forbidden by NG-9). Meanwhile V1 introduces a new Python 3.14 configuration layer (`configure.py`) and modern post-build packaging tooling (`ttfautohint`, `sfnt2woff`, `woff2_compress`). The legacy `ubuntu:18.04` base image is EOL. ADR-0001 (Stage 2 = ubuntu:24.04) is superseded.
