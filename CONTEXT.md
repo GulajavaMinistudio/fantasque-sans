@@ -12,7 +12,7 @@ Kombinasi dari satu atau lebih opsi build yang menghasilkan output font dengan k
 _Avoid_: configuration, preset, build option
 
 **Normal**:
-Varian default Fantasque Sans Mono tanpa opsi build apapun yang diaktifkan — output baseline dari pipeline build.
+Varian Fantasque Sans Mono tanpa opsi build apa pun yang diaktifkan — hasil pipeline build tanpa modifikasi.
 _Avoid_: default variant, baseline, standard
 
 **Fork Owner**:

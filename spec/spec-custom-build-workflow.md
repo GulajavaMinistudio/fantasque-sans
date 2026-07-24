@@ -1,8 +1,8 @@
 ---
 title: Technical Specification — Custom Build via GitHub Workflow
-version: 1.2
+version: 1.4
 date_created: 2026-07-23
-last_updated: 2026-07-23
+last_updated: 2026-07-24
 owner: Fantasque Sans Mono Core Team
 tags: [spec, github-actions, custom-build, docker, python]
 ---
@@ -24,9 +24,10 @@ The purpose of this specification is to define the technical contracts, schema d
   - Multi-stage Dockerfile architecture (Stage 1: Python 2.7 + FontForge for compilation; Stage 2: Ubuntu 26.04 LTS + Python 3.14 for autohinting, webfont compression, and packaging. The configuration wrapper `configure.py` runs on the **GitHub Actions host runner** — not inside the container — and passes resolved build args to Stage 1 via `docker build --build-arg`, per §4.4).
   - GitHub Actions workflow (`.github/workflows/custom-build.yml`) featuring `workflow_dispatch` inputs and automated GitHub Release & Workflow Artifact publishing.
   - Build manifest format (`manifest.json`) and SHA-256 checksum generation.
+  - User documentation: creation of `docs/CUSTOM-BUILD.md` (Getting Started + Advanced Configuration sections) and `README.md` update with prominent Custom Build section linking to the guide.
 - **Out of Scope (Deferred to V2)**:
   - Python 3 porting of `Scripts/fontbuilder.py` and `Scripts/features.py`.
-  - Spacing presets (`spacing` option) and alternate glyph variants (`$` and `0`).
+  - Spacing variants (`spacing` option) and alternate glyph variants (`$` and `0`).
   - Automated release cleanup or multi-tenant release channels.
 
 ## 2. Definitions
@@ -34,9 +35,9 @@ The purpose of this specification is to define the technical contracts, schema d
 All terms used in this document strictly align with the project's Domain Glossary ([`CONTEXT.md`](file:///d:/WebstormProject/fantasque-sans/CONTEXT.md)).
 
 - **Custom Build**: Cloud-hosted personalized build system for Fantasque Sans Mono running in GitHub Actions and Docker.
-- **Variant**: Combination of one or more build options producing specific visual characteristics.
+- **Variant**: Combination of one or more variant flags producing specific visual characteristics.
   - _Avoid_: configuration, preset, build option
-- **Normal**: Baseline Fantasque Sans Mono variant with no build options enabled (`LargeLineHeight=false`, `NoLoopK=false`, `NoCalt=false`, `UseHinted=true`).
+- **Normal**: Fantasque Sans Mono variant with no variant flags enabled (`LargeLineHeight=false`, `NoLoopK=false`, `NoCalt=false`, `UseHinted=true`).
   - _Avoid_: default variant, baseline, standard
 - **Fork Owner**: The GitHub user who forked the repository and has permissions to trigger a Custom Build on their fork.
   - _Avoid_: fork maintainer, repo owner
@@ -222,6 +223,7 @@ Location: Inside `.zip` and `.tar.gz` root directory
     "resolved_options",
     "toolchain_versions",
     "font_files",
+    "config_source",
     "spdx_license"
   ],
   "properties": {
@@ -340,7 +342,7 @@ The release body is generated programmatically by the workflow (e.g., via a scri
   - The variant engine (`fontbuilder.py`, `features.py`) and entry point (`build.py`) remain on Python 2.7 because `build.py` imports them in-process (`from fontbuilder import *`).
   - Splitting engine execution across Python versions without rewriting `build.py` is impossible.
   - Rewriting `build.py` is explicitly prohibited by NG-9 in V1.
-  - Therefore, a multi-stage Docker setup isolates legacy Python 2.7 font generation in Stage 1, while providing Python 3.14 in Stage 2 for configuration and web packaging.
+  - Therefore, a multi-stage Docker setup isolates legacy Python 2.7 font generation in Stage 1, while providing Python 3.14 in Stage 2 for post-build packaging tooling only. Configuration is performed by `configure.py` on the GitHub Actions host runner (per §4.4), not inside any container.
 
 ## 8. Dependencies & External Integrations
 
@@ -448,3 +450,11 @@ To achieve full compliance with this Technical Specification, implementation art
 - [PRD — Custom Build via GitHub Workflow](file:///d:/WebstormProject/fantasque-sans/docs/prd-20260723-1130-custom-build-workflow.md)
 - [ADR 0002 — Multi-Stage Docker Build with Deferred Engine Port](file:///d:/WebstormProject/fantasque-sans/docs/adr/0002-multi-stage-docker-deferred-engine-port.md)
 - [Fantasque Sans Mono Domain Glossary](file:///d:/WebstormProject/fantasque-sans/CONTEXT.md)
+
+---
+
+## 12. Revision History
+
+| Version | Date       | Author                  | Changes                                                                                                                                                                                                                                                       |
+| ------- | ---------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1.4     | 2026-07-24 | Specification Architect | Surgical fixes per re-audit r2 ([`docs/audit/consistency-audit-custom-build-workflow-2026-07-24-r2.md`](file:///d:/WebstormProject/fantasque-sans/docs/audit/consistency-audit-custom-build-workflow-2026-07-24-r2.md)): **R-2** corrected §7 line 344 rationale to state Stage 2 Python 3.14 is for post-build packaging only and `configure.py` runs on the GitHub Actions host runner per §4.4 (not inside any container); **R-3** added `config_source` to the §4.6 `manifest.json` top-level `required` array (between `font_files` and `spdx_license`) per PRD FR-8 mandate. |

@@ -2,7 +2,7 @@
 title: "PRD — Custom Build via GitHub Workflow"
 status: DRAFT (Phase 1 — pending approval)
 date: 2026-07-23
-version: 1.2
+ version: 1.3
 phase: SDLC Phase 1 (PRD)
 project: Fantasque Sans Mono
 upstream_discovery: docs/discovery-draft-20260723-1058-custom-build-workflow.md
@@ -16,7 +16,7 @@ downstream_phase: "@ClarificationAnalyst → @SpecificationArchitect"
 ### 1.1 Document title and version
 
 - **PRD**: Custom Build via GitHub Workflow
-- **Version**: 1.2 (DRAFT — pending stakeholder approval)
+- **Version**: 1.3 (DRAFT — pending stakeholder approval)
 - **SDLC Phase**: Phase 1 (PRD) — upstream: Phase 0 Discovery (approved); downstream: Clarification Checkpoint → Technical Specification
 - **Date**: 2026-07-23
 - **Author**: Product Manager PRD persona
@@ -64,14 +64,14 @@ The following items are **explicitly excluded** from V1 and will not be delivere
 - **NG-8**: Cryptographic signing (GPG, cosign, sigstore) of built artifacts — the security model relies on GitHub's existing trust mechanisms
 - **NG-9**: Full rewrite of `Scripts/build.py` (the Makefile entry point) to Python 3 — `Scripts/build.py` remains Python 2.7 in V1 to keep the local `make` workflow stable. NOTE: `Scripts/fontbuilder.py` and `Scripts/features.py` also remain Python 2.7 in V1 (their port to Python 3.14 is **deferred to V2**, see §8.3 Challenge 1); only the new `configure.py` wrapper runs on Python 3.14
 - **NG-10**: Multi-tenant or shared release channels — each fork publishes only to its own Releases namespace
-- **NG-11**: Custom spacing presets (`spacing` choice: `normal` | `loose` | `half-loose` | `half-tight` | `tight`) — **deferred to V2**. Originally scoped into V1 by the Discovery "Grilling Decision #1"; excluded from V1 to keep the configuration surface to four boolean options (`LargeLineHeight`, `NoLoopK`, `NoCalt`, `UseHinted`) and to align with the deferred engine port (Clarification Resolution #3).
+ - **NG-11**: Custom spacing variants (`spacing` choice: `normal` | `loose` | `half-loose` | `half-tight` | `tight`) — **deferred to V2**. Originally scoped into V1 by the Discovery "Grilling Decision #1"; excluded from V1 to keep the configuration surface to four boolean options (`LargeLineHeight`, `NoLoopK`, `NoCalt`, `UseHinted`) and to align with the deferred engine port (Clarification Resolution #3).
 
 ## 3. User personas
 
 ### 3.1 Key user types
 
 - **Casper** — Casual End-User: A non-technical user who wants a customized font variant without any build tooling
-- **Penny** — Power User / Fork Maintainer: A developer comfortable with GitHub Actions, JSON configuration, and the Git fork workflow
+ - **Penny** — Power User / Fork Owner: A developer comfortable with GitHub Actions, JSON configuration, and the Git fork workflow
 - **Quinn** — Quality Reviewer / Downstream Maintainer: The original Fantasque Sans Mono maintainer, downstream packager, or trusted community member who audits fork outputs for quality and license compliance
 
 ### 3.2 Basic persona details
@@ -82,7 +82,7 @@ A graphic designer, writer, or developer who discovered Fantasque Sans Mono thro
 
 Casper's success criteria: obtain a usable `.zip` file in fewer than 5 minutes without ever opening a terminal.
 
-**Penny (Power User / Fork Maintainer)**
+ **Penny (Power User / Fork Owner)**
 
 A software developer, DevOps engineer, or font enthusiast who wants full control over their font build. They are familiar with Git workflows, JSON configuration, and the basics of GitHub Actions. They prefer declarative configuration over GUI forms when possible. They may maintain their own custom build for personal use, or they may maintain a community fork that publishes a curated set of variants for their team or community. They expect documentation that respects their technical background and provides escape hatches (CLI flags, `gh` commands, environment variables) when needed.
 
@@ -107,7 +107,7 @@ Quinn's success criteria: verify a fork's output quickly by reading the `manifes
 
 ### 4.1 FR-1: Configuration File (config.json) — Priority P0 (Must Have)
 
-- A `config.json` file at the repository root shall declare the fork owner's preferred build options
+ - A `config.json` file at the repository root shall declare the fork owner's preferred variant settings
 - The file shall be a single JSON object with a flat key-value structure and no nested objects
 - The four supported keys are: `LargeLineHeight` (boolean), `NoLoopK` (boolean), `NoCalt` (boolean), and `UseHinted` (boolean, default: `true`)
 - An absent `config.json` shall fall back to the build defaults without failing the build
@@ -239,7 +239,7 @@ The build shall invoke `Scripts/build.py` (preserved as Python 2.7) for the Make
 - **Highlight**: Form input names use snake_case (`large_line_height`, `no_loop_k`) to match common naming conventions in developer tooling, while `config.json` keys use PascalCase (`LargeLineHeight`, `NoLoopK`) to match the existing Python build script conventions — the wrapper script bridges the two naming styles
 - **Highlight**: Form input defaults are visible inline in the form, so users know what they will get before clicking "Run workflow"
 - **Highlight**: The release title is auto-generated in plain English, so users can identify the variant at a glance from the Releases page — for example: `Custom Build: NoLoopK + NoCalt` or `Custom Build: Normal (default)`. When hinting is disabled, `(unhinted)` is appended: `Custom Build: LargeLineHeight (unhinted)`
-- **Edge case — user submits the form with all defaults**: Build proceeds with the pipeline's baseline (Normal variant, hinting enabled); release is titled `Custom Build: Normal (default)`
+ - **Edge case — user submits the form with all defaults**: Build proceeds with the Normal variant (hinting enabled); release is titled `Custom Build: Normal (default)`
 - **Edge case — user commits an invalid `config.json`**: Schema validation step fails fast with a clear pointer to the offending key and the expected type
 - **Edge case — user triggers a build while another is in progress**: The second build queues normally and runs after the first completes; no resource contention
 - **Edge case — user forks but never triggers a build**: No side effects; no orphan artifacts, no releases, no GitHub Actions minutes consumed
@@ -270,7 +270,7 @@ Across town, **Penny**, a senior developer and font enthusiast, maintains a cura
 - **SM-B2**: ≥ 50 GitHub Releases published by community forks within 90 days of release (primary distribution signal)
 - **SM-B3**: ≥ 1,000 total downloads (Releases + Artifacts combined) across all forks within 90 days (primary reach signal)
 - **SM-B4**: ≤ 10% decrease in "how do I build X variant?" issues opened on the upstream repository within 90 days (deflection signal — these issues should be self-served)
-- **SM-B5**: ≥ 5 community contributions (new config presets, documentation improvements, bug reports) to the upstream repository within 180 days (engagement signal)
+ - **SM-B5**: ≥ 5 community contributions (new variant configurations, documentation improvements, bug reports) to the upstream repository within 180 days (engagement signal)
 - **SM-B6**: ≥ 3 downstream packagers or community members cite the Custom Build workflow as the reason they adopted or stayed with Fantasque Sans Mono (qualitative, collected via maintainer outreach)
 
 ### 7.3 Technical metrics
@@ -342,7 +342,7 @@ Across town, **Penny**, a senior developer and font enthusiast, maintains a cura
 ### 10.1 US-001: Trigger Custom Build via Form (No Config)
 
 - **ID**: GH-001
-- **Story**: As a **casual user (Casper)**, I want to **trigger a build using the GitHub Actions form with default values**, so that **I can get a baseline Fantasque Sans Mono build without editing any files**.
+ - **Story**: As a **casual user (Casper)**, I want to **trigger a build using the GitHub Actions form with default values**, so that **I can get a Normal Fantasque Sans Mono build without editing any files**.
 - **Priority**: P0
 - **Acceptance criteria**:
   - [ ] Workflow file `.github/workflows/custom-build.yml` exists in the repository and is discoverable in the Actions tab
@@ -391,7 +391,7 @@ Across town, **Penny**, a senior developer and font enthusiast, maintains a cura
   - [ ] Workflow succeeds when `config.json` is present but is an empty object `{}` — treated identically to no file present
   - [ ] Default values applied are: `LargeLineHeight=false`, `NoLoopK=false`, `NoCalt=false`, `UseHinted=true`
   - [ ] The build log reports whether `config.json` was found and which values were resolved (for example, `No config.json found, using build defaults` or `Loaded config.json (no overrides), using build defaults`). An empty `config.json` (`{}`) produces the same log output and behavior as a missing file
-  - [ ] Resulting release title reflects the default variant: `Custom Build: Normal (default)`
+   - [ ] Resulting release title reflects the Normal variant: `Custom Build: Normal (default)`
   - [ ] The `manifest.json` records `config_source: "defaults"` (applies when no `config.json` is present, when the file is an empty object `{}`, or when the file contains no overrides and no form inputs are provided)
 
 ### 10.5 US-005: Configuration Schema Validation

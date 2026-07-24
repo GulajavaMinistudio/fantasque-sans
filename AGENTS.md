@@ -100,15 +100,15 @@ To prevent context loss, hallucinations, and to enforce strict SDLC traceability
 
 If the mandatory files are not provided in the prompt context, the agent must halt execution and ask the user to provide them, unless explicitly overridden by the user.
 
-| Agent / Phase | Mandatory Upstream Document(s) |
-|---|---|
-| `@ProductManagerPRD` | Project Discovery Draft (OR existing PRD for updates) |
-| `@ClarificationAnalyst` | PRD, Spec, OR Plan (depending on target) |
-| `@SpecificationArchitect` | Approved PRD (OR existing Spec for updates) |
-| `@PlannerArchitect` | Approved Technical Spec (OR existing Plan for updates) |
-| `@GodModeDev` | Implementation Plan OR Bug Remediation Plan |
-| `@ExpertCodeReviewer` | Technical Spec AND Implementation Plan |
-| `@ArtifactConsistencyChecker` | PRD, Spec, AND Plan |
+| Agent / Phase                     | Mandatory Upstream Document(s)                                          |
+| --------------------------------- | ----------------------------------------------------------------------- |
+| `@ProductManagerPRD`              | Project Discovery Draft (OR existing PRD for updates)                   |
+| `@ClarificationAnalyst`           | PRD, Spec, OR Plan (depending on target)                                |
+| `@SpecificationArchitect`         | Approved PRD (OR existing Spec for updates)                             |
+| `@PlannerArchitect`               | Approved Technical Spec (OR existing Plan for updates)                  |
+| `@GodModeDev`                     | Implementation Plan OR Bug Remediation Plan                             |
+| `@ExpertCodeReviewer`             | Technical Spec AND Implementation Plan                                  |
+| `@ArtifactConsistencyChecker`     | PRD, Spec, AND Plan                                                     |
 | `@DiataxisDocumentationArchitect` | PRD, Technical Spec, Implementation Plan, OR Relevant Source Code files |
 
 *Note: Phase 0 (`@BrainstormingExplorerAnalyst`) and surgical bug analysis (`@BugRemediationArchitect`) rely on user briefs, codebase exploration, or bug reports, and do not have strictly enforced upstream SDLC documents, though providing relevant context is highly encouraged.*
@@ -150,7 +150,7 @@ If the mandatory files are not provided in the prompt context, the agent must ha
 - **Target Agent:** `@ArtifactConsistencyChecker`
 - **When to Invoke:** This is a **recurring checkpoint**, NOT a single linear phase. It MUST be invoked after PRD is finalized, after Spec is finalized, and after Plan is finalized — before proceeding to the next phase.
 - **Goal:** Audit traceability and consistency across PRD, Spec, and Plan documents. Audits Domain Glossary (CONTEXT.md) alignment, ADR compliance (Triple Gate), and `_Avoid_` synonym usage.
-- **Specific Pushback Rule:** If the User asks you to rewrite or "fix" the PRD/Spec documents yourself, YOU MUST REFUSE. Reply (in the language specified by AGENTS.md): *"My role is an Auditor, not an Author. I will flag the missing coverage and inconsistencies. Please invoke @ProductManagerPRD or @SpecificationArchitect to actually rewrite the documents based on my audit."*
+- **Specific Pushback Rule:** If the User asks you to rewrite or "fix" the PRD/Spec documents yourself, YOU MUST REFUSE. Reply (in the language specified by AGENTS.md): *"My role is an Auditor, not an Author. I will flag the missing coverage and inconsistencies. Please invoke @ProductManagerPRD or @SpecificationArchitect to actually rewrite the documents based on my audit."* **Exception:** You are permitted to generate and save formal audit reports to the `docs/audit/` directory.
 
 ### 8. Supplementary: Code Review & Security Audit
 - **Target Agent:** `@ExpertCodeReviewer`
@@ -171,13 +171,7 @@ If the mandatory files are not provided in the prompt context, the agent must ha
 
 - **Active Memory Path:** `.agents/instructions/memory.instructions.md`
 - **Managed by:** `memory-manager` skill
-- **Last Recorded:** 2026-07-23
-
-## Project Reference Documents
-
-The following documents must be read by agents before navigating or modifying the codebase:
-
-- **Project Architecture Map:** Read [/docs/ARCHITECTURE.md](/docs/ARCHITECTURE.md) to understand the directory structure, build pipeline architecture, technical constraints, and the purpose of each file. Agents **MUST** read this document before making code changes or exploring the codebase.
+- **Last Recorded:** 2026-07-24
 
 ## Agents Specific Guidelines
 
