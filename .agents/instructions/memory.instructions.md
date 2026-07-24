@@ -10,7 +10,7 @@
 ## 🧠 Knowledge Base
 
 > This section accumulates cross-session knowledge that must survive compaction.
-> Checkpoints for Sessions 1–6 compacted on 2026-07-24. Knowledge promoted to this section.
+> Checkpoints for Sessions 1–8 compacted on 2026-07-24. Knowledge promoted to this section, including Dead-End #4 (Spec-to-code interface verification). Only Session 9 (Plan v1.0) retained.
 > Updated during Compaction Mode (Workflow 4). Do NOT delete entries here.
 
 ### Architecture & Patterns
@@ -31,6 +31,7 @@
 | 1 | Include spacing presets in V1 | `Scripts/build.py` spacing block fully commented out — not production-ready | Defer spacing to V2 |
 | 2 | Run `configure.py` inside Stage 2 Docker container | Stage 1 needs resolved args before container build (chicken-and-egg) | Run `configure.py` on host runner; pass args via `docker build --build-arg` |
 | 3 | Batch `edit` with multiple hunks in one call using stale snapshot tag | A stale tag on any hunk causes partial rejection — 5 of 9 hunks silently dropped | Always re-`read` for a fresh `#TAG` before sequential multi-hunk edits; never batch hunks across stale snapshots |
+| 4 | Write Spec CLI contract against a code file without verifying its actual interface | Spec v1.4 §4.4 specified `--line-height`/`--no-loop-k`/`--no-calt` flags targeting `Scripts/build.py`, which accepts only 4 positional args (`<parallel> <batch> <sfdir> <output_dir>`), declares options via `option()`/`conflicting()` in the script body, and had the `NoCalt` declaration commented out. No CLI/env option-selection mechanism existed. CON-001 forbade modifying the file — contract was unimplementable. Blocked planning; found during codebase review. | Always verify actual code interfaces (sys.argv handling, function signatures, config mechanisms) before writing contracts against them. When the target cannot be modified, create a NEW wrapper/driver script that imports the legacy module primitives and implements the contract. |
 
 ### Key Metrics & Baselines
 
@@ -38,56 +39,38 @@
 
 ---
 
-## 📝 Session Checkpoint: 2026-07-24 (Spec Surgical Fix v1.4)
+## 📝 Session Checkpoint: 2026-07-24 (Plan v1.0 — Planning Phase Completed)
 
 - **Active Memory Path:** `.agents/instructions/memory.instructions.md`
-- **Current SDLC Phase:** Phase Spec (Technical Specification) — Surgical Fix (post Re-Audit r2)
+- **Current SDLC Phase:** Phase Plan (Implementation Planning) — Completed
 - **Active Artifacts:**
-  - `spec/spec-custom-build-workflow.md` — Status: ✅ v1.4 (R-2 rationale + R-3 schema gap fixed)
-  - `docs/prd-20260723-1130-custom-build-workflow.md` — Status: ✅ v1.3 (R-1 body version fixed to 1.3)
-  - `CONTEXT.md` — Status: ✅ Clean
+  - `docs/prd-20260723-1130-custom-build-workflow.md` — Status: ✅ v1.3 (stable)
+  - `spec/spec-custom-build-workflow.md` — Status: ✅ v1.5 (R-4 BLOCKER fixed — Surgical fix by Planner Architect under explicit user authorization; ✅ frontmatter → §1.2 scope → §4.4 driver contract → §4.5 Stage 1 RUN → §12 revision history row)
+  - `plan/plan-feature-custom-build-workflow-v1.0.md` — Status: ✅ v1.0 (NEW — 6 phases, 28 actionable tasks, full Ref ID/AC Ref traceability, 5 rejected alternatives, 7 risks + 3 assumptions)
   - `docs/adr/0002-multi-stage-docker-deferred-engine-port.md` — Status: ✅ Accepted
+  - `CONTEXT.md` — Status: ✅ Clean
 - **Achieved Milestones:**
-  - R-2 (MEDIUM) resolved: Spec §7 line 345 corrected — "post-build packaging tooling only" + configure.py on host runner
-  - R-3 (MEDIUM) resolved: Spec §4.6 `config_source` added to `required` array (between `font_files` and `spdx_license`)
-  - R-1 (LOW) resolved by @ProductManagerPRD: PRD §1.1 body version `1.2` → `1.3`
-  - Spec bumped v1.3 → v1.4; new §12 Revision History section created
+  - **R-4 Discovery (BLOCKER):** Spec v1.4 §4.4/§4.5 contract specified CLI flags (`--line-height`/`--no-loop-k`/`--no-calt`) targeting the immutable `Scripts/build.py`, which (a) accepts only 4 positional args, (b) declares options statically in-source (NoCalt commented out), and (c) builds all permutations — flags were unimplementable under CON-001. Blocked planning.
+  - **Spec v1.5 Surgical Fix (6 edits, user-authorized):** Re-targeted CLI contract to new Stage 1 driver script `Scripts/custom_build_driver.py` (flag names unchanged); added driver contract in §4.4 (single-combination build, NoCalt via `DropCAltAndLiga()`, MUST NOT invoke ttfautohint/compression — Stage 2 responsibilities); updated §4.5 `RUN` to proven `fontforge -lang=py -script` invocation; added driver to §1.2 scope; documented in §12 as R-4.
+  - **Plan v1.0 created: 6 executable phases** — Phase 1 (configure.py + schema + pytest gate), Phase 2 (driver + Dockerfile + ttx glyph parity gate), Phase 3 (workflow YAML from dispatch→artifacts), Phase 4 (release publishing with retry/idempotency), Phase 5 (docs), Phase 6 (e2e AC matrix + backward compat audit). OBS-2 (release-count warning >20) → TASK-028.
+  - 5 alternatives formally rejected (§3): ALT-001 (flags to build.py — Spec v1.4 contract), ALT-002 (sed patch), ALT-003 (build-all-permutations), ALT-004 (codegen vs static driver), ALT-005 (softprops action vs gh CLI).
+- **Dead-Ends (Do NOT Repeat):**
+  - **Attempted:** Write Spec CLI contract (`--line-height`/`--no-loop-k`/`--no-calt`) targeting `Scripts/build.py` without verifying its actual interface (Spec v1.4 §4.4).
+  - **Reason:** `build.py` accepts 4 positional args only (`<parallel> <batch> <sfdir> <output_dir>`), declares options via `option()`/`conflicting()` calls in-script body, and `NoCalt` declaration is commented out. No CLI/env option-selection mechanism exists in legacy codebase. CON-001 forbids modifying the file.
+  - **Flag for KB:** Promote to Knowledge Base during next compaction — generalizable lesson: always verify actual code interfaces before writing contracts against them. Combine with the driver-script pattern as the proven fix.
 - **Updated Files:**
-  - `spec/spec-custom-build-workflow.md` — v1.3 → v1.4: 2 surgical fixes + version bump + revision history
-- **Next Action / Pending:**
-  - `@ArtifactConsistencyChecker` final re-audit untuk verifikasi R-1/R-2/R-3 resolved + handoff clearance
-  - `@PlannerArchitect` untuk `/plan/` Implementation Plan
-
-<!-- checkpoint-tail: Spec v1.4 finalized with R-2+R-3 fixes applied. R-1 PRD version also fixed. Ready for final re-audit then @PlannerArchitect handoff. -->
-
----
-
-## 📝 Session Checkpoint: 2026-07-24 (Final Re-Audit — Spec v1.4 Handoff Clearance)
-
-- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
-- **Current SDLC Phase:** Recurring Checkpoint: Artifact Consistency Audit (Re-Audit r3, Final) — Completed
-- **Active Artifacts:**
-  - `docs/prd-20260723-1130-custom-build-workflow.md` — Status: ✅ v1.3 (R-1 fixed — body version 1.3 matches frontmatter)
-  - `spec/spec-custom-build-workflow.md` — Status: ✅ v1.4 (R-2 + R-3 fixed — rationale corrected, config_source in required array)
-  - `CONTEXT.md` — Status: ✅ Clean (zero _Avoid_ body violations)
-  - `docs/adr/0002-multi-stage-docker-deferred-engine-port.md` — Status: ✅ Accepted (8/8 aspects aligned, Triple Gate passed)
-- **Achieved Milestones:**
-  - Verified all 3 prior findings (R-1, R-2, R-3) resolved on disk via targeted re-reads
-  - Full traceability re-audit: **11/11 FR** coverage, **15/15 US** coverage, **8/8 ADR-0002** alignment
-  - Cross-document contradiction scan: 7 quantitative parameters — all identical across PRD/Spec
-  - Zero domain-level `_Avoid_` violations across all 4 documents
-  - Zero scope creep — Spec v1.4 adds zero new requirements
-  - ADR-0002 Triple Gate validated: Hard to reverse ✅ | Surprising without context ✅ | Real trade-off ✅
-  - **Verdict: PASS — Spec v1.4 READY FOR HANDOFF to @PlannerArchitect**
-- **Non-Blocking Observations:**
-  - OBS-1 (COSMETIC): PRD §1.1 body date still `2026-07-23` (not bumped when version was fixed) — DEFER
-  - OBS-2 (LOW): PRD §5.3 release accumulation warning (>20) not traced to Spec — note for @PlannerArchitect
+  - `spec/spec-custom-build-workflow.md` — v1.4 → v1.5 (6 edits)
+  - `plan/plan-feature-custom-build-workflow-v1.0.md` — NEW (21,528 bytes)
 - **Decisions Made:**
-  - Handoff clearance granted without reservation — zero blocker findings
-  - Planner guidance: rely on Spec §4.4/§4.5/ADR-0002 for architecture; `config_source` is mandatory per §4.6 `required` array; add task for release-count warning from PRD §5.3
+  - Driver script approach (static, version-controlled) over codegen/transient alternatives — testable, reviewable, no drift.
+  - `gh` CLI (preinstalled) over `softprops/action-gh-release` for release publishing — zero third-party action trust surface (SEC-001).
+  - `ttx` table-diff parity gate (Phase 2 VERIFY) mandatory before any approval — mitigates driver-vs-legacy divergence risk (RISK-004).
+  - Baseline audit bertambah: consistency audit berikutnya wajib memakai `PRD v1.3 ↔ Spec v1.5 ↔ Plan v1.0` — baseline versi lama (v1.4 vs v1.4) sudah usang.
 - **Next Action / Pending:**
-  - **PRIORITAS:** Buka sesi baru → `@PlannerArchitect` untuk `/plan/` Implementation Plan dari Spec v1.4
-  - Setelah Plan disetujui: `@ArtifactConsistencyChecker` (Spec v1.4 ↔ Plan), lalu `@GodModeDev` untuk Phase 6
-  - OBS-1 & OBS-2 dapat difiksasi oportunistik oleh agen masing-masing
+  - **PRIORITAS #1:** Buka sesi baru → `@ClarificationAnalyst` untuk analisis Plan v1.0 terhadap ambiguities & hidden assumptions. File: `@plan/plan-feature-custom-build-workflow-v1.0.md`, referensi: `@spec/spec-custom-build-workflow.md` + `@docs/prd-20260723-1130-custom-build-workflow.md`.
+  - **PRIORITAS #2:** `@ArtifactConsistencyChecker` dengan baseline **baru** (PRD v1.3 ↔ Spec v1.5 ↔ Plan v1.0) — jangan gunakan baseline v1.4 yang sudah obsolete.
+  - **PRIORITAS #3:** `@GodModeDev` eksekusi Plan Phase 1–6 — setiap fase wajib berhenti di gate APPROVAL, tidak bisa skip.
+  - OBS-1 (tanggal body PRD §1.1) — defer ke `@ProductManagerPRD` saat oportunistik.
+  - OBS-2 — sudah tertampung di Plan TASK-028; tidak perlu tindakan lagi.
 
-<!-- checkpoint-tail: Final re-audit PASS — Spec v1.4 cleared for @PlannerArchitect handoff. All 3 prior findings resolved. 11/11 FR, 15/15 US, 8/8 ADR, 0 _Avoid_ violations, 0 contradictions. 2 cosmetic observations noted. -->
+<!-- checkpoint-tail: Plan v1.0 completed from Spec v1.5 (R-4 blocker fix — driver script replaces CLI-to-build.py contract). 6 phases, 28 tasks traceable to REQ/CON/SEC/GUD/FR/AC/US. OBS-2 folded into TASK-028. Next: @ClarificationAnalyst → @ArtifactConsistencyChecker (new baseline PRDv1.3↔Specv1.5↔Planv1.0) → @GodModeDev execution. -->
