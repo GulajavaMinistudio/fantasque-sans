@@ -1,6 +1,6 @@
 ---
 title: Technical Specification — Custom Build via GitHub Workflow
-version: 1.4
+version: 1.5
 date_created: 2026-07-23
 last_updated: 2026-07-24
 owner: Fantasque Sans Mono Core Team
@@ -22,6 +22,7 @@ The purpose of this specification is to define the technical contracts, schema d
 - **In Scope**:
   - Configuration schema `config.schema.json` (JSON Schema draft-07) and repository root file `config.json`.
   - Multi-stage Dockerfile architecture (Stage 1: Python 2.7 + FontForge for compilation; Stage 2: Ubuntu 26.04 LTS + Python 3.14 for autohinting, webfont compression, and packaging. The configuration wrapper `configure.py` runs on the **GitHub Actions host runner** — not inside the container — and passes resolved build args to Stage 1 via `docker build --build-arg`, per §4.4).
+  - Stage 1 driver script `Scripts/custom_build_driver.py` (new file, Python 2.7, executed by FontForge's embedded Python interpreter) that receives the resolved build args and executes the single-combination font compilation through the legacy `fontbuilder` engine, leaving `Scripts/build.py` untouched (CON-001, §4.4).
   - GitHub Actions workflow (`.github/workflows/custom-build.yml`) featuring `workflow_dispatch` inputs and automated GitHub Release & Workflow Artifact publishing.
   - Build manifest format (`manifest.json`) and SHA-256 checksum generation.
   - User documentation: creation of `docs/CUSTOM-BUILD.md` (Getting Started + Advanced Configuration sections) and `README.md` update with prominent Custom Build section linking to the guide.
@@ -146,17 +147,36 @@ Options:
   --form-no-loop-k         [true|false]
   --form-no-calt           [true|false]
   --form-use-hinted        [true|false]
-  --output-args-file PATH  Path to write build.py CLI argument string
+  --output-args-file PATH  Path to write Stage 1 driver CLI argument string
   --generate-manifest PATH Path to write output manifest.json
 ```
 
-Output CLI arguments for `Scripts/build.py` (Stage 1):
+Output CLI arguments for the Stage 1 driver script `Scripts/custom_build_driver.py`:
 
 - `LargeLineHeight=true` → `--line-height`
 - `NoLoopK=true` → `--no-loop-k`
 - `NoCalt=true` → `--no-calt`
 
-The `UseHinted` option does **not** map to a `build.py` argument — it controls whether `ttfautohint` is invoked on TTF outputs in the packaging stage (Stage 2). Its resolved value is written into `resolved_options` within the generated `manifest.json` (via `--generate-manifest`). The workflow YAML reads this value from the manifest (e.g., `jq '.resolved_options.UseHinted' manifest.json`) to conditionally execute `ttfautohint`.
+**Stage 1 Driver Script (`Scripts/custom_build_driver.py`)**
+
+Location: `Scripts/custom_build_driver.py` (new file, Python 2.7, executed by FontForge's embedded Python interpreter)
+
+The legacy `Scripts/build.py` cannot receive variant selection at runtime: it accepts only four positional arguments (`<parallel> <batch> <sfdir> <output_dir>`), declares its options statically in-source (with the `NoCalt` declaration commented out), and builds every permutation of the declared options. CON-001 forbids modifying it. The driver script wraps the same `fontbuilder` engine without touching any legacy file:
+
+```text
+Usage: fontforge --quiet -lang=py -script Scripts/custom_build_driver.py SOURCES_DIR OUTPUT_DIR [--line-height] [--no-loop-k] [--no-calt]
+```
+
+Contract:
+
+- Declares exactly the resolved variant options in the `fontbuilder` option registry, including `NoCalt` via `DropCAltAndLiga()` when `--no-calt` is passed (the operation exists in `fontbuilder.py` but its declaration is commented out in `build.py`).
+- Compiles exactly one combination per weight — the resolved Variant — for every `.sfdir` source in `SOURCES_DIR`.
+- Runs `update_features()` so contextual alternates and ligatures are compiled (or dropped for NoCalt builds).
+- Writes per-weight outputs to `OUTPUT_DIR/TTF/`, `OUTPUT_DIR/OTF/`, and `OUTPUT_DIR/Webfonts/` (SVG), mirroring the layout consumed by Stage 2 (§4.5).
+- MUST NOT invoke `ttfautohint` or WOFF/WOFF2 compression — hinting (gated by `UseHinted`) and webfont compression are Stage 2 responsibilities (§1.2).
+- Exits with a non-zero code and a diagnostic message on any compilation failure (fail-fast).
+
+The `UseHinted` option does **not** map to a driver argument — it controls whether `ttfautohint` is invoked on TTF outputs in the packaging stage (Stage 2). Its resolved value is written into `resolved_options` within the generated `manifest.json` (via `--generate-manifest`). The workflow YAML reads this value from the manifest (e.g., `jq '.resolved_options.UseHinted' manifest.json`) to conditionally execute `ttfautohint`.
 
 `configure.py` executes on the **GitHub Actions runner host** (not inside the Docker container) using the host's Python 3.14 runtime. It validates `config.json`, resolves options, and produces two artifacts consumed by subsequent steps: the build args file (passed to Stage 1 via `docker build --build-arg`) and the manifest (used by Stage 2 packaging).
 
@@ -179,9 +199,11 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /build
 COPY . /build
-# Receives CLI arguments from configure.py via docker build --build-arg
-ARG BUILD_ARGS
-RUN python2.7 Scripts/build.py $BUILD_ARGS
+# Receives resolved build args from configure.py via docker build --build-arg
+# Legacy Scripts/build.py is immutable (CON-001) and accepts no variant flags;
+# the driver script consumes them instead (§4.4)
+ARG BUILD_ARGS=""
+RUN fontforge --quiet -lang=py -script Scripts/custom_build_driver.py Sources /build $BUILD_ARGS
 
 # Stage 2: Modern Packaging Environment (Ubuntu 26.04 + Python 3.14)
 FROM ubuntu:26.04 AS final
@@ -458,3 +480,4 @@ To achieve full compliance with this Technical Specification, implementation art
 | Version | Date       | Author                  | Changes                                                                                                                                                                                                                                                       |
 | ------- | ---------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1.4     | 2026-07-24 | Specification Architect | Surgical fixes per re-audit r2 ([`docs/audit/consistency-audit-custom-build-workflow-2026-07-24-r2.md`](file:///d:/WebstormProject/fantasque-sans/docs/audit/consistency-audit-custom-build-workflow-2026-07-24-r2.md)): **R-2** corrected §7 line 344 rationale to state Stage 2 Python 3.14 is for post-build packaging only and `configure.py` runs on the GitHub Actions host runner per §4.4 (not inside any container); **R-3** added `config_source` to the §4.6 `manifest.json` top-level `required` array (between `font_files` and `spdx_license`) per PRD FR-8 mandate. |
+| 1.5     | 2026-07-24 | Planner Architect (user-authorized surgical fix) | **R-4 (BLOCKER)** fixed: the §4.4/§4.5 CLI contract targeted the immutable `Scripts/build.py`, which accepts only positional arguments, declares options statically in-source (`NoCalt` commented out), and builds all permutations — the `--line-height`/`--no-loop-k`/`--no-calt` flags were unimplementable under CON-001. Re-targeted the contract to the new Stage 1 driver script `Scripts/custom_build_driver.py` (flag names unchanged); added the driver contract to §4.4; updated the §4.5 Stage 1 `RUN` to the proven `fontforge -lang=py -script` invocation; added the driver to the §1.2 scope. No requirement, acceptance criterion, or schema changes. |
