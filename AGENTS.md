@@ -171,7 +171,7 @@ If the mandatory files are not provided in the prompt context, the agent must ha
 
 - **Active Memory Path:** `.agents/instructions/memory.instructions.md`
 - **Managed by:** `memory-manager` skill
-- **Last Recorded:** 2026-07-24
+- **Last Recorded:** 2026-07-26
 
 ## Agents Specific Guidelines
 
