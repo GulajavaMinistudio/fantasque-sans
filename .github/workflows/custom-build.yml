@@ -16,7 +16,7 @@ name: Custom Build
 # (Spec section 4.3) -- default values match the built-in defaults
 # (false, false, false, true).
 # ---------------------------------------------------------------------------
-on:
+"on":
   workflow_dispatch:
     inputs:
       large_line_height:
