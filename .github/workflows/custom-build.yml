@@ -121,9 +121,10 @@ jobs:
             --form-use-hinted "${{ inputs.use_hinted }}" \
             --output-args-file build-args.txt \
             --generate-manifest manifest.json
+          BUILD_ARGS_VAL=$(cat build-args.txt)
           {
             echo "build_args<<EOF"
-            cat build-args.txt
+            echo "$BUILD_ARGS_VAL"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
