@@ -149,7 +149,7 @@ jobs:
         run: |
           mkdir -p output
           docker run --rm \
-            -v "${{ github.workspace }}/manifest.json:/app/manifest.json:ro" \
+            -v "${{ github.workspace }}/manifest.json:/app/manifest.json" \
             -v "${{ github.workspace }}/output:/app/output" \
             fantasque-custom \
             bash /app/Scripts/packaging.sh
