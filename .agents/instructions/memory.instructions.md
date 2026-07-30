@@ -16,6 +16,7 @@
 > - 2026-07-29: Session 2026-07-26 (Plan v1.0 Clarification) + 2026-07-24 (Plan v1.0 one-liner) compacted after Plan v1.2 Section 9 addition. Promoted: 4 Clarification methodology patterns (PRD anchor inclusion, targeted re-read, iterative re-analysis, literal scope adherence). Retained: 2026-07-26 (Consistency Audit), 2026-07-26 (Re-Audit PASS Clean), 2026-07-29 (Section 9 Added).
 > - 2026-07-30: Direct additions to KB (no compaction this session — entries are stable, project-validated). Added: DE #6 (apt→pip fallback for shim packages), DE #7 (read-only mount vs script writeback). Added KB patterns: Cross-tool Escape Hierarchy (bash vs jq backtick handling), Defense-in-Depth vs Script Intent in Docker Mounts. Updated DE #5 "Correct Solution" to reflect `pip3 install future` pattern (replaces obsolete `python3-future` apt install). All additions are project-validated through successful end-to-end CI build.
 > - 2026-07-30 (Compaction Pass): 5 old checkpoints compacted (2026-07-26 ×2, 2026-07-29 ×3). Retained 2 most recent: 2026-07-30 (First CI Run Failures) + 2026-07-30 (Build SUCCESS). Updated KB pattern "Multi-Stage Docker with Deferred Engine Port (ADR-0002)" to reflect current Stage 1 (`ubuntu:26.04` + Python 3.x) instead of outdated `ubuntu:18.04` + Python 2.7. Populated empty `Key Metrics & Baselines` section. No KB knowledge deleted (all 7 DEs + 25 patterns still project-relevant).
+> - 2026-07-30 (Plan-Refactor Compaction): Checkpoint A "First CI Run Failures" compacted (subsumed by Checkpoint B). Promoted: DE #8 (no-op retry fix), 3 KB patterns (Doc Sync Scope Enumeration, Plan-as-Record after Execution, Code Review Remediation Triplet). Retained: Checkpoint B (Build SUCCESS) + new Checkpoint C (Plan-Refactor Execution — 16 tasks, 3 phases, all complete).
 > Updated during Compaction Mode (Workflow 4). Do NOT delete entries here.
 
 ### Architecture & Patterns
@@ -45,6 +46,9 @@
 - **Legacy Python 2/3 Shim Package Deprecation**: The `future` package (which provides `past.builtins` for Py2/3 compat shims like `from past.builtins import xrange`) is no longer in Ubuntu 26.04 main repos (`python3-future` was removed). When migrating legacy code to modern Ubuntu, apt-installable shim packages are increasingly unavailable. **Fix pattern**: Install via `pip` instead of `apt`, using `python3-pip` (apt) as bootstrap. Use `--break-system-packages` for PEP 668 compliance (Ubuntu 24.04+) and `--no-cache-dir` to keep image small. Example: `pip3 install --break-system-packages --no-cache-dir future`. [Source: Session 2026-07-30, third Dockerfile iteration]
 - **Cross-tool Escape Hierarchy (bash → jq/yq)**: When passing strings to subprocesses like `jq`, `yq`, `python -c`, etc., be aware of escape context. **In bash DOUBLE-quoted strings** (`"..."`): backtick `` ` `` triggers command substitution → escape with `` \` ``. **In bash SINGLE-quoted strings** (`'...'`): backtick is literal (no escape needed). **In jq/yq strings** (inside bash single-quotes): backtick is also literal (no escape needed). The pattern `` \`\(.field)\` `` in a single-quoted bash → jq context is a **copy-paste mistake** from bash double-quoted context. **Valid escapes inside jq double-quoted strings**: `\\`, `\"`, `\/`, `\b`, `\f`, `\n`, `\r`, `\t`, `\uXXXX`. Rule of thumb: escape sequence belongs to the tool that is **currently parsing** the string; when switching contexts (bash → jq), backslash escapes from the previous context often become invalid literals in the new context. [Source: Session 2026-07-30, release notes generation step]
 - **Defense-in-Depth vs Script Intent in Docker Volume Mounts**: When a CI workflow mounts a file with `:ro` (read-only) but a script in the container is designed to write back to that path, the build fails with `Read-only file system`. The defensive `:ro` conflicts with the script's clear design intent. **Decision framework**: (1) If the script's writeback is legitimate (e.g., updating an artifact in place), **remove `:ro`** — defense-in-depth should not block trusted code. (2) If the writeback is accidental or a refactor opportunity, **change the mount path or script target**. (3) If neither is acceptable, **use a separate writable mount** for the writeback target. Generalization: when mounting volumes in CI/Docker, audit each mount against the trusted code's intent. Mismatches are a common source of "works locally, fails in CI" bugs. [Source: Session 2026-07-30, packaging step read-only filesystem error]
+- **Doc Sync Scope Enumeration (CR-F2 lesson)**: When CI debugging forces environment deviation, the doc sync must enumerate ALL affected sections, not just the obvious ones. Use `grep` (e.g., `grep -in "python2.7\|ubuntu:18.04"` across all relevant docs) to enumerate the actual surface area, not relying on the original finding's stated scope. For this project, the v1.0 plan said "Spec §4.5 only" but actual env drift required syncing 7 Spec sections (`REQ-004`, §1.1, §1.2, §4.4, §4.5, §7, §8.2) + ADR-0002 + 5 PRD sections + ARCHITECTURE.md. **Lesson**: fix scope must match actual drift surface, not assumed drift surface. [Source: Session 2026-07-30, plan-refactor-code-review TASK-103..TASK-106]
+- **Plan-as-Record after Execution**: After executing a refactor plan, update the plan file itself to reflect the actual state: (1) frontmatter status `Draft → Complete`, (2) version bump (e.g., 1.1 → 1.2), (3) date column on every task row, (4) revision note in Introduction footer, (5) `## 6. Execution Results` section. The plan becomes the historical record of work, not just the work instruction — future readers see both the plan and its execution outcomes in one document. [Source: Session 2026-07-30, plan-refactor-code-review closure]
+- **Code Review Remediation Triplet**: When code review surfaces env drift caused by CI debugging, address all three: (1) **Env sync** (Dockerfile, `.dockerignore`, base images), (2) **Code fixes** (workflow retry, version constants, stale comments), (3) **Doc sync** (plan, spec, ADR, PRD, ARCH). Missing any one = incomplete remediation. The triplet reflects the surface area that drift can affect: runtime config, code-level constants, and human-readable documentation. [Source: Session 2026-07-30, plan-refactor-code-review scope]
 
 ### Dead-Ends (Do NOT Repeat)
 
@@ -57,63 +61,20 @@
 | 5 | Use Ubuntu 18.04 + python-fontforge (Py2.7) for legacy fontforge script (also: assume `ppa:fontforge/fontforge` works on newer Ubuntu) | TWO related failure modes: (a) Ubuntu 18.04: `ppa:fontforge/fontforge` is not available; default 18.04 fontforge (1:20170731) has broken Python 3 `__getitem__` for `font['name']` — `font['space']` raises `TypeError: Index must be an integer or a string`. Even with `python-future` shim, the C-level bindings reject string indices in Python 3 runtime. (b) Ubuntu 26.04 ("resolute"): `ppa:fontforge/fontforge` 404s on `resolute` suite (PPA not maintained for the latest release). CON-001 forbids modifying `features.py` to work around either issue. | Use the **default Ubuntu repos** (not PPA) for the chosen base image. Modern fontforge binaries ship Python 3 bindings embedded, so `fontforge -lang=py -script` works without a separate `python3-fontforge` package. For Ubuntu 26.04, install: `ca-certificates fontforge python3-pip make` via apt, then `pip3 install --break-system-packages --no-cache-dir future` for the Py2/3 shim (see DE #6 for why apt's `python3-future` no longer works). Update Plan v1.2 §Phase 2 base image reference accordingly (v1.3 bump recommended). Lesson: when migrating to a new Ubuntu release, NEVER assume PPA support — always test with `apt-get update` first or use default distro packages. |
 | 6 | Install `python3-future` via `apt-get install` on Ubuntu 26.04 | Package removed from Ubuntu 26.04 main repos (PEP 668 / minimalism trend). `apt-get install python3-future` returns `E: Unable to locate package python3-future`. The `future` package (which provides `past.builtins` for Py2/3 compat shims like `from past.builtins import xrange`) is no longer in distro repos. | For legacy Python 2/3 shim packages, bootstrap `python3-pip` via apt then install via pip: `pip3 install --break-system-packages --no-cache-dir <package>`. The `--break-system-packages` flag is required for PEP 668 compliance (Ubuntu 24.04+); `--no-cache-dir` keeps the image small. Lesson: as Ubuntu modernizes, apt-installable shim packages are increasingly unavailable — `pip install` is the de-facto fallback for legacy compat libs. |
 | 7 | Mount source manifest as `:ro` in workflow but have packaging script write updated manifest back to same path | `:ro` mount rejects all writes; script fails with `Read-only file system` error. The defensive `:ro` conflicts with script's clear design intent (update manifest in place for archive step). Even if script's writeback is "questionable" (writing back to source is unusual), the script is trusted code in the same image — blocking it with `:ro` breaks the build. | Three options: (a) **Remove `:ro` flag** (chosen for this build) — trade defense-in-depth for clean build. Container can modify source manifest, but that's the script's design intent. (b) **Refactor script to use different filename** in /app/ (e.g., `manifest.built`) — more complex, breaks canonical `manifest.json` name in archive. (c) **Copy script's writeback target to OUTPUT_DIR first**, then have script write there — adds copy step, more IO. Generalization: when mounting volumes in CI/Docker, ensure mount permissions match the trusted code's intent. Defense-in-depth is good but should not block legitimate build behavior. |
+| 8 | **No-op retry fix (v1.0 → v1.1 lesson)**: Add `3) delay=25 ;;` to a `case $attempt in ... esac` loop where the loop runs only when `attempt < max_attempts` with `max_attempts=3` | The case structure has only 2 delay slots; with 3 attempts (1 initial + 2 retries), only 2 delays (1s, 5s) are needed. The new `3) delay=25 ;;` case never executes because the loop terminates at attempt 3 before reaching the new branch. Initial fix was a no-op — the case structure was unchanged in behavior. | Bump `max_attempts` to match the new delay tiers — e.g., `max_attempts=4` (1 initial + 3 retries) for 1s/5s/25s delays. **General lesson**: when adding a new branch to a loop/case structure, verify the structure actually reaches the new branch — count `attempts × delays` and ensure they match. If they don't, the fix is a no-op. |
 
 ### Key Metrics & Baselines
 
 <!-- Stable metrics that serve as reference points (test counts, coverage, performance baselines). -->
-- **Test Suite (configure.py)**: 62/62 pytest unit tests passing, 0.49s execution time. [Source: Session 2026-07-29 Phase 1; re-verified 2026-07-30]
-- **Knowledge Base Size**: 7 Dead-Ends + 25 Architecture & Patterns (16 stable + 9 from latest sessions). [Source: Session 2026-07-30, post-compaction]
+- **Test Suite (configure.py)**: 62/62 pytest unit tests passing, 0.20s execution time. [Source: Session 2026-07-29 Phase 1; re-verified 2026-07-30 plan-refactor]
+- **Knowledge Base Size**: 8 Dead-Ends + 28 Architecture & Patterns (16 stable + 12 from latest sessions). [Source: Session 2026-07-30, post plan-refactor compaction]
+- **Plan-Refactor Execution (2026-07-30)**: 16 tasks across 3 phases, all completed in single session; 13/13 acceptance criteria met; pytest 62/62 PASS; CON-001 preserved. [Source: Session 2026-07-30, plan-refactor-code-review v1.0]
 - **End-to-End Build**: 8 iteration cycles to first successful CI run (issues #1–#8). [Source: Session 2026-07-30, first end-to-end run 30520458083]
 - **GitHub Actions Actions Versions**: `actions/checkout@v7` + `actions/setup-python@v6` + `actions/upload-artifact@v4` (Node.js 24 LTS). [Source: Session 2026-07-30]
 - **Custom-build Release Tag Format**: `custom-build-YYYYMMDD-HHMMSS-{run_id}-{run_attempt}` (UTC). [Source: PRD v1.3, Plan v1.2 §TASK-040]
-- **CON-001 (Constraint)**: `Scripts/features.py` is FORBIDDEN to modify (legacy). All environment fixes go in `Dockerfile` or workflow YAML. Verified via `git diff --stat` on legacy files = empty. [Source: Plan v1.2 §CON-001, verified 2026-07-30]
+- **CON-001 (Constraint)**: `Scripts/features.py` is FORBIDDEN to modify (legacy). All environment fixes go in `Dockerfile` or workflow YAML. Verified via `git diff --stat` on legacy files = empty. [Source: Plan v1.2 §CON-001, verified 2026-07-30 plan-refactor]
 
 ---
-
-## 📝 Session Checkpoint: 2026-07-30 (Code Phase Debugging — First CI Run Failures)
-
-- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
-- **Previous Phase:** Code phase Phases 1, 3, 4, 5 complete (2026-07-29) — Phases 2 + 6 🟡 partial (Opsi B deferred to user CI)
-- **Current SDLC Phase:** Code phase — **first runtime CI attempt uncovered 4 sequential failures**; all diagnosed and fixed locally; awaiting user commit+push+re-run
-- **Active Artifacts:**
-  - `plan/plan-feature-custom-build-workflow-v1.2.md` — Status: ✅ Unchanged (env deviation documented for v1.3 bump)
-  - `spec/spec-custom-build-workflow.md` — Status: ✅ Unchanged (multi-stage contract preserved)
-  - `Dockerfile` — Status: 🔄 **MODIFIED** (3 uncommitted changes pending commit+push)
-  - `.github/workflows/custom-build.yml` — Status: ✅ Committed at `0422e16` (Node.js 24 upgrade + `"on":` fix)
-  - `docs/prd-20260723-1130-custom-build-workflow.md` — Status: ✅ Unchanged
-- **Achieved Milestones (this debugging session):**
-  - **Issue #1 — `actions/checkout@v4` and `actions/setup-python@v5` Node.js 20 deprecation warning** — FIXED via upgrade to `actions/checkout@v7` + `actions/setup-python@v6` (Node.js 24 LTS). Committed at `0422e16`. [actions/upload-artifact@v4 left unchanged — not flagged]
-  - **Issue #2 — `Unknown instruction: MAKE` (Dockerfile parse error)** — ROOT CAUSE: backslash `\` on `python-future \   # NEW: ...` line was followed by content (spaces + comment) instead of being immediately followed by newline. The `\` was treated as literal backslash, breaking the multi-line RUN, so next line `make \` was parsed as new instruction. FIX: removed trailing comment from line, moved documentation to a separate comment block above. CON-001 preserved (legacy scripts untouched). [Source: DE #5 first symptom]
-  - **Issue #3 — `ImportError: No module named past.builtins` in fontbuilder.py** — ROOT CAUSE: missing `python-future` package in Stage 1 (the `from past.builtins import xrange` shim requires it). FIX: added `python-future` to Stage 1 apt-get install list.
-  - **Issue #4 — `TypeError: Index must be an integer or a string` in features.py:37 (`font['space'].width`)** — ROOT CAUSE: `ppa:fontforge/fontforge` is NOT available for Ubuntu 18.04; default 18.04 fontforge (1:20170731) was installed with broken Python 3 `__getitem__` bindings. `font.createChar()` works but `font['name']` rejects string indices. CON-001 forbids modifying `features.py`. FIX: migrate Stage 1 base image `ubuntu:18.04` → `ubuntu:26.04` (matches Stage 2 `final`, latest LTS); replace `python-fontforge`+`python2.7`+`python-future` with `python3-fontforge`+`python3-future`. PPA supports 26.04 with complete Python 3 bindings. [PROMOTED to DE #5]
-  - **Cleanup** — Removed empty line between `RUN ... rm -rf` and `WORKDIR` (hadolint `NoEmptyContinuation` warning). Normalized all modified files to LF line endings (CRLF was introduced by edit tool on Windows but was not the cause of any error).
-- **Decisions Made:**
-  - **Migrate Stage 1 to Ubuntu 26.04** (not 20.04, not 24.04) — user explicitly requested "LTS terbaru" (latest LTS) per July 2026 timeline; matches existing Stage 2 `final` for cross-stage consistency.
-  - **Drop `python2.7` from Stage 1 install** — Ubuntu 26.04 default Python is 3.13+; `python-fontforge` is a legacy Py2 package superseded by `python3-fontforge`.
-  - **Defer Plan v1.2 → v1.3 bump** — Environment deviation is significant (base image + language version) but does not affect contract. Will formally bump during `/sdlc-code-review` cycle. Documented here as pending audit item.
-  - **Keep `actions/upload-artifact@v4`** — Not flagged for Node.js 20 deprecation in this run; can be upgraded in code review if needed.
-- **Updated Files (this session, uncommitted as of session end):**
-  - `Dockerfile` — Base image 18.04 → 26.04, Python 2.7 → 3.x packages, line continuation fix, hadolint cleanup, comment refresh
-  - `.agents/instructions/memory.instructions.md` — 5 new patterns + DE #5 + this checkpoint
-- **Dead-Ends (do NOT repeat):**
-  - **Attempted**: Place documentation comment after `\` line continuation in Dockerfile. **Reason**: Breaks line continuation; backslash becomes literal. **Solution**: Comments must go on separate lines or BEFORE the RUN block, not on continuation lines after `\`.
-  - **Attempted**: Trust `apt-get install fontforge` from `ppa:fontforge/fontforge` on Ubuntu 18.04. **Reason**: PPA is not available for 18.04; install silently falls back to broken default 18.04 fontforge. **Solution**: Always verify PPA availability for the target Ubuntu release before relying on it; prefer newer LTS (20.04+) where PPAs are better maintained.
-  - **Attempted**: Continue using `actions/checkout@v4` and `actions/setup-python@v5`. **Reason**: Node.js 20 deprecated by GitHub as of late 2025; generates warnings even though shim keeps them functional. **Solution**: Upgrade to major versions that natively target Node.js 24 (`@v7` and `@v6+` respectively).
-- **Lessons Learned (KB candidates for next compaction):**
-  - **First CI run is a debugging tool, not a verification tool**: When Opsi B defers runtime verification to user CI, the first run almost always surfaces environment/toolchain issues that couldn't be caught in static review. Plan for 1-2 iteration cycles of commit+push+re-run as part of the "static PASS → runtime PASS" transition.
-  - **Dockerfile line continuation gotcha** is easy to miss when adding comments inline — especially with tools that auto-validate indentation. Always review Dockerfile diffs in a context-aware editor before committing.
-  - **Multi-stage Dockerfile consistency is a feature**: When Stage 2 already uses a base image, Stage 1 should match. Cross-stage version drift (Stage 1 18.04 vs Stage 2 26.04) is a code smell and creates debugging overhead when one stage works and the other doesn't.
-  - **YAML `on:` boolean issue is invisible to GitHub but visible to PyYAML/linters**: Always quote `"on":` in workflow YAML for compatibility with strict YAML parsers and for human reviewability.
-  - **Windows + Git autocrlf + edit tools = silent CRLF injection**: Every edit on Windows risks converting LF to CRLF. Always normalize line endings post-edit and consider `.gitattributes` (`*.dockerfile text eol=lf`) for the project.
-- **Next Action / Pending:**
-  - **PRIORITAS #1 (user):** Commit Dockerfile changes → `git add Dockerfile && git commit -m "fix(docker): migrate Stage 1 to Ubuntu 26.04 + Python 3"` → `git push origin master`
-  - **PRIORITAS #2 (user):** Re-run failed workflow (`workflow_dispatch` re-run all jobs on the run that failed at features.py)
-  - **PRIORITAS #3 (if re-run still fails):** Diagnose new error from log; likely candidates: (a) `python3-fontforge` package name mismatch in PPA for 26.04 (fallback to `python-fontforge` if Py3 variant absent), (b) PPA itself not available for 26.04 (fallback to default Ubuntu 26.04 fontforge)
-  - **PRIORITAS #4 (after build success):** Formally bump Plan v1.2 → v1.3 to reflect base image and Python version changes
-  - **PRIORITAS #5 (after AC-001..AC-005 all pass):** `/sdlc-code-review` in new session (Strict Session Isolation) — review should flag the Plan v1.2 deviation
-  - **AGENTS.md Memory Configuration** `Last Recorded` should be updated from 2026-07-29 → 2026-07-30 — user-consent only per skill rule
-
-<!-- checkpoint-tail: First CI run surfaced 4 sequential build failures (Node.js deprecation, line continuation bug, missing python-future, fontforge version mismatch on Ubuntu 18.04). All 4 diagnosed and fixed locally. Dockerfile changes uncommitted, awaiting user commit+push+re-run. DE #5 promoted to KB. Plan v1.2 needs v1.3 bump for env changes (pending code review). -->
 
 ## 📝 Session Checkpoint: 2026-07-30 (Code Phase Debugging — Build SUCCESS After 4 More Iterations)
 
@@ -164,3 +125,57 @@
   - URL: `https://github.com/GulajavaMinistudio/fantasque-sans/releases`
 
 <!-- checkpoint-tail: Code phase: end-to-end CI build SUCCESS after 8 iteration cycles. 8 commits, 3 new dead-ends, 2 new KB patterns, Plan v1.3 bump pending. User chose "Stop setelah save memory" — session ends after memory commit. Next: commit memory + /sdlc-code-review + Plan v1.3. -->
+
+## 📝 Session Checkpoint: 2026-07-30 (Plan-Refactor Execution — Documentation Sync & Minor Fixes)
+
+- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
+- **Previous Phase:** Code phase — first end-to-end CI build SUCCESS (8 iterations, 2026-07-30 morning+afternoon); Code Review surfaced 5 findings (CR-F1..CR-F5)
+- **Current SDLC Phase:** Code Review remediation — `plan/plan-refactor-code-review-v1.0.md` v1.1 fully executed; plan itself bumped to v1.2 (Complete); ready for `/sdlc-code-review` next session
+- **Active Artifacts:**
+  - `plan/plan-refactor-code-review-v1.0.md` — Status: ✅ v1.1 → v1.2 (Complete + Execution Results section)
+  - `plan/plan-feature-custom-build-workflow-v1.2.md` → renamed to `v1.3.md` + content synced
+  - `spec/spec-custom-build-workflow.md` — Status: ✅ v1.5 → v1.6 (7 sections: REQ-004, §1.1, §1.2, §4.4, §4.5, §7, §8.2)
+  - `docs/adr/0002-multi-stage-docker-deferred-engine-port.md` — Status: ✅ env sync (Revision Note 2026-07-30)
+  - `docs/prd-20260723-1130-custom-build-workflow.md` — Status: ✅ 5 sections synced (§140, §253, §293, §308, §468)
+  - `docs/ARCHITECTURE.md` — Status: ✅ Tools table, Dockerfile note, EOL section synced
+  - `.github/workflows/custom-build.yml` — Status: ✅ GUD-003 retry fixed (`max_attempts=4` + 1s/5s/25s delays)
+  - `Scripts/configure.py` — Status: ✅ `WORKFLOW_VERSION = "1.3"`
+  - `Scripts/packaging.sh` — Status: ✅ `:ro` mount removed from manifest path
+  - `.dockerignore` — Status: ✅ NEW (9 entries: `.git/`, `__pycache__/`, `*.pyc`, `.pytest_cache/`, `output/`, `*.zip`, `*.tar.gz`, `.agents/`, `.github/`)
+- **Achieved Milestones (this session):**
+  - **5/5 code review findings addressed** (CR-F1 doc sync, CR-F2 full spec sync, CR-F3 GUD-003 fix, CR-F4 stale comment/version, CR-F5 .dockerignore)
+  - **13/13 acceptance criteria met** (8 Phase 1 + 5 Phase 2)
+  - **pytest 62/62 PASS** (regression test, no flakes, 0.20s)
+  - **CON-001 preserved** (`git diff Scripts/build.py Scripts/fontbuilder.py Scripts/features.py Makefile` = empty)
+  - **markdownlint 0 errors** on both plan files
+  - **All internal links resolve** in Plan v1.3 (spec, PRD, ADR, CONTEXT.md)
+  - **No new ADR needed** — existing ADR-0002 covers all architectural decisions; ADR-0001 retained as Superseded for historical reference
+- **Decisions Made:**
+  - **No new ADR for plan-refactor**: All architectural decisions (env migration, `future` shim, deferred engine port) already documented in ADR-0002. Adding ADRs for non-architectural changes (e.g., `.dockerignore` baseline, retry strategy, version constant bump) would violate the triple-gate criteria (hard to reverse / surprising / real trade-off).
+  - **ADR-0001 retained as Superseded**: Standard MADR practice — superseded ADRs are never deleted; they preserve historical decision context.
+  - **Plan itself updated to reflect completion**: v1.1 → v1.2 bump, status `Draft → Complete`, `## 6. Execution Results` section. The plan is the record of work, not just the work instruction.
+- **Updated Files (this session):**
+  - `plan/plan-refactor-code-review-v1.0.md` — v1.1 → v1.2, status Complete, Execution Results section
+  - `plan/plan-feature-custom-build-workflow-v1.2.md` → renamed to `v1.3.md` + content sync
+  - `spec/spec-custom-build-workflow.md` — v1.5 → v1.6
+  - `docs/adr/0002-multi-stage-docker-deferred-engine-port.md` — Revision Note 2026-07-30
+  - `docs/prd-20260723-1130-custom-build-workflow.md` — 5 sections synced
+  - `docs/ARCHITECTURE.md` — synced
+  - `.github/workflows/custom-build.yml` — GUD-003 retry fix
+  - `Scripts/configure.py` — `WORKFLOW_VERSION = "1.3"`
+  - `Scripts/packaging.sh` — `:ro` removed
+  - `.dockerignore` — NEW (9 entries)
+  - `.agents/instructions/memory.instructions.md` — this compaction + new KB entries
+- **Next Action / Pending:**
+  - **PRIORITAS #1 (user, next session):** Open new chat session → invoke `/sdlc-code-review` for formal Two-Axis review of Phase 2 changes (`.github/workflows/custom-build.yml`, `Scripts/configure.py`, `Scripts/packaging.sh`, `.dockerignore`).
+  - **PRIORITAS #2 (user):** Commit memory + plan updates → `git add .agents/instructions/memory.instructions.md plan/ && git commit -m "docs(memory+plan): checkpoint 2026-07-30 plan-refactor complete + DE #8 + 3 KB patterns"` → `git push`.
+  - **PRIORITAS #3 (user, optional):** Trigger CI re-run on fork with `workflow_dispatch` for smoke test (TEST-004 in plan).
+  - **PRIORITAS #4 (user, after code review):** Invoke `/sdlc-generate-docs` for user-facing documentation (Diátaxis framework).
+- **Verification Snapshot:**
+  - pytest: 62/62 PASSED in 0.20s
+  - markdownlint: 0 errors on `plan/plan-feature-custom-build-workflow-v1.3.md` and `plan/plan-refactor-code-review-v1.0.md`
+  - Internal links: 4/4 resolve in Plan v1.3 (spec, PRD, ADR, CONTEXT.md)
+  - `grep "python2.7"` and `grep "ubuntu:18.04"` in 4 target docs: 0 matches each
+  - `git diff Scripts/build.py Scripts/fontbuilder.py Scripts/features.py Makefile`: empty (CON-001 compliant)
+
+<!-- checkpoint-tail: Plan-refactor-code-review v1.0 fully executed (16 tasks, 3 phases, all complete). 5 CR findings addressed; 13/13 AC met; pytest 62/62; CON-001 preserved. Plan itself updated to v1.2 Complete. No new ADR needed. Next: /sdlc-code-review. -->
