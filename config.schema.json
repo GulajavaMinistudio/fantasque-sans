@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Fantasque Sans Mono Custom Build Configuration",
+  "type": "object",
+  "properties": {
+    "LargeLineHeight": {
+      "type": "boolean",
+      "description": "Increases line height metric for better accented character rendering.",
+      "default": false
+    },
+    "NoLoopK": {
+      "type": "boolean",
+      "description": "Uses a straight, non-looped variant for lowercase 'k'.",
+      "default": false
+    },
+    "NoCalt": {
+      "type": "boolean",
+      "description": "Disables contextual alternates (programming ligatures).",
+      "default": false
+    },
+    "UseHinted": {
+      "type": "boolean",
+      "description": "Runs ttfautohint on generated TTF fonts for screen rendering optimization.",
+      "default": true
+    }
+  },
+  "additionalProperties": true
+}
