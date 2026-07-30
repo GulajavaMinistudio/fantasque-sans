@@ -16,16 +16,15 @@
 
 
 # -----------------------------------------------------------------------------
-# Stage 1: legacy FontForge + Python 2.7 build environment
+# Stage 1: legacy FontForge + Python 3.x build environment
 # -----------------------------------------------------------------------------
-FROM ubuntu:18.04 AS builder-fontforge
+FROM ubuntu:26.04 AS builder-fontforge
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# FontForge from the team PPA is the only source of Python 2.7 bindings
-# for modern containers. ``software-properties-common`` enables
-# ``add-apt-repository``. ``rm -rf /var/lib/apt/lists/*`` keeps the layer
-# small. ``make`` is kept around for the legacy ``Makefile`` smoke path.
+# FontForge from the team PPA provides the fontforge binary on Ubuntu 26.04.
+# software-properties-common enables add-apt-repository; rm -rf keeps the
+# layer small. make is kept around for the legacy Makefile smoke path.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         software-properties-common \
@@ -37,12 +36,10 @@ RUN apt-get update \
 # (``from past.builtins import xrange`` is a Py2/3 compatibility shim).
     && apt-get install -y --no-install-recommends \
         fontforge \
-        python-fontforge \
-        python2.7 \
-        python-future \
+        python3-fontforge \
+        python3-future \
         make \
     && rm -rf /var/lib/apt/lists/*
-
 WORKDIR /build
 
 # The driver script reads ``Sources/`` relative to WORKDIR; the entire
