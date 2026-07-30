@@ -22,21 +22,18 @@ FROM ubuntu:26.04 AS builder-fontforge
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# FontForge from the team PPA provides the fontforge binary on Ubuntu 26.04.
-# software-properties-common enables add-apt-repository; rm -rf keeps the
-# layer small. make is kept around for the legacy Makefile smoke path.
+# FontForge from the default Ubuntu 26.04 (resolute) repos. The team PPA
+# ``ppa:fontforge/fontforge`` does NOT support ``resolute`` (404) so we
+# use the distro package. The fontforge binary ships Python 3 bindings
+# embedded; ``-lang=py -script`` invokes that interpreter directly, so
+# no separate ``python3-fontforge`` package is required.
+# ``ca-certificates`` is required for ``apt-get update`` over HTTPS.
+# ``rm -rf /var/lib/apt/lists/*`` keeps the layer small.
+# ``make`` is kept around for the legacy ``Makefile`` smoke path.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        software-properties-common \
         ca-certificates \
-    && add-apt-repository -y ppa:fontforge/fontforge \
-    && apt-get update \
-
-# python-future provides the 'past' module that fontbuilder.py imports
-# (``from past.builtins import xrange`` is a Py2/3 compatibility shim).
-    && apt-get install -y --no-install-recommends \
         fontforge \
-        python3-fontforge \
         python3-future \
         make \
     && rm -rf /var/lib/apt/lists/*

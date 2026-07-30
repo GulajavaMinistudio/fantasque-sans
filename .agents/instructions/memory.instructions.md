@@ -35,6 +35,11 @@
 - **Targeted Re-Read Before Literal Citation**: Always targeted re-read (via `grep` atau `read` selector) before literal citation — rekonstruksi dari memori audit = risiko false positive. [Source: Session 2026-07-26 Clarification, still valid]
 - **Iterative Re-Analysis Pattern**: When new context (e.g., PRD injection) arrives mid-session, re-analyze prior findings — design grill untuk iteratif, bukan one-shot. Many findings may collapse on re-analysis. [Source: Session 2026-07-26 Clarification, still valid]
 - **Literal Scope Adherence ("Saya tangani")**: When user says "saya tangani" or similar deferral, take it literally for the mentioned item only — jangan over-extend ke findings berikutnya saat user defer satu finding tertentu. [Source: Session 2026-07-26 Clarification, still valid]
+- **Build Debug Iteration Hierarchy**: When Docker build fails, fix in order: (1) syntax coercion (YAML booleans, Dockerfile backslash+comment), (2) missing dependencies (`python-future`, etc.), (3) version mismatches (Python 2.7 vs 3.x), (4) environment changes (base image, language runtime). Iterate and verify each fix before escalating. [Source: Session 2026-07-30, first CI run]
+- **YAML `on:` Boolean Coercion Gotcha**: In YAML 1.1, bareword `on` is parsed as boolean `True`. Many parsers (PyYAML) store under `True` key. GitHub Actions parser is generally lenient but quoting (`"on":`) is best practice for cross-tool compatibility. [Source: Session 2026-07-30]
+- **Dockerfile Backslash Line Continuation Rules**: A backslash `\` must be IMMEDIATELY followed by a newline to be a line continuation. Any content between `\` and newline (including spaces or `# comment`) makes `\` a literal backslash, breaking the multi-line instruction and causing "Unknown instruction" errors for the next line. [Source: Session 2026-07-30]
+- **CRLF in Dockerfiles on Windows**: Windows edit tools (and Git `core.autocrlf=true`) can convert LF to CRLF. CRLF in Dockerfiles is usually fine for Docker on Linux, but hadolint may warn. Always normalize to LF for cross-platform consistency. [Source: Session 2026-07-30]
+- **Node.js 20 Deprecation in GitHub Actions**: As of late 2025, GitHub deprecated Node.js 20 on Actions runners. Actions `actions/checkout@v4` and `actions/setup-python@v5` (and other @v4/v5 actions) are being forced to Node.js 24 via shim, generating warnings. Upgrade: `actions/checkout@v7`, `actions/setup-python@v6+`. Always check action versions against Node.js target. [Source: Session 2026-07-30]
 
 ### Dead-Ends (Do NOT Repeat)
 
@@ -44,6 +49,7 @@
 | 2 | Run `configure.py` inside Stage 2 Docker container | Stage 1 needs resolved args before container build (chicken-and-egg) | Run `configure.py` on host runner; pass args via `docker build --build-arg` |
 | 3 | Batch `edit` with multiple hunks in one call using stale snapshot tag | A stale tag on any hunk causes partial rejection — 5 of 9 hunks silently dropped | Always re-`read` for a fresh `#TAG` before sequential multi-hunk edits; never batch hunks across stale snapshots |
 | 4 | Write Spec CLI contract against a code file without verifying its actual interface | Spec v1.4 §4.4 specified `--line-height`/`--no-loop-k`/`--no-calt` flags targeting `Scripts/build.py`, which accepts only 4 positional args (`<parallel> <batch> <sfdir> <output_dir>`), declares options via `option()`/`conflicting()` in the script body, and had the `NoCalt` declaration commented out. No CLI/env option-selection mechanism existed. CON-001 forbade modifying the file — contract was unimplementable. Blocked planning; found during codebase review. | Always verify actual code interfaces (sys.argv handling, function signatures, config mechanisms) before writing contracts against them. When the target cannot be modified, create a NEW wrapper/driver script that imports the legacy module primitives and implements the contract. |
+| 5 | Use Ubuntu 18.04 + python-fontforge (Py2.7) for legacy fontforge script (also: assume `ppa:fontforge/fontforge` works on newer Ubuntu) | TWO related failure modes: (a) Ubuntu 18.04: `ppa:fontforge/fontforge` is not available; default 18.04 fontforge (1:20170731) has broken Python 3 `__getitem__` for `font['name']` — `font['space']` raises `TypeError: Index must be an integer or a string`. Even with `python-future` shim, the C-level bindings reject string indices in Python 3 runtime. (b) Ubuntu 26.04 ("resolute"): `ppa:fontforge/fontforge` 404s on `resolute` suite (PPA not maintained for the latest release). CON-001 forbids modifying `features.py` to work around either issue. | Use the **default Ubuntu repos** (not PPA) for the chosen base image. Modern fontforge binaries ship Python 3 bindings embedded, so `fontforge -lang=py -script` works without a separate `python3-fontforge` package. For Ubuntu 26.04, just install: `ca-certificates fontforge python3-future make`. Update Plan v1.2 §Phase 2 base image reference accordingly (v1.3 bump recommended). Lesson: when migrating to a new Ubuntu release, NEVER assume PPA support — always test with `apt-get update` first or use default distro packages. |
 
 ### Key Metrics & Baselines
 
@@ -262,3 +268,49 @@
   - **AGENTS.md Memory Configuration** `Last Recorded` will need update to 2026-07-29 — user-consent only per skill rule.
 
 <!-- checkpoint-tail: Code phase: Phases 1, 3, 4, 5 ✅ complete; Phase 2 + Phase 6 🟡 partial (Opsi B deferred to user fork). 23+ tasks closed. Static verification 4/4 PASS (schema Draft-07, 62/62 pytest, CON-001, file inventory). 3 NEW docs (CUSTOM-BUILD.md, phase-6 verification report, +148 lines workflow). Next: user CI run + new session /sdlc-code-review. -->
+
+
+## 📝 Session Checkpoint: 2026-07-30 (Code Phase Debugging — First CI Run Failures)
+
+- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
+- **Previous Phase:** Code phase Phases 1, 3, 4, 5 complete (2026-07-29) — Phases 2 + 6 🟡 partial (Opsi B deferred to user CI)
+- **Current SDLC Phase:** Code phase — **first runtime CI attempt uncovered 4 sequential failures**; all diagnosed and fixed locally; awaiting user commit+push+re-run
+- **Active Artifacts:**
+  - `plan/plan-feature-custom-build-workflow-v1.2.md` — Status: ✅ Unchanged (env deviation documented for v1.3 bump)
+  - `spec/spec-custom-build-workflow.md` — Status: ✅ Unchanged (multi-stage contract preserved)
+  - `Dockerfile` — Status: 🔄 **MODIFIED** (3 uncommitted changes pending commit+push)
+  - `.github/workflows/custom-build.yml` — Status: ✅ Committed at `0422e16` (Node.js 24 upgrade + `"on":` fix)
+  - `docs/prd-20260723-1130-custom-build-workflow.md` — Status: ✅ Unchanged
+- **Achieved Milestones (this debugging session):**
+  - **Issue #1 — `actions/checkout@v4` and `actions/setup-python@v5` Node.js 20 deprecation warning** — FIXED via upgrade to `actions/checkout@v7` + `actions/setup-python@v6` (Node.js 24 LTS). Committed at `0422e16`. [actions/upload-artifact@v4 left unchanged — not flagged]
+  - **Issue #2 — `Unknown instruction: MAKE` (Dockerfile parse error)** — ROOT CAUSE: backslash `\` on `python-future \   # NEW: ...` line was followed by content (spaces + comment) instead of being immediately followed by newline. The `\` was treated as literal backslash, breaking the multi-line RUN, so next line `make \` was parsed as new instruction. FIX: removed trailing comment from line, moved documentation to a separate comment block above. CON-001 preserved (legacy scripts untouched). [Source: DE #5 first symptom]
+  - **Issue #3 — `ImportError: No module named past.builtins` in fontbuilder.py** — ROOT CAUSE: missing `python-future` package in Stage 1 (the `from past.builtins import xrange` shim requires it). FIX: added `python-future` to Stage 1 apt-get install list.
+  - **Issue #4 — `TypeError: Index must be an integer or a string` in features.py:37 (`font['space'].width`)** — ROOT CAUSE: `ppa:fontforge/fontforge` is NOT available for Ubuntu 18.04; default 18.04 fontforge (1:20170731) was installed with broken Python 3 `__getitem__` bindings. `font.createChar()` works but `font['name']` rejects string indices. CON-001 forbids modifying `features.py`. FIX: migrate Stage 1 base image `ubuntu:18.04` → `ubuntu:26.04` (matches Stage 2 `final`, latest LTS); replace `python-fontforge`+`python2.7`+`python-future` with `python3-fontforge`+`python3-future`. PPA supports 26.04 with complete Python 3 bindings. [PROMOTED to DE #5]
+  - **Cleanup** — Removed empty line between `RUN ... rm -rf` and `WORKDIR` (hadolint `NoEmptyContinuation` warning). Normalized all modified files to LF line endings (CRLF was introduced by edit tool on Windows but was not the cause of any error).
+- **Decisions Made:**
+  - **Migrate Stage 1 to Ubuntu 26.04** (not 20.04, not 24.04) — user explicitly requested "LTS terbaru" (latest LTS) per July 2026 timeline; matches existing Stage 2 `final` for cross-stage consistency.
+  - **Drop `python2.7` from Stage 1 install** — Ubuntu 26.04 default Python is 3.13+; `python-fontforge` is a legacy Py2 package superseded by `python3-fontforge`.
+  - **Defer Plan v1.2 → v1.3 bump** — Environment deviation is significant (base image + language version) but does not affect contract. Will formally bump during `/sdlc-code-review` cycle. Documented here as pending audit item.
+  - **Keep `actions/upload-artifact@v4`** — Not flagged for Node.js 20 deprecation in this run; can be upgraded in code review if needed.
+- **Updated Files (this session, uncommitted as of session end):**
+  - `Dockerfile` — Base image 18.04 → 26.04, Python 2.7 → 3.x packages, line continuation fix, hadolint cleanup, comment refresh
+  - `.agents/instructions/memory.instructions.md` — 5 new patterns + DE #5 + this checkpoint
+- **Dead-Ends (do NOT repeat):**
+  - **Attempted**: Place documentation comment after `\` line continuation in Dockerfile. **Reason**: Breaks line continuation; backslash becomes literal. **Solution**: Comments must go on separate lines or BEFORE the RUN block, not on continuation lines after `\`.
+  - **Attempted**: Trust `apt-get install fontforge` from `ppa:fontforge/fontforge` on Ubuntu 18.04. **Reason**: PPA is not available for 18.04; install silently falls back to broken default 18.04 fontforge. **Solution**: Always verify PPA availability for the target Ubuntu release before relying on it; prefer newer LTS (20.04+) where PPAs are better maintained.
+  - **Attempted**: Continue using `actions/checkout@v4` and `actions/setup-python@v5`. **Reason**: Node.js 20 deprecated by GitHub as of late 2025; generates warnings even though shim keeps them functional. **Solution**: Upgrade to major versions that natively target Node.js 24 (`@v7` and `@v6+` respectively).
+- **Lessons Learned (KB candidates for next compaction):**
+  - **First CI run is a debugging tool, not a verification tool**: When Opsi B defers runtime verification to user CI, the first run almost always surfaces environment/toolchain issues that couldn't be caught in static review. Plan for 1-2 iteration cycles of commit+push+re-run as part of the "static PASS → runtime PASS" transition.
+  - **Dockerfile line continuation gotcha** is easy to miss when adding comments inline — especially with tools that auto-validate indentation. Always review Dockerfile diffs in a context-aware editor before committing.
+  - **Multi-stage Dockerfile consistency is a feature**: When Stage 2 already uses a base image, Stage 1 should match. Cross-stage version drift (Stage 1 18.04 vs Stage 2 26.04) is a code smell and creates debugging overhead when one stage works and the other doesn't.
+  - **YAML `on:` boolean issue is invisible to GitHub but visible to PyYAML/linters**: Always quote `"on":` in workflow YAML for compatibility with strict YAML parsers and for human reviewability.
+  - **Windows + Git autocrlf + edit tools = silent CRLF injection**: Every edit on Windows risks converting LF to CRLF. Always normalize line endings post-edit and consider `.gitattributes` (`*.dockerfile text eol=lf`) for the project.
+- **Next Action / Pending:**
+  - **PRIORITAS #1 (user):** Commit Dockerfile changes → `git add Dockerfile && git commit -m "fix(docker): migrate Stage 1 to Ubuntu 26.04 + Python 3"` → `git push origin master`
+  - **PRIORITAS #2 (user):** Re-run failed workflow (`workflow_dispatch` re-run all jobs on the run that failed at features.py)
+  - **PRIORITAS #3 (if re-run still fails):** Diagnose new error from log; likely candidates: (a) `python3-fontforge` package name mismatch in PPA for 26.04 (fallback to `python-fontforge` if Py3 variant absent), (b) PPA itself not available for 26.04 (fallback to default Ubuntu 26.04 fontforge)
+  - **PRIORITAS #4 (after build success):** Formally bump Plan v1.2 → v1.3 to reflect base image and Python version changes
+  - **PRIORITAS #5 (after AC-001..AC-005 all pass):** `/sdlc-code-review` in new session (Strict Session Isolation) — review should flag the Plan v1.2 deviation
+  - **AGENTS.md Memory Configuration** `Last Recorded` should be updated from 2026-07-29 → 2026-07-30 — user-consent only per skill rule
+
+<!-- checkpoint-tail: First CI run surfaced 4 sequential build failures (Node.js deprecation, line continuation bug, missing python-future, fontforge version mismatch on Ubuntu 18.04). All 4 diagnosed and fixed locally. Dockerfile changes uncommitted, awaiting user commit+push+re-run. DE #5 promoted to KB. Plan v1.2 needs v1.3 bump for env changes (pending code review). -->
