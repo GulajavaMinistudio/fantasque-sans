@@ -1,6 +1,6 @@
 Fantasque Sans Mono
 ===================
-
+<!-- markdownlint-disable -->
 A programming font, designed with functionality in mind, and with some
 wibbly-wobbly handwriting-like fuzziness that makes it unassumingly cool.
 [Download](https://github.com/belluzj/fantasque-sans/releases/latest) or 
@@ -65,6 +65,18 @@ Please send me an e-mail or [report an issue on
 Github](http://github.com/belluzj/cosmic-sans-neue/issues) if you stumble upon
 bad design or rendering problems (with screen shot if possible), or if you need
 more characters, or if you want to compliment me (I love compliments).
+
+Custom Build
+------------
+
+Need a Variant of Fantasque Sans Mono that is not in the official releases?
+The Custom Build workflow lets you compile a personalized variant directly
+from GitHub Actions — no local toolchain required. Fork the repo, open the
+Actions tab, click **Run workflow** on the *Custom Build* workflow, adjust
+the four boolean inputs, and download the result as a zip/tar.gz archive
+and a tagged GitHub Release. Store your preferences in a `config.json` at
+your fork's root for reproducible builds. See
+[`docs/CUSTOM-BUILD.md`](docs/CUSTOM-BUILD.md) for the full guide.
 
 Installation
 ------------

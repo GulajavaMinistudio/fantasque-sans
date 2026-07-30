@@ -1,0 +1,57 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Build Manifest",
+  "type": "object",
+  "required": [
+    "manifest_version",
+    "build_timestamp",
+    "source_commit",
+    "workflow_version",
+    "resolved_options",
+    "toolchain_versions",
+    "font_files",
+    "config_source",
+    "spdx_license"
+  ],
+  "properties": {
+    "manifest_version": { "type": "string", "example": "1.0" },
+    "build_timestamp": { "type": "string", "format": "date-time" },
+    "source_commit": { "type": "string" },
+    "config_source": {
+      "type": "string",
+      "enum": ["defaults", "config.json", "form", "form_override"]
+    },
+    "workflow_version": { "type": "string" },
+    "resolved_options": {
+      "type": "object",
+      "properties": {
+        "LargeLineHeight": { "type": "boolean" },
+        "NoLoopK": { "type": "boolean" },
+        "NoCalt": { "type": "boolean" },
+        "UseHinted": { "type": "boolean" }
+      }
+    },
+    "toolchain_versions": {
+      "type": "object",
+      "description": "Versions of key build toolchain components used in this build.",
+      "properties": {
+        "python": { "type": "string" },
+        "fontforge": { "type": "string" },
+        "ttfautohint": { "type": "string" }
+      }
+    },
+    "font_files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "filename": { "type": "string" },
+          "format": { "type": "string", "enum": ["ttf", "otf", "woff", "woff2", "svg"] },
+          "size_bytes": { "type": "integer" },
+          "sha256": { "type": "string" }
+        }
+      }
+    },
+    "spdx_license": { "type": "string", "const": "OFL-1.1" }
+  }
+}

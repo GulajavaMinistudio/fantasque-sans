@@ -1,0 +1,361 @@
+---
+# Fantasque Sans Mono -- Custom Build via GitHub Workflow (Phase 3).
+#
+# Triggers a Docker-based font compilation + packaging run from the
+# GitHub Actions UI. Outputs are uploaded as Workflow Artifacts;
+# Phase 4 (release publishing) consumes the manifest + archives to
+# publish a tagged GitHub Release.
+#
+# Spec references: section 4.3 (input schema), section 4.4 (driver
+# contract), section 4.5 (multi-stage Docker), section 4.6 (manifest),
+# section 4.7 (release body). Plan: TASK-020..TASK-028.
+name: Custom Build
+
+# ---------------------------------------------------------------------------
+# Trigger: manual dispatch from the Actions tab. Four boolean inputs
+# (Spec section 4.3) -- default values match the built-in defaults
+# (false, false, false, true).
+# ---------------------------------------------------------------------------
+on:
+  workflow_dispatch:
+    inputs:
+      large_line_height:
+        description: "Enable larger line height variant"
+        type: boolean
+        required: false
+        default: false
+      no_loop_k:
+        description: "Enable non-looped 'k' glyph variant"
+        type: boolean
+        required: false
+        default: false
+      no_calt:
+        description: "Disable contextual alternates (programming ligatures)"
+        type: boolean
+        required: false
+        default: false
+      use_hinted:
+        description: "Enable TTF bytecode auto-hinting"
+        type: boolean
+        required: false
+        default: true
+
+# ---------------------------------------------------------------------------
+# SEC-001 (Spec): explicit least-privilege. CON-002 (Spec): default
+# GITHUB_TOKEN, no secrets or PATs required.
+# ---------------------------------------------------------------------------
+permissions:
+  contents: write
+  actions: read
+
+# Cancel superseded runs on the same ref to save runner minutes.
+concurrency:
+  group: custom-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build custom font
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      # -----------------------------------------------------------------------
+      # 1. Repository checkout (Plan TASK-022 prerequisite).
+      # -----------------------------------------------------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history for source_commit / release notes
+
+      # -----------------------------------------------------------------------
+      # 2. Set up Python 3.14 on the host runner (Plan TASK-022).
+      # DEP-002 / ASSUMPTION-001: actions/setup-python offers 3.14; if not,
+      # the deadsnakes fallback is a follow-up.
+      # -----------------------------------------------------------------------
+      - name: Set up Python 3.14
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install jsonschema pytest
+
+      # -----------------------------------------------------------------------
+      # 3. Unit-test gate: Phase 1 wrapper MUST pass before any Docker work
+      # (Plan TASK-022). This is the host-runner pytest re-run; Spec
+      # section 10.2 requires 100% pass.
+      # -----------------------------------------------------------------------
+      - name: Run unit tests (Phase 1 gate)
+        run: pytest tests/ -v
+
+      # -----------------------------------------------------------------------
+      # 4. Validate config.json against config.schema.json (Plan TASK-023,
+      # Spec REQ-002, AC-004). Failure here fails the job with a
+      # non-zero exit and the spec-mandated diagnostic.
+      # -----------------------------------------------------------------------
+      - name: Validate config.json against schema
+        run: |
+          python Scripts/configure.py \
+            --config-file config.json \
+            --schema-file config.schema.json
+
+      # -----------------------------------------------------------------------
+      # 5. Resolve options + generate manifest (Plan TASK-024, REQ-003,
+      # AC-003). The per-option source log lines are emitted to the build
+      # log for traceability.
+      # -----------------------------------------------------------------------
+      - name: Resolve build options
+        id: resolve
+        env:
+          GITHUB_SHA: ${{ github.sha }}
+        run: |
+          python Scripts/configure.py \
+            --config-file config.json \
+            --schema-file config.schema.json \
+            --form-large-line-height "${{ inputs.large_line_height }}" \
+            --form-no-loop-k "${{ inputs.no_loop_k }}" \
+            --form-no-calt "${{ inputs.no_calt }}" \
+            --form-use-hinted "${{ inputs.use_hinted }}" \
+            --output-args-file build-args.txt \
+            --generate-manifest manifest.json
+          {
+            echo "build_args<<EOF"
+            cat build-args.txt
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      # -----------------------------------------------------------------------
+      # 6. Build the multi-stage Docker image (Plan TASK-025, REQ-004,
+      # Spec section 4.5). The resolved BUILD_ARGS are forwarded into
+      # Stage 1 via the canonical --build-arg channel.
+      # -----------------------------------------------------------------------
+      - name: Build Docker image
+        run: |
+          docker build \
+            --build-arg "BUILD_ARGS=${{ steps.resolve.outputs.build_args }}" \
+            -t fantasque-custom \
+            .
+
+      # -----------------------------------------------------------------------
+      # 7. Run Stage 2 packaging (Plan TASK-026, REQ-005, REQ-006,
+      # CON-003). Two volume mounts: the host-generated manifest (RO) and
+      # the output directory (RW). The script does ttfautohint gating,
+      # WOFF/WOFF2 compression, SHA-256 + size, and archive assembly.
+      # -----------------------------------------------------------------------
+      - name: Run Stage 2 packaging
+        run: |
+          mkdir -p output
+          docker run --rm \
+            -v "${{ github.workspace }}/manifest.json:/app/manifest.json:ro" \
+            -v "${{ github.workspace }}/output:/app/output" \
+            fantasque-custom \
+            bash /app/Scripts/packaging.sh
+
+      # -----------------------------------------------------------------------
+      # 8. Upload artifacts (Plan TASK-027, REQ-006). Retention defaults
+      # to 90 days (GitHub Actions default for public repos). Private
+      # repos can raise this up to 400 days via the GH settings UI.
+      # -----------------------------------------------------------------------
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: fantasque-sans-custom-build-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            output/*.zip
+            output/*.tar.gz
+            output/manifest.json
+            output/LICENSE.txt
+            output/README.md
+          if-no-files-found: error
+          retention-days: 90
+
+      # -----------------------------------------------------------------------
+      # 9. Job summary (Plan TASK-028, FR-8/OBS-2). The summary is
+      # rendered on the run page and is the single most visible status
+      # signal to the user. It also warns fork owners when their release
+      # namespace is cluttered (threshold > 20 per PRD section 5.3).
+      # -----------------------------------------------------------------------
+      - name: Write job summary
+        if: always()
+        env:
+          RUN_STATUS: ${{ job.status }}
+          REPO: ${{ github.repository }}
+        run: |
+          {
+            if [ "${RUN_STATUS}" = "success" ]; then
+              echo "## ✅ Custom Build: succeeded"
+              echo ""
+              echo "**Variant manifest:** see the \`manifest.json\` artifact."
+              echo "**Source commit:** \`${{ github.sha }}\`"
+            else
+              echo "## ❌ Custom Build: failed"
+              echo ""
+              echo "Inspect the step logs and fix the issue before retrying."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # Fork release-count warning (TASK-028). Only emit for forks
+          # (not the upstream belluzj/fantasque-sans) and only when the
+          # gh CLI can read the release list.
+          if [ "${REPO}" != "belluzj/fantasque-sans" ]; then
+            release_count=$(gh release list --limit 100 --json tagName --jq 'length' 2>/dev/null || echo 0)
+            if [ "${release_count}" -gt 20 ]; then
+              {
+                echo ""
+                echo "> ⚠️ Your fork has ${release_count} releases. Consider cleaning up old test releases before production builds."
+                echo ""
+                echo "See \`docs/CUSTOM-BUILD.md\` (Troubleshooting) for the bulk-delete command."
+              } >> "$GITHUB_STEP_SUMMARY"
+            fi
+          fi
+
+      # -----------------------------------------------------------------------
+      # 10. Generate release metadata (Plan TASK-040, TASK-041, TASK-042,
+      # Spec REQ-007, AC-001/AC-002/AC-005). Reads the final
+      # manifest.json from Stage 2 packaging and produces the tag, title,
+      # and release notes markdown consumed by the release creation step.
+      # -----------------------------------------------------------------------
+      - name: Generate release metadata
+        id: release_meta
+        env:
+          RUN_URL: "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+        run: |
+          MANIFEST="output/manifest.json"
+
+          # --- TASK-040: tag generation ---
+          TAG="custom-build-$(date -u +'%Y%m%d-%H%M%S')-${{ github.run_id }}-${{ github.run_attempt }}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "::notice::Release tag: ${TAG}"
+
+          # --- TASK-041: release title ---
+          LLH=$(jq -r '.resolved_options.LargeLineHeight' "$MANIFEST")
+          NLK=$(jq -r '.resolved_options.NoLoopK' "$MANIFEST")
+          NCL=$(jq -r '.resolved_options.NoCalt' "$MANIFEST")
+          UH=$(jq -r '.resolved_options.UseHinted' "$MANIFEST")
+          CS=$(jq -r '.config_source' "$MANIFEST")
+
+          # Build display name from active options (" + " delimited).
+          # UseHinted is not displayed — only LargeLineHeight, NoLoopK,
+          # and NoCalt contribute to the base name.
+          BASE=""
+          [ "$LLH" = "true" ] && BASE="${BASE}LargeLineHeight + "
+          [ "$NLK" = "true" ] && BASE="${BASE}NoLoopK + "
+          [ "$NCL" = "true" ] && BASE="${BASE}NoCalt + "
+          BASE="${BASE% + }"
+          [ -z "$BASE" ] && BASE="Normal"
+
+          # Suffix logic per Plan TASK-041:
+          #   (b) " (default)" iff Normal AND config_source == defaults
+          #   (c) " (unhinted)" iff UseHinted == false
+          #   (mutually exclusive: defaults => UseHinted=true)
+          SUFFIX=""
+          if [ "$BASE" = "Normal" ] && [ "$CS" = "defaults" ]; then
+            SUFFIX=" (default)"
+          elif [ "$UH" = "false" ]; then
+            SUFFIX=" (unhinted)"
+          fi
+
+          TITLE="Custom Build: ${BASE}${SUFFIX}"
+          echo "title=${TITLE}" >> "$GITHUB_OUTPUT"
+          echo "Release title: ${TITLE}"
+
+          # --- TASK-042: release body (Spec §4.7) ---
+          NOTES="release-notes.md"
+
+          TS=$(jq -r '.build_timestamp' "$MANIFEST")
+          SC=$(jq -r '.source_commit' "$MANIFEST")
+          WV=$(jq -r '.workflow_version' "$MANIFEST")
+          COMMIT_URL="https://github.com/${{ github.repository }}/commit/${SC}"
+
+          {
+            printf "## 🎨 Custom Build — %s\n" "${TITLE#Custom Build: }"
+            echo ""
+            echo "### Resolved Options"
+            echo ""
+            echo "| Option | Value |"
+            echo "|--------|-------|"
+            printf "| LargeLineHeight | %s |\n" "$LLH"
+            printf "| NoLoopK         | %s |\n" "$NLK"
+            printf "| NoCalt          | %s |\n" "$NCL"
+            printf "| UseHinted       | %s |\n" "$UH"
+            echo ""
+
+            echo "### Font Files"
+            echo ""
+            echo "| File | Format | Size | SHA-256 |"
+            echo "|------|--------|------|---------|"
+
+            # Emit one row per font file sorted by filename;
+            # format is uppercased for readability.
+            jq -r '.font_files | sort_by(.filename) | .[] |
+              "| \`\(.filename)\` | \(.format | ascii_upcase) | \(.size_bytes) bytes | \`\(.sha256)\` |"
+            ' "$MANIFEST"
+
+            echo ""
+            echo "### Build Metadata"
+            echo ""
+            echo "| Field | Value |"
+            echo "|-------|-------|"
+            printf "| Build Timestamp  | %s |\n" "$TS"
+            printf "| Source Commit    | [\`%s\`](%s) |\n" "${SC:0:7}" "$COMMIT_URL"
+            printf "| Config Source    | \`%s\` |\n" "$CS"
+            printf "| Workflow Version | %s |\n" "$WV"
+            printf "| Workflow Run     | [View run](%s) |\n" "$RUN_URL"
+            echo ""
+            echo "---"
+            echo ""
+            echo "Full manifest with complete SHA-256 checksums is included inside the attached archives."
+          } > "$NOTES"
+
+          echo "Release notes written to ${NOTES} ($(wc -c < "$NOTES") bytes)"
+
+      # -----------------------------------------------------------------------
+      # 11. Create GitHub Release (Plan TASK-043, Spec REQ-007, GUD-002,
+      # GUD-003). Uses the preinstalled gh CLI with exponential backoff
+      # retry (max 3 attempts: 1 s, 5 s, 25 s). Guards on existing tag
+      # to guarantee one release per run_attempt.
+      # -----------------------------------------------------------------------
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ steps.release_meta.outputs.tag }}"
+          TITLE="${{ steps.release_meta.outputs.title }}"
+          NOTES="release-notes.md"
+
+          # GUD-002: guard on existing tag — one release per run_attempt
+          if gh release view "$TAG" &>/dev/null; then
+            echo "Release for tag ${TAG} already exists (GUD-002 — idempotent)"
+            exit 0
+          fi
+
+          max_attempts=3
+          attempt=1
+
+          while [ $attempt -le $max_attempts ]; do
+            if gh release create "$TAG" \
+                --title "$TITLE" \
+                --notes-file "$NOTES" \
+                output/fantasque-sans-custom-build.zip \
+                output/fantasque-sans-custom-build.tar.gz; then
+              echo "::notice::Release published: ${TAG}"
+              exit 0
+            fi
+
+            if [ $attempt -lt $max_attempts ]; then
+              case $attempt in
+                1) delay=1 ;;
+                2) delay=5 ;;
+              esac
+              echo "::warning::Release creation attempt ${attempt}/${max_attempts} failed; retrying in ${delay}s..."
+              sleep "$delay"
+            fi
+
+            attempt=$((attempt + 1))
+          done
+
+          echo "::error::Release creation failed after ${max_attempts} attempts (GUD-003)"
+          exit 1
