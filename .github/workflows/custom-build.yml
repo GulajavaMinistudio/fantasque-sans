@@ -291,7 +291,7 @@ jobs:
             # Emit one row per font file sorted by filename;
             # format is uppercased for readability.
             jq -r '.font_files | sort_by(.filename) | .[] |
-              "| \`\(.filename)\` | \(.format | ascii_upcase) | \(.size_bytes) bytes | \`\(.sha256)\` |"
+              "| `\(.filename)` | \(.format | ascii_upcase) | \(.size_bytes) bytes | `\(.sha256)` |"
             ' "$MANIFEST"
 
             echo ""
