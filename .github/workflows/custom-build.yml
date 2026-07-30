@@ -64,7 +64,7 @@ jobs:
       # 1. Repository checkout (Plan TASK-022 prerequisite).
       # -----------------------------------------------------------------------
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7    # Node.js 24 LTS
         with:
           fetch-depth: 0  # full history for source_commit / release notes
 
@@ -74,7 +74,7 @@ jobs:
       # the deadsnakes fallback is a follow-up.
       # -----------------------------------------------------------------------
       - name: Set up Python 3.14
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6  # Node.js 24 LTS
         with:
           python-version: "3.14"
 

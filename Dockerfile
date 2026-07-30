@@ -32,10 +32,14 @@ RUN apt-get update \
         ca-certificates \
     && add-apt-repository -y ppa:fontforge/fontforge \
     && apt-get update \
+
+# python-future provides the 'past' module that fontbuilder.py imports
+# (``from past.builtins import xrange`` is a Py2/3 compatibility shim).
     && apt-get install -y --no-install-recommends \
         fontforge \
         python-fontforge \
         python2.7 \
+        python-future \
         make \
     && rm -rf /var/lib/apt/lists/*
 
