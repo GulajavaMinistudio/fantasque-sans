@@ -8,7 +8,7 @@
 # GitHub Actions workflow (Phase 3 TASK-026) via:
 #
 #     docker run --rm \
-#         -v <host>/manifest.json:/app/manifest.json:ro \
+#         -v <host>/manifest.json:/app/manifest.json \
 #         -v <host>/output:/app/output \
 #         fantasque-custom \
 #         bash /app/Scripts/packaging.sh

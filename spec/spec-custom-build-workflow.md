@@ -1,8 +1,8 @@
 ---
 title: Technical Specification — Custom Build via GitHub Workflow
-version: 1.5
+version: 1.6
 date_created: 2026-07-23
-last_updated: 2026-07-24
+last_updated: 2026-07-30
 owner: Fantasque Sans Mono Core Team
 tags: [spec, github-actions, custom-build, docker, python]
 ---
@@ -15,14 +15,14 @@ This document provides the definitive Technical Specification for the **Custom B
 
 ### 1.1 Purpose
 
-The purpose of this specification is to define the technical contracts, schema definitions, runtime architecture, configuration precedence rules, and acceptance criteria required to implement a cloud-hosted custom font compilation workflow without modifying the legacy Python 2.7 Makefile entry point (`Scripts/build.py`).
+The purpose of this specification is to define the technical contracts, schema definitions, runtime architecture, configuration precedence rules, and acceptance criteria required to implement a cloud-hosted custom font compilation workflow without modifying the legacy build entry point (`Scripts/build.py`).
 
 ### 1.2 Scope
 
 - **In Scope**:
   - Configuration schema `config.schema.json` (JSON Schema draft-07) and repository root file `config.json`.
-  - Multi-stage Dockerfile architecture (Stage 1: Python 2.7 + FontForge for compilation; Stage 2: Ubuntu 26.04 LTS + Python 3.14 for autohinting, webfont compression, and packaging. The configuration wrapper `configure.py` runs on the **GitHub Actions host runner** — not inside the container — and passes resolved build args to Stage 1 via `docker build --build-arg`, per §4.4).
-  - Stage 1 driver script `Scripts/custom_build_driver.py` (new file, Python 2.7, executed by FontForge's embedded Python interpreter) that receives the resolved build args and executes the single-combination font compilation through the legacy `fontbuilder` engine, leaving `Scripts/build.py` untouched (CON-001, §4.4).
+  - Multi-stage Dockerfile architecture (Stage 1: Ubuntu 26.04 + Python 3 + FontForge for compilation; Stage 2: Ubuntu 26.04 LTS + Python 3.14 for autohinting, webfont compression, and packaging. The configuration wrapper `configure.py` runs on the **GitHub Actions host runner** — not inside the container — and passes resolved build args to Stage 1 via `docker build --build-arg`, per §4.4).
+  - Stage 1 driver script `Scripts/custom_build_driver.py` (new file, Python 3, executed by the FontForge embedded interpreter on Ubuntu 26.04) that receives the resolved build args and executes the single-combination font compilation through the legacy `fontbuilder` engine, leaving `Scripts/build.py` untouched (CON-001, §4.4).
   - GitHub Actions workflow (`.github/workflows/custom-build.yml`) featuring `workflow_dispatch` inputs and automated GitHub Release & Workflow Artifact publishing.
   - Build manifest format (`manifest.json`) and SHA-256 checksum generation.
   - User documentation: creation of `docs/CUSTOM-BUILD.md` (Getting Started + Advanced Configuration sections) and `README.md` update with prominent Custom Build section linking to the guide.
@@ -54,7 +54,7 @@ All terms used in this document strictly align with the project's Domain Glossar
 - **REQ-001 (Config File)**: The repository root SHALL support a `config.json` file declaring four boolean options: `LargeLineHeight`, `NoLoopK`, `NoCalt`, and `UseHinted`.
 - **REQ-002 (Schema Validation)**: The build system SHALL validate `config.json` against `config.schema.json` (draft-07) prior to execution. Invalid configurations MUST fail the workflow with non-zero exit code and clear diagnostic messages.
 - **REQ-003 (Precedence Resolution)**: Options resolution SHALL follow strict hierarchy: `workflow_dispatch` form inputs > `config.json` > default values (`LargeLineHeight=false`, `NoLoopK=false`, `NoCalt=false`, `UseHinted=true`).
-- **REQ-004 (Multi-Stage Docker)**: The container build SHALL use Stage 1 (Python 2.7 + FontForge) for legacy font compilation and Stage 2 (Ubuntu 26.04 LTS + Python 3.14) for orchestration, hinting, webfont generation, and packaging (per ADR-0002).
+- **REQ-004 (Multi-Stage Docker)**: The container build SHALL use Stage 1 (Ubuntu 26.04 + Python 3 + FontForge) for legacy font compilation and Stage 2 (Ubuntu 26.04 LTS + Python 3.14) for orchestration, hinting, webfont generation, and packaging (per ADR-0002).
 - **REQ-005 (Font Formats)**: The pipeline SHALL compile TTF, OTF, WOFF, WOFF2, and SVG formats across all 4 font weights (Regular, Bold, Italic, Bold Italic).
 - **REQ-006 (Artifact Packaging)**: Every build output SHALL produce `.zip` and `.tar.gz` bundles containing fonts, `manifest.json`, `LICENSE.txt`, and `README.md`.
 - **REQ-007 (Automated Release)**: Every successful run SHALL publish a GitHub Release tagged `custom-build-YYYYMMDD-HHMMSS-{run_id}-{run_attempt}` with auto-generated release notes and attached archives.
@@ -159,7 +159,7 @@ Output CLI arguments for the Stage 1 driver script `Scripts/custom_build_driver.
 
 **Stage 1 Driver Script (`Scripts/custom_build_driver.py`)**
 
-Location: `Scripts/custom_build_driver.py` (new file, Python 2.7, executed by FontForge's embedded Python interpreter)
+Location: `Scripts/custom_build_driver.py` (new file, Python 3, executed by the FontForge embedded interpreter on Ubuntu 26.04)
 
 The legacy `Scripts/build.py` cannot receive variant selection at runtime: it accepts only four positional arguments (`<parallel> <batch> <sfdir> <output_dir>`), declares its options statically in-source (with the `NoCalt` declaration commented out), and builds every permutation of the declared options. CON-001 forbids modifying it. The driver script wraps the same `fontbuilder` engine without touching any legacy file:
 
@@ -185,17 +185,15 @@ The `UseHinted` option does **not** map to a driver argument — it controls whe
 Location: `/Dockerfile`
 
 ```dockerfile
-# Stage 1: Legacy FontForge + Python 2.7 Build Environment
-FROM ubuntu:18.04 AS builder-fontforge
+# Stage 1: FontForge + Python 3 Build Environment (default Ubuntu 26.04 repos)
+FROM ubuntu:26.04 AS builder-fontforge
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y \
-    software-properties-common \
-    && add-apt-repository ppa:fontforge/fontforge \
-    && apt-get update && apt-get install -y \
+    ca-certificates \
     fontforge \
-    python-fontforge \
-    python2.7 \
+    python3-pip \
     make \
+    && pip3 install --break-system-packages --no-cache-dir future \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /build
 COPY . /build
@@ -361,10 +359,10 @@ The release body is generated programmatically by the workflow (e.g., via a scri
 
 - **ADR Reference**: This specification directly enforces [`docs/adr/0002-multi-stage-docker-deferred-engine-port.md`](file:///d:/WebstormProject/fantasque-sans/docs/adr/0002-multi-stage-docker-deferred-engine-port.md).
 - **Rationale**:
-  - The variant engine (`fontbuilder.py`, `features.py`) and entry point (`build.py`) remain on Python 2.7 because `build.py` imports them in-process (`from fontbuilder import *`).
+  - The variant engine (`fontbuilder.py`, `features.py`) and entry point (`build.py`) run under Python 3 via the `future` shim (`past.builtins`), because `build.py` imports them in-process (`from fontbuilder import *`).
   - Splitting engine execution across Python versions without rewriting `build.py` is impossible.
   - Rewriting `build.py` is explicitly prohibited by NG-9 in V1.
-  - Therefore, a multi-stage Docker setup isolates legacy Python 2.7 font generation in Stage 1, while providing Python 3.14 in Stage 2 for post-build packaging tooling only. Configuration is performed by `configure.py` on the GitHub Actions host runner (per §4.4), not inside any container.
+  - Therefore, a multi-stage Docker setup isolates the legacy font generation in Stage 1 (Ubuntu 26.04 + FontForge embedded Python 3 + `future` shim), while providing Python 3.14 in Stage 2 for post-build packaging tooling only. Configuration is performed by `configure.py` on the GitHub Actions host runner (per §4.4), not inside any container.
 
 ## 8. Dependencies & External Integrations
 
@@ -375,7 +373,7 @@ The release body is generated programmatically by the workflow (e.g., via a scri
 
 ### 8.2 Third-Party Services / Tooling
 
-- **SVC-001**: `ppa:fontforge/fontforge` (Stage 1 FontForge + Python 2.7 dependencies).
+- **SVC-001**: Default Ubuntu 26.04 `fontforge` package (Stage 1 FontForge with embedded Python 3 bindings; `future` shim installed from PyPI).
 - **SVC-002**: `ppa:deadsnakes/ppa` (Stage 2 Python 3.14 package distribution).
 - **SVC-003**: `ttfautohint`, `woff-tools`, `woff2` (Ubuntu 26.04 universe binaries).
 
@@ -481,3 +479,4 @@ To achieve full compliance with this Technical Specification, implementation art
 | ------- | ---------- | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1.4     | 2026-07-24 | Specification Architect | Surgical fixes per re-audit r2 ([`docs/audit/consistency-audit-custom-build-workflow-2026-07-24-r2.md`](file:///d:/WebstormProject/fantasque-sans/docs/audit/consistency-audit-custom-build-workflow-2026-07-24-r2.md)): **R-2** corrected §7 line 344 rationale to state Stage 2 Python 3.14 is for post-build packaging only and `configure.py` runs on the GitHub Actions host runner per §4.4 (not inside any container); **R-3** added `config_source` to the §4.6 `manifest.json` top-level `required` array (between `font_files` and `spdx_license`) per PRD FR-8 mandate. |
 | 1.5     | 2026-07-24 | Planner Architect (user-authorized surgical fix) | **R-4 (BLOCKER)** fixed: the §4.4/§4.5 CLI contract targeted the immutable `Scripts/build.py`, which accepts only positional arguments, declares options statically in-source (`NoCalt` commented out), and builds all permutations — the `--line-height`/`--no-loop-k`/`--no-calt` flags were unimplementable under CON-001. Re-targeted the contract to the new Stage 1 driver script `Scripts/custom_build_driver.py` (flag names unchanged); added the driver contract to §4.4; updated the §4.5 Stage 1 `RUN` to the proven `fontforge -lang=py -script` invocation; added the driver to the §1.2 scope. No requirement, acceptance criterion, or schema changes. |
+| 1.6     | 2026-07-30 | God Mode Dev (Code Review remediation) | Sync Stage 1 environment (`REQ-004`, §1.1, §1.2, §4.4, §4.5, §7, §8.2) with actual implementation (ubuntu:26.04 + Python 3 + default fontforge; PPA dropped). |

@@ -7,7 +7,7 @@
 - **Documents Analyzed:**
   - PRD v1.3 — [`docs/prd-20260723-1130-custom-build-workflow.md`](../../prd-20260723-1130-custom-build-workflow.md)
   - Spec v1.5 — [`spec/spec-custom-build-workflow.md`](../../spec/spec-custom-build-workflow.md)
-  - Plan **v1.2** — [`plan/plan-feature-custom-build-workflow-v1.2.md`](../../plan/plan-feature-custom-build-workflow-v1.2.md) _(DIPERBARUI dari v1.1; TASK-010 diperluas dengan `SOURCE_DATE_EPOCH` per PRD US-015)_
+  - Plan **v1.2** — [`plan/plan-feature-custom-build-workflow-v1.3.md`](../../plan/plan-feature-custom-build-workflow-v1.3.md) _(DIPERBARUI dari v1.1; TASK-010 diperluas dengan `SOURCE_DATE_EPOCH` per PRD US-015)_
 - **Referensi Pendukung:**
   - Clarification Report — [`docs/audit/clarification-report-plan-custom-build-workflow-2026-07-26.md`](clarification-report-plan-custom-build-workflow-2026-07-26.md)
   - ADR-0001, ADR-0002 — [`docs/adr/`](../../adr/)

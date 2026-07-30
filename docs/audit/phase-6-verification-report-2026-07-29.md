@@ -3,7 +3,7 @@ title: Phase 6 — End-to-End Acceptance Verification Report
 date: 2026-07-29
 status: PARTIAL (static checks PASS; runtime checks deferred to user fork per Opsi B)
 version: 1.0
-related_plan: plan/plan-feature-custom-build-workflow-v1.2.md
+related_plan: plan/plan-feature-custom-build-workflow-v1.3.md
 related_spec: spec/spec-custom-build-workflow.md
 tags: [verification, phase-6, acceptance, custom-build]
 ---

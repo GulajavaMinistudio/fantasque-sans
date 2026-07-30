@@ -85,6 +85,8 @@ All agents MUST strictly adhere to the project documentation standards located i
 
 3. **Reference First:** Prioritize consistency with these standards over any other formatting assumption.
 
+4. **Project Architecture Map:** Before suggesting code changes or navigating the codebase, read [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the canonical directory layout, tech stack, entry points, testing strategy, and architectural constraints.
+
 ## SDLC Framework & Targeted Agent Boundaries (Anti-Scope Creep Rules)
 
 To prevent scope creep and maintain architectural integrity, all Agents MUST operate strictly within their assigned SDLC phase. When activated via a slash command, you must enforce your specific **Pushback Rule**.

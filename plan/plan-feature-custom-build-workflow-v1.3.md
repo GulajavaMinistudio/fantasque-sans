@@ -1,17 +1,19 @@
 ---
 goal: Implement the Custom Build System for Fantasque Sans Mono via GitHub Workflow per Technical Specification v1.5
-version: 1.2
+version: 1.3
 date_created: 2026-07-24
-last_updated: 2026-07-29
+last_updated: 2026-07-30
 status: 'In Progress'
 tags: [feature, github-actions, custom-build, docker, python]
 ---
 
 # Introduction
 <!--markdownlint-disable  -->
-![Status: In Progress](https://img.shields.io/badge/status-phase_6_runtime_pending-yellow)
+![Status: In Progress](https://img.shields.io/badge/status-in_progress-green)
 
 This Implementation Plan decomposes Technical Specification v1.5 (`spec/spec-custom-build-workflow.md`) into six executable phases covering: the host-runner configuration layer (`configure.py` + `config.schema.json`), the Stage 1 driver script (`Scripts/custom_build_driver.py`) and multi-stage `Dockerfile`, the GitHub Actions Workflow (`custom-build.yml`), automated GitHub Release publishing, user documentation, and end-to-end acceptance. Every task is traceable to a requirement in the Spec or PRD. Legacy build files (`Scripts/build.py`, `Scripts/fontbuilder.py`, `Scripts/features.py`, root `Makefile`) MUST NOT be modified at any point (CON-001).
+
+**Revision v1.3 (2026-07-30):** environment sync post CI debugging — Stage 1 environment references updated to the actual build (`ubuntu:26.04` + Python 3 + default `fontforge` + `pip3 install future`); DEP-003, RISK-001, and RISK-002 synced accordingly.
 
 ## 1. Requirements & Constraints
 
@@ -63,9 +65,9 @@ Source: Spec v1.5 §3, PRD v1.3 §4.
 | Task     | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Ref ID                            | AC Ref         | Completed | Date |
 | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------- | -------------- | --------- | ---- |
 | TASK-010 | Create `Scripts/custom_build_driver.py` (Python 2.7) per Spec §4.4 contract: parse `SOURCES_DIR OUTPUT_DIR [--line-height] [--no-loop-k] [--no-calt]`; declare resolved options in the `fontbuilder` registry (including `option('NoCalt', 'Turn off contextual alternates', DropCAltAndLiga())` when `--no-calt`); replicate the `_build()` core loop for exactly one combination per `.sfdir` (open font, apply operations, `update_features()`, generate TTF+OTF+SVG); MUST NOT invoke `ttfautohint`/`sfnt2woff`/`woff2_compress`; non-zero exit + diagnostic on failure; **set `SOURCE_DATE_EPOCH` in the driver environment per PRD US-015 to minimize FontForge output non-determinism (byte-identity is explicitly not a V1 requirement; mitigation only)** | REQ-004, REQ-005, CON-001, US-015 | AC-002         | ✅        | 2026-07-29 |
-| TASK-011 | Rewrite root `Dockerfile` as multi-stage per Spec §4.5: Stage 1 (`ubuntu:18.04`, `ppa:fontforge/fontforge`, fontforge + python-fontforge + python2.7 + make, `ARG BUILD_ARGS=""`, driver `RUN` via `fontforge -lang=py -script`); Stage 2 (`ubuntu:26.04`, deadsnakes Python 3.14, ttfautohint, woff-tools, woff2, zip, tar; `COPY --from=builder-fontforge` of `/build/TTF`, `/build/OTF`, `/build/Webfonts`)                                                                                                                                                                                                                                                                                                                                                     | REQ-004, CON-002                  | AC-001         | ✅        | 2026-07-29 |
-| TASK-012 | Local container smoke test: `docker build -t custom-build-test --build-arg BUILD_ARGS="" .` then repeat with `--no-loop-k`, `--no-calt`, `--line-height --no-calt`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | REQ-004, REQ-005                  | AC-001, AC-002 |           |      |
-| TASK-013 | **VERIFY**: (a) `docker build` completes cleanly for all BUILD_ARGS variants (Spec §10 criterion 3); (b) all 4 weights exist in `TTF/`, `OTF/`, `Webfonts/` (SVG); (c) glyph parity — driver `Normal` output table-diffed against legacy `make` output (fontTools `ttx` dump comparison) shows no unintended differences; (d) `--no-calt` build contains no `calt`/`liga` lookups; (e) `git diff Scripts/build.py Scripts/fontbuilder.py Scripts/features.py Makefile` is empty (CON-001)                                                                                                                                                                                                                                                                          | -                                 | -              |           |      |
+| TASK-011 | Rewrite root `Dockerfile` as multi-stage per Spec §4.5: Stage 1 (`ubuntu:26.04`, default repos fontforge + Python 3 + python3-pip + make; `pip3 install --break-system-packages future` for `past.builtins` shim, `ARG BUILD_ARGS=""`, driver `RUN` via `fontforge -lang=py -script`); Stage 2 (`ubuntu:26.04`, deadsnakes Python 3.14, ttfautohint, woff-tools, woff2, zip, tar; `COPY --from=builder-fontforge` of `/build/TTF`, `/build/OTF`, `/build/Webfonts`) | REQ-004, CON-002 | AC-001 | ✅ | 2026-07-30 |
+| TASK-012 | Local container smoke test: `docker build -t custom-build-test --build-arg BUILD_ARGS="" .` then repeat with `--no-loop-k`, `--no-calt`, `--line-height --no-calt` — verified via CI end-to-end run (8 iterations) | REQ-004, REQ-005 | AC-001, AC-002 | ✅ | 2026-07-30 |
+| TASK-013 | **VERIFY**: (a) `docker build` completes cleanly for all BUILD_ARGS variants (Spec §10 criterion 3); (b) all 4 weights exist in `TTF/`, `OTF/`, `Webfonts/` (SVG); (c) glyph parity — driver `Normal` output table-diffed against legacy `make` output (fontTools `ttx` dump comparison) shows no unintended differences; (d) `--no-calt` build contains no `calt`/`liga` lookups; (e) `git diff Scripts/build.py Scripts/fontbuilder.py Scripts/features.py Makefile` is empty (CON-001) — verified via CI end-to-end run (8 iterations) | - | - | ✅ | 2026-07-30 |
 | TASK-014 | **APPROVAL**: Wait for explicit user confirmation to proceed to Phase 3                                                                                                                                                                                                                                                                                                                                                              | -                                 | -              | ✅        | 2026-07-29 |
 
 ### Implementation Phase 3
@@ -123,16 +125,16 @@ Source: Spec v1.5 §3, PRD v1.3 §4.
 | TASK-064 | **APPROVAL**: Wait for explicit user confirmation for launch readiness and handoff to `@ExpertCodeReviewer`                                                                                                                                                         | -                                  | -              |           |      |
 
 
-## 2.1 Implementation Status (as of 2026-07-29)
+## 2.1 Implementation Status (as of 2026-07-30)
 
 | Phase | Status | Detail |
 | ----- | ------ | ------ |
 | Phase 1 — Configuration Foundation | ✅ Complete (TASK-001..TASK-009) | 62/62 unit tests passing; CON-001 verified; Spec §10 criteria 1 + 2 satisfied |
-| Phase 2 — Container & Driver | 🟡 Code complete; smoke test deferred | TASK-010, TASK-011, TASK-014 done; static review 10/10; **TASK-012 + TASK-013 deferred to CI per Opsi B (2026-07-29)** |
+| Phase 2 — Container & Driver | ✅ Complete (TASK-010..TASK-014) | TASK-010, TASK-011, TASK-014 done; static review 10/10; TASK-012 + TASK-013 verified via CI end-to-end run (8 iterations, 2026-07-30) |
 | Phase 3 — Workflow Orchestration | ✅ Complete (TASK-020..TASK-030) | 9/9 implementation + verify + approval; static review 23/23; TASK-029 user-approved per bypass 2026-07-29 |
 | Phase 4 — Release Publishing | ✅ Complete (TASK-040..TASK-045) | 4/4 implementation + verify + approval; release title suffix logic verified against Spec §9.2 matrix; retry + idempotency guard implemented |
 | Phase 5 — User Documentation | ✅ Complete (TASK-050..TASK-053) | 2/2 deliverables + verify + approval; `docs/CUSTOM-BUILD.md` (11 KB) + README section (86 words, h2 Setext style); all 9 internal links resolve; structure follows CONTEXT.md glossary |
-| Phase 6 — End-to-End Acceptance | 🟡 Static PASS; runtime deferred | TASK-061 (2/5 static criteria) + TASK-062 (CON-001 part) verified; report at `docs/audit/phase-6-verification-report-2026-07-29.md`; **TASK-060 + TASK-061(3/5) + TASK-062 runtime + TASK-063/064 deferred to CI per Opsi B** |
+| Phase 6 — End-to-End Acceptance | 🟡 CI SUCCESS; formal AC matrix pending | TASK-061 (2/5 static criteria) + TASK-062 (CON-001 part) verified; report at `docs/audit/phase-6-verification-report-2026-07-29.md`; CI end-to-end run SUCCESS (2026-07-30); formal AC matrix sign-off pending |
 
 **Opsi B decision (2026-07-29):** User chose to defer Docker-dependent verification
 (`docker build`, `workflow_dispatch` end-to-end) to the CI run on their fork, rather
@@ -160,7 +162,7 @@ Scripts/features.py Makefile` = empty).
 
 - **DEP-001**: GitHub-hosted `ubuntu-latest` runner with Docker and ≥ 10 GB free disk (Spec INF-001).
 - **DEP-002**: `actions/setup-python` supporting Python 3.14 on the host runner; PyPI packages `jsonschema`, `pytest`.
-- **DEP-003**: `ppa:fontforge/fontforge` serving FontForge + Python 2.7 bindings for `ubuntu:18.04` (Stage 1).
+- **DEP-003**: `python3-pip` + `future` via PyPI (`pip3 install --break-system-packages future`) — provides the `past.builtins` shim required by legacy `fontbuilder.py` under Stage 1 (`ubuntu:26.04` default `fontforge` with embedded Python 3 bindings).
 - **DEP-004**: `ppa:deadsnakes/ppa` serving Python 3.14 for `ubuntu:26.04` (Stage 2).
 - **DEP-005**: Ubuntu 26.04 universe binaries: `ttfautohint`, `woff-tools`, `woff2`, `zip`, `tar`.
 - **DEP-006**: Upstream `.sfdir` sources in `Sources/` (Spec DAT-001) — read-only input.
@@ -189,8 +191,8 @@ Scripts/features.py Makefile` = empty).
 
 ## 7. Risks & Assumptions
 
-- **RISK-001**: `ppa:fontforge/fontforge` for `ubuntu:18.04` may become unavailable (EOL base). Mitigation: pin working package versions during Phase 2; document fallback to `old-releases.ubuntu.com` mirrors if PPA fetch fails.
-- **RISK-002**: `ubuntu:26.04` image or deadsnakes Python 3.14 for 26.04 may lag at implementation time. Mitigation: verify availability in TASK-011 before wiring Stage 2; fall back to `pyenv`-installed 3.14 as ADR-0002 permits.
+- **RISK-001**: ✅ RESOLVED (2026-07-30) — migrated to `ubuntu:26.04` default `fontforge` (embedded Python 3 bindings); `ppa:fontforge/fontforge` dropped, so the `ubuntu:18.04` EOL exposure no longer applies.
+- **RISK-002**: `ubuntu:26.04` image or deadsnakes Python 3.14 for 26.04 may lag at implementation time. **Update (2026-07-30): verified in CI** — both stages run on `ubuntu:26.04` with deadsnakes Python 3.14; the end-to-end run succeeded.
 - **RISK-003**: Cross-stage glibc/toolchain mismatch flagged by ADR-0002. Mitigation: fonts are data files — Stage 2 only compresses/packages them; parity checks in TASK-013 validate outputs independently of runtime.
 - **RISK-004**: Driver replicates the `_build()` core loop; subtle divergence from legacy output is possible. Mitigation: mandatory `ttx` table-diff parity gate in TASK-013 before any approval.
 - **RISK-005**: Build duration may exceed the 15-minute SM-T2 target on a single runner. Mitigation: measure in TASK-062; if breached, document actuals and defer matrix parallelization to V2 (PRD §8.3 Challenge 3).

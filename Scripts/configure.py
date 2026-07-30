@@ -59,7 +59,7 @@ OPTION_TO_DRIVER_FLAG = {
 
 # Manifest top-level constants (Spec section 4.6).
 MANIFEST_VERSION = "1.0"
-WORKFLOW_VERSION = "1.2"
+WORKFLOW_VERSION = "1.3"
 SPDX_LICENSE = "OFL-1.1"
 
 # Python type name to JSON Schema primitive name (for the validation

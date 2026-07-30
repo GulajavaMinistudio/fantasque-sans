@@ -213,7 +213,7 @@ Common causes:
 The build fails fast at the validation step (no Docker is built, no
 GitHub minutes are spent) so this is a free error to fix and re-run.
 
-### "Release creation failed after 3 attempts"
+### "Release creation failed after 3 retries"
 
 The release publish step retries up to 3 times with backoff (1 s, 5 s, 25 s).
 If all three attempts fail, the run fails with a clear error.

@@ -1,11 +1,11 @@
 ---
 goal: Repository Architecture and Structure Documentation
 date_created: 2026-07-22
-last_updated: 2026-07-23
+last_updated: 2026-07-30
 status: 'Active'
 ---
-
 # Architecture Documentation
+
 <!-- markdownlint-disable -->
 ![Status: Active](https://img.shields.io/badge/status-Active-brightgreen)
 
@@ -19,7 +19,7 @@ This document serves as the canonical architectural map of the repository. It ou
 - **Intended Audience:** Software developers, terminal users, and anyone seeking a unique yet readable coding font
 - **Author:** Jany Belluz
 - **License:** SIL Open Font License (OFL) — subsetting, compression, and modification are explicitly permitted without renaming
-- **Current Version:** v1.8.0 (2019-11-16)
+- **Upstream:** [belluzj/fantasque-sans](https://github.com/belluzj/fantasque-sans)
 
 ### Key Features
 
@@ -30,18 +30,24 @@ This document serves as the canonical architectural map of the repository. It ou
 - **Glyph coverage:** Latin (extensive), Cyrillic, Greek, box drawing, Powerline symbols, block characters
 - **Output formats:** TTF, OTF, WOFF, WOFF2, SVG, with auto-generated CSS `@font-face` declarations
 
+### V1 — Custom Build via GitHub Workflow (2026-07-30)
+
+The repository now includes a **cloud-hosted Custom Build system** that allows users to generate personalized font variants directly from GitHub Actions — no local toolchain required. A configuration layer (`configure.py` + `config.schema.json`) resolves variant options from a `workflow_dispatch` form, a multi-stage Docker container builds the fonts on `ubuntu:26.04`, and the output is published as a GitHub Release. See [`docs/CUSTOM-BUILD.md`](CUSTOM-BUILD.md) for the user guide and [`spec/spec-custom-build-workflow.md`](../spec/spec-custom-build-workflow.md) for the technical specification.
+
 ## 2. High-Level Architecture & Tech Stack
 
 | Layer | Technology |
 |---|---|
-| **Primary Language (Build)** | Python 2.7 + Bash (shell scripting) |
+| **Primary Language (Build)** | Python 3 + Bash (shell scripting); legacy engine scripts unported — run via the `future` compatibility shim |
 | **Font Authoring** | FontForge (`.sfdir` — Spline Font Directory format) |
-| **Build Orchestration** | GNU Make |
+| **Build Orchestration** | GNU Make (local), GitHub Actions `workflow_dispatch` (cloud) |
+| **Cloud Config Layer** | Python 3.14 (`Scripts/configure.py`) on GitHub Actions host runner |
 | **Font Hinting** | `ttfautohint` (Freetype auto-hinter) |
 | **Web Font Conversion** | `sfnt2woff` (WOFF), `woff2_compress` (WOFF2 from Google) |
-| **Containerization** | Docker (Ubuntu 18.04 base image) |
+| **Containerization** | Docker multi-stage: Stage 1 (ubuntu:26.04 + FontForge + `future` shim), Stage 2 (ubuntu:26.04 + deadsnakes Python 3.14) |
+| **CI/CD** | GitHub Actions (`.github/workflows/custom-build.yml`) |
 | **OS Packaging** | `fpm` (DEB/RPM) |
-| **Architectural Pattern** | Pipeline-based Build → Permutation Engine → Multi-format Output |
+| **Architectural Pattern** | Pipeline-based Build → Permutation Engine → Multi-format Output; cloud path: Configuration Layer → Container Build → Release Publishing |
 
 ### Architecture Diagram
 
@@ -92,7 +98,38 @@ flowchart TD
     ZA --> O4
 ```
 
+### Custom Build Workflow Architecture (V1)
+
+```mermaid
+flowchart LR
+    subgraph Host["GitHub Actions Host Runner"]
+        CFG[configure.py<br/>resolve options]
+        SCHEMA[config.schema.json<br/>draft-07]
+        WF[custom-build.yml<br/>workflow_dispatch]
+    end
+
+    subgraph Docker["Multi-Stage Docker (ubuntu:26.04)"]
+        S1["Stage 1: builder-fontforge<br/>fontforge + python3-pip<br/>+ future shim"]
+        S2["Stage 2: final<br/>Python 3.14 + ttfautohint<br/>+ woff-tools + packaging"]
+    end
+
+    subgraph Publish["Publishing"]
+        ART[Workflow Artifact<br/>.zip + .tar.gz]
+        REL[GitHub Release<br/>custom-build-YYYYMMDD-HHMMSS]
+    end
+
+    User["GitHub User<br/>workflow_dispatch form"] --> WF
+    WF --> CFG
+    SCHEMA --> CFG
+    CFG --> |"--build-arg"| S1
+    S1 --> |"COPY /build/{TTF,OTF,Webfonts}"| S2
+    S2 --> ART
+    ART --> REL
+```
+
 ## 3. Data Flow & Layer Dependencies
+
+### Local Build Pipeline
 
 The build pipeline follows a strict linear flow with a variant explosion step:
 
@@ -115,9 +152,16 @@ flowchart LR
     H --> I
 ```
 
+### Custom Build Cloud Pipeline (V1)
+
+1. **Configuration Layer** — `configure.py` (Python 3.14, host runner) validates `config.json` against `config.schema.json`, resolves precedence (`workflow_dispatch` > `config.json` > defaults), and emits build args + manifest
+2. **Stage 1 (Font Compilation)** — `ubuntu:26.04` Docker, default `fontforge` with embedded Python 3 bindings + `future` shim; `custom_build_driver.py` compiles fonts under Python 3 via `past.builtins`
+3. **Stage 2 (Packaging)** — `ubuntu:26.04` + deadsnakes Python 3.14, `ttfautohint`, `sfnt2woff`, `woff2_compress`, `zip`/`tar` assembly; `packaging.sh` produces `.zip` + `.tar.gz` bundles
+4. **Release Publishing** — `gh release create` with exponential backoff retry (GUD-003), GitHub Release tagged `custom-build-YYYYMMDD-HHMMSS-{run_id}-{run_attempt}`
+
 ### Variant Permutation Logic
 
-The build system generates all possible variants using a binary bitmap approach (2^n combinations):
+The build system generates all possible variants using a binary bitmap approach:
 
 ```python
 # Each option acts as an independent binary toggle:
@@ -138,13 +182,16 @@ The build system generates all possible variants using a binary bitmap approach 
 | **ttfautohint** | Automatic TrueType hinting for Windows rendering quality | Yes |
 | **sfnt2woff** (woff-tools) | Convert TTF to WOFF format for web use | Yes |
 | **woff2_compress** (Google WOFF2) | Convert TTF to WOFF2 format (superior web compression) | Yes |
-| **Docker** (≥ 18.x) | Containerized build environment (Ubuntu 18.04 + all deps) | Optional |
+| **Docker** (≥ 18.x) | Containerized build environment (Ubuntu 26.04 + all deps) | Optional (local); Required (cloud) |
 | **fpm** (Effing Package Management) | Build `.deb` and `.rpm` OS packages | Optional |
-| **Python 2.7** | Required by FontForge's Python scripting interface | Yes — build |
+| **Python 3 + `future` shim** | FontForge embedded Python 3 bindings run the legacy engine scripts (`past.builtins` provided by the `future` package from PyPI) | Yes — build |
+| **Python 3.14** (deadsnakes PPA) | Post-build packaging tooling in Stage 2; `configure.py` on host runner | Yes — cloud build |
+| **GitHub Actions** | CI/CD orchestration for `workflow_dispatch` custom builds | Required — cloud |
+| **`gh` CLI** | GitHub Release creation from the Actions runner | Required — cloud |
 
-> **Note:** The `Dockerfile` currently pins `ubuntu:18.04`, which is end-of-life. A base-image upgrade is captured as future work in `docs/discovery-draft-20260723-1058-custom-build-workflow.md`.
+> **Note:** As of 2026-07-30 the `Dockerfile` is a multi-stage build pinned to `ubuntu:26.04` (both stages, per ADR-0002); the legacy single-stage Ubuntu 18.04 setup was superseded during the Custom Build Workflow implementation.
 
-> **Important:** Ubuntu's default FontForge package is often outdated. The Dockerfile and README both recommend the [FontForge PPA](https://launchpad.net/~fontforge/+archive/ubuntu/fontforge) for reliable builds.
+> **Important:** The `ppa:fontforge/fontforge` PPA does not support Ubuntu 26.04, so the Dockerfile uses the default Ubuntu 26.04 `fontforge` package (embedded Python 3 bindings) instead. The `future` package is installed from PyPI (`pip3 install --break-system-packages future`) to provide the `past.builtins` compatibility shim.
 
 ## 5. Directory Tree Map
 
@@ -155,49 +202,47 @@ fantasque-sans/
 │   │   ├── clean-code-clean-architecture.instructions.md
 │   │   ├── markdown.instructions.md
 │   │   └── memory.instructions.md    # Cross-session context persistence
-│   ├── rules/                        # Agent persona definitions (9 agents)
-│   │   ├── ArtifactConsistencyChecker.md
-│   │   ├── BrainstormingExplorerAnalyst.md
-│   │   ├── BugRemediationArchitect.md
-│   │   ├── ClarificationAnalyst.md
-│   │   ├── DiataxisDocumentationArchitect.md
-│   │   ├── ExpertCodeReviewer.md
-│   │   ├── GodModeDev.md
-│   │   ├── PlannerArchitect.md
-│   │   ├── ProductManagerPRD.md
-│   │   └── SpecificationArchitect.md
+│   ├── rules/                        # Agent persona definitions
+│   │   ├── SDLCOrchestrator.md       # Phase router / base persona
+│   │   └── ...                       # Other SDLC agent rules
 │   ├── skills/                       # Agent skill workflows (18 skills)
-│   │   ├── artifact-consistency-checker/
-│   │   ├── brainstorming-explorer/
-│   │   ├── bug-remediation-architect/
-│   │   ├── clarification-analyst/
-│   │   ├── diataxis-documentation-architect/
-│   │   ├── expert-code-reviewer/
-│   │   │   └── references/           # Review rubrics & security guides
-│   │   ├── fable-protocol/
-│   │   ├── god-mode-dev/
-│   │   │   └── references/           # Execution workflow & communication protocol
-│   │   ├── grilling/
-│   │   ├── karpathy-guidelines/
-│   │   ├── memory-manager/
-│   │   ├── omni-dev/
-│   │   ├── planner-architect/
-│   │   ├── ponytail-lazy-senior-dev/
-│   │   ├── product-manager-prd/
-│   │   ├── project-researcher/
+│   │   ├── sdlc-write-code/          # God Mode Dev (phase execution)
+│   │   │   └── references/           # EXECUTION-WORKFLOW.md, COMMUNICATION-PROTOCOL.md
+│   │   ├── sdlc-code-review/         # Code review skill
+│   │   │   └── references/           # CLEAN-CODE-ARCHITECTURE.md, SECURITY-HARDENING.md
+│   │   ├── sdlc-map-architecture/    # Architecture mapping skill
 │   │   │   └── references/           # ARCHITECTURE-TEMPLATE.md
-│   │   ├── specification-architect/
-│   │   └── ui-designer/
-│   └── standards/                    # Documentation standards
+│   │   └── ...                       # 15 other SDLC + utility skills
+│   └── standards/                    # Documentation templates
 │       ├── ADR-FORMAT.md             # Architecture Decision Record template
 │       └── CONTEXT-FORMAT.md         # Domain glossary template
+├── .github/                          # GitHub configuration
+│   └── workflows/
+│       └── custom-build.yml          # V1 Custom Build CI/CD pipeline
 ├── docs/                             # Project documentation
+│   ├── adr/                          # Architecture Decision Records
+│   │   ├── 0001-multi-stage-docker-legacy-tools.md
+│   │   └── 0002-multi-stage-docker-deferred-engine-port.md
+│   ├── audit/                        # SDLC audit reports
+│   │   ├── clarification-report-plan-custom-build-workflow-2026-07-26.md
+│   │   ├── consistency-audit-custom-build-workflow-2026-07-26.md
+│   │   └── phase-6-verification-report-2026-07-29.md
 │   ├── ARCHITECTURE.md               # This file
-│   └── discovery-draft-20260723-1058-custom-build-workflow.md  # Phase 0 draft (Custom Build GitHub Workflow)
+│   ├── CUSTOM-BUILD.md               # Custom Build user documentation
+│   ├── discovery-draft-20260723-1058-custom-build-workflow.md  # Phase 0 discovery
+│   └── prd-20260723-1130-custom-build-workflow.md  # Product Requirements Document
+├── plan/                             # Implementation plans
+│   ├── plan-feature-custom-build-workflow-v1.3.md  # Custom Build implementation plan
+│   └── plan-refactor-code-review-v1.0.md           # Code review remediation plan
+├── spec/                             # Technical specifications
+│   └── spec-custom-build-workflow.md # V1 Custom Build spec (v1.6)
 ├── Scripts/                          # Build pipeline (executable scripts)
-│   ├── build.py                      # Main build orchestrator
-│   ├── fontbuilder.py               # Font variant generation engine
-│   ├── features.py                   # OpenType ligature feature generator
+│   ├── build.py                      # Legacy build orchestrator (CON-001)
+│   ├── fontbuilder.py               # Legacy variant engine (CON-001)
+│   ├── features.py                   # Legacy ligature feature generator (CON-001)
+│   ├── custom_build_driver.py        # V1 Stage 1 driver (FontForge Python 3)
+│   ├── configure.py                  # V1 configuration wrapper (host runner)
+│   ├── packaging.sh                  # V1 Stage 2 packaging script
 │   ├── generate-font-variants        # Bash wrapper for build.py
 │   ├── generate-other-formats        # TTF → WOFF/WOFF2 converter
 │   ├── generate-css-decl             # CSS @font-face declaration generator
@@ -210,87 +255,174 @@ fantasque-sans/
 │   ├── FantasqueSansMono-Italic.sfdir/ # Monospace Italic
 │   └── FantasqueSansMono-BoldItalic.sfdir/ # Monospace Bold Italic
 ├── Specimen/                         # Screenshots and specimen PDF
-│   ├── Specimen.pdf
-│   ├── Specimen.png
-│   ├── kdevelop11.png
-│   ├── sublime11.png
-│   ├── urxvt13.png
-│   ├── vim21.png
-│   ├── noloopk.png
-│   └── RFC page ru.pdf
+│   ├── Specimen.pdf, Specimen.png
+│   └── kdevelop11.png, sublime11.png, urxvt13.png, vim21.png, noloopk.png
+├── tests/                            # Python test suite (pytest)
+│   ├── conftest.py                   # Test configuration (Scripts/ in sys.path)
+│   ├── test_configure.py             # 62 unit tests for configure.py
+│   └── fixtures/                     # Test fixture files
 ├── Variants/                         # Build output (generated, gitignored)
-│   ├── Normal/                       # Default variant
-│   ├── NoLoopK/                      # No-loop k variant
-│   ├── LargeLineHeight/              # Large line height variant
-│   └── NoLoopK-LargeLineHeight/      # Combined variant
+│   ├── Normal/, NoLoopK/, LargeLineHeight/
+│   └── NoLoopK-LargeLineHeight/
+├── .dockerignore                     # Docker build exclusions
 ├── AGENTS.md                         # Master agent rules & SDLC workflow definition
-├── CHANGELOG.md                       # Release history (v1.1 → v1.8.0)
-├── Dockerfile                        # Ubuntu 18.04 build environment
+├── CHANGELOG.md                      # Release history (v1.1 → v1.8.0)
+├── config.schema.json               # V1 build configuration schema (JSON Schema draft-07)
+├── CONTEXT.md                        # Domain glossary (Custom Build terminology)
+├── Dockerfile                        # Multi-stage Docker build (ubuntu:26.04)
+├── fontdiff                          # Font comparison HTML generator
 ├── LICENSE.txt                       # SIL Open Font License
 ├── Makefile                          # Top-level build entry point
-├── README.md                         # Project landing page & user guide
-├── _config.yml                       # GitHub Pages configuration
-├── fontdiff                          # Font comparison HTML generator
 ├── pkg.sh                            # OS package builder (fpm)
-└── .gitignore                        # Ignores: TeX, Variants/, *.pyc, *.zip
+├── README.md                         # Project landing page & user guide
+└── _config.yml                       # GitHub Pages configuration
 ```
 
 ## 6. Directory Purposes & Responsibilities
 
+### Core Build Pipeline
+
 | Directory / File | Primary Purpose | Contains | Rules / Constraints |
 |---|---|---|---|
 | `Sources/` | Font source of truth | 5 `.sfdir` directories, each holding per-glyph `.glyph` files (~600+ glyphs per mono variant) | Must be opened with FontForge; `.glyph` files contain spline data in FontForge's native format |
-| `Scripts/` | Build pipeline | 3 Python modules + 5 bash scripts | Python scripts require FontForge's Python API (`import fontforge`); bash scripts orchestrate Python |
-| `Scripts/build.py` | Build orchestration | Entry point for `generate-font-variants`; defines available font options | Receives 4 CLI args: parallel count, batch number, `.sfdir` path, output dir |
-| `Scripts/fontbuilder.py` | Variant engine | `Line`, `Bearing`, `Swap`, `SwapLookup`, `Variation`, `DropCAltAndLiga` operations + binary bitmap permutation logic | Adapted from [Monoid](https://github.com/larsenwork/monoid); uses Python 2.7 `xrange` |
-| `Scripts/features.py` | Ligature generator | Auto-generates OpenType `calt` feature from `.liga` glyphs; handles ignore rules and prefix exceptions | Adapted from [FiraCode](https://github.com/tonsky/FiraCode) `gen_calt.clj`; must write to tempfile for `mergeFeature()` |
-| `Specimen/` | Visual samples | Screenshots (PNG), printable specimen (PDF), rendered samples in different editors | Used in README.md for visual reference |
-| `Variants/` | Build output | Generated TTF, OTF, WOFF, WOFF2, SVG files per variant | Gitignored; recreated by `make`; consumed by `pkg.sh` for OS packaging |
-| `.agents/` | AI agent infrastructure | Agent personas, skill workflows, instructions, documentation standards | Read by AI coding agents at session start; defines entire SDLC pipeline |
-| `.agents/rules/` | Agent personas | 9 markdown files defining agent identities, scope boundaries, pushback rules | Each agent has a strict phase boundary; cross-phase work must be refused |
-| `.agents/skills/` | Agent capabilities | 18 SKILL.md files with step-by-step workflows | Skill = Procedure, Agent = Persona; skills may or may not trigger session lock |
-| `.agents/instructions/` | Global AI rules | Clean code guidelines, markdown formatting rules, memory persistence | Checked at session start; priority order defined in AGENTS.md |
-| `.agents/standards/` | Documentation templates | ADR format and CONTEXT (domain glossary) format | All documentation must follow these formats |
-| `docs/` | Project docs | ARCHITECTURE.md, `discovery-draft-20260723-1058-custom-build-workflow.md` (Phase 0 draft), future: ADRs, context maps | Created lazily as needed per SDLC standards |
-| `AGENTS.md` | Master rulebook | Universal AI agent rules, SDLC workflow, communication policy, custom agent usage | Highest-priority instruction file; overrides all other rules except direct user command |
-| `Makefile` | Build entry | Discovers `Sources/*.sfdir`, triggers `generate-font-variants` per source, then `zip-all-variants` | Target: `all` → `Variants/Normal/FantasqueSansMono.zip` |
-| `Dockerfile` | Containerized build | Ubuntu 18.04 + FontForge PPA + all build deps | `docker build` then `docker run -v $(pwd)/Variants:/fantasque/Variants` |
-| `fontdiff` | Visual comparison | Generates `fontdiff.html` — side-by-side glyph comparison of two TTF fonts with red/blue overlay | Uses FontForge to enumerate glyphs; embeds fonts as base64 data URIs |
-| `pkg.sh` | OS packaging | Uses `fpm` to build `.deb` or `.rpm` from `Variants/Normal/` output | Overridable via `PKG` env var; currently hardcoded to v1.8.0 |
+| `Scripts/` | Build pipeline (legacy + V1) | 5 Python modules + 7 bash scripts | Python scripts require FontForge's Python API (`import fontforge`); CON-001 protects 3 legacy files |
+| `Scripts/build.py` | Legacy build orchestrator | Entry point for `generate-font-variants`; defines available font options | CON-001: MUST NOT be modified; receives 4 CLI args |
+| `Scripts/fontbuilder.py` | Legacy variant engine | `Line`, `Bearing`, `Swap`, `SwapLookup`, `Variation`, `DropCAltAndLiga` operations + binary bitmap permutation | CON-001: MUST NOT be modified; uses legacy `xrange` (provided by `past.builtins` under Python 3) |
+| `Scripts/features.py` | Legacy ligature generator | Auto-generates OpenType `calt` feature from `.liga` glyphs | CON-001: MUST NOT be modified; adapted from [FiraCode](https://github.com/tonsky/FiraCode) |
+| `Specimen/` | Visual samples | Screenshots (PNG), printable specimen (PDF) | Used in README.md for visual reference |
+| `Variants/` | Build output | Generated TTF, OTF, WOFF, WOFF2, SVG files per variant | Gitignored; recreated by `make`; consumed by `pkg.sh` |
+
+### V1 Custom Build Workflow
+
+| Directory / File | Primary Purpose | Contains | Rules / Constraints |
+|---|---|---|---|
+| `Scripts/configure.py` | Configuration resolution (host runner) | Validates `config.json` against schema, resolves precedence, generates build args + manifest | Python 3.14; runs on GitHub Actions host (not in container); `WORKFLOW_VERSION = "1.3"` |
+| `Scripts/custom_build_driver.py` | Stage 1 font compilation driver | Parses build args, replicates `_build()` core loop, compiles single combination per `.sfdir` | Runs inside FontForge's Python 3 interpreter; MUST NOT modify `build.py`/`fontbuilder.py`/`features.py` (CON-001) |
+| `Scripts/packaging.sh` | Stage 2 packaging | ttfautohint, sfnt2woff, woff2_compress, zip/tar assembly, manifest.json handling | Runs inside Docker Stage 2; consumes `--build-arg` forwarded flags |
+| `Dockerfile` | Container definition | Multi-stage: Stage 1 (`builder-fontforge`), Stage 2 (`final`) | Both stages on `ubuntu:26.04`; PPA dropped; `pip3 install future` in Stage 1 |
+| `config.schema.json` | Configuration schema | JSON Schema draft-07: 4 boolean properties with defaults, `additionalProperties: true` | Root of repository; validated by `configure.py` |
+| `.github/workflows/custom-build.yml` | CI/CD pipeline | `workflow_dispatch` with 4 boolean inputs, Docker build, artifact upload, release creation | `contents: write` + `actions: read` permissions; GUD-003 retry with exponential backoff |
+| `.dockerignore` | Docker build exclusions | `.git/`, `__pycache__/`, `*.pyc`, `.pytest_cache/`, `output/`, `*.zip`, `*.tar.gz`, `.agents/`, `.github/` | Prevents unnecessary files from entering the Docker build context |
+| `docs/CUSTOM-BUILD.md` | User documentation | 3-step illustrated guide, troubleshooting, FAQ | End-user facing; referenced by README.md "Custom Build" link |
+| `CONTEXT.md` | Domain glossary | Custom Build terminology: Variant, Normal, Fork Owner, Manifest, Workflow | Follows `.agents/standards/CONTEXT-FORMAT.md`; opinionated terms with `_Avoid_` lists |
+
+### Documentation & SDLC Infrastructure
+
+| Directory / File | Primary Purpose | Contains | Rules / Constraints |
+|---|---|---|---|
+| `docs/` | Project documentation | ADRs, audit reports, PRD, discovery draft, user guides | Created lazily per SDLC standards |
+| `docs/adr/` | Architecture Decision Records | 0001 (single-stage Docker, *Superseded*), 0002 (multi-stage Docker, deferred engine port) | Follows ADR-FORMAT.md; Triple Gate validation before creation |
+| `docs/audit/` | SDLC audit artifacts | Clarification reports, consistency audits, verification reports | Historical records; provide traceability across SDLC phases |
+| `spec/` | Technical specifications | `spec-custom-build-workflow.md` v1.6 | Machine-readable contracts for code execution |
+| `plan/` | Implementation plans | Custom Build v1.3 plan, Code Review remediation v1.0 plan | Drive `/sdlc-write-code` execution; traceable to spec requirements |
+| `spec/spec-custom-build-workflow.md` | V1 technical spec | API contracts, schema definitions, runtime architecture, acceptance criteria | v1.6 (2026-07-30); §4.5 Dockerfile pseudocode synced with implementation |
+| `plan/plan-feature-custom-build-workflow-v1.3.md` | V1 implementation plan | 6 phases, task breakdown, acceptance criteria matrix | v1.3 (2026-07-30); Stage 1 environment synced |
+| `docs/prd-20260723-1130-custom-build-workflow.md` | Product Requirements | User stories, acceptance criteria, technical considerations, metrics | v1.3; environment references synced (2026-07-30) |
+
+### Agent Infrastructure
+
+| Directory / File | Primary Purpose | Contains | Rules / Constraints |
+|---|---|---|---|
+| `.agents/` | AI agent ecosystem | Personas, skills, instructions, standards | Read at session start; defines SDLC pipeline |
+| `.agents/rules/` | Agent persona definitions | Markdown files with identity, scope, pushback rules | Each agent has strict phase boundary; cross-phase work refused |
+| `.agents/skills/` | Agent capabilities | 18 `SKILL.md` files with step-by-step workflows | Skill = Procedure; may or may not trigger session lock |
+| `.agents/instructions/` | Global AI rules | Clean code, markdown formatting, memory persistence | Checked at session start |
+| `.agents/standards/` | Documentation templates | ADR format, CONTEXT (domain glossary) format | All documentation must follow these formats |
+| `AGENTS.md` | Master rulebook | Universal AI agent rules, SDLC workflow, communication policy | Highest-priority instruction file |
+
+### Root-Level Files
+
+| File | Primary Purpose | Rules / Constraints |
+|---|---|---|
+| `Makefile` | Build entry | Discovers `Sources/*.sfdir`, triggers pipeline, targets: `all` → `Variants/Normal/FantasqueSansMono.zip` |
+| `fontdiff` | Visual comparison | Generates `fontdiff.html` — side-by-side glyph comparison with red/blue overlay |
+| `pkg.sh` | OS packaging | Uses `fpm` to build `.deb` or `.rpm` from `Variants/Normal/` |
+| `_config.yml` | GitHub Pages | Jekyll configuration (minimal) |
+| `.gitignore` | Git exclusions | `Variants/`, `*.zip`, TeX artifacts, `*.pyc`, temp FontForge files |
+| `CONTEXT.md` | Domain glossary | Custom Build terminology per CONTEXT-FORMAT.md |
+| `CHANGELOG.md` | Release history | v1.1 through v1.8.0 |
+| `LICENSE.txt` | License | SIL Open Font License v1.1 |
 
 ## 7. Key Configuration Files
 
-* **`Makefile`** — The primary build orchestrator. Runs on `Sources/*.sfdir` via wildcard, generates per-font TTF variants, triggers final ZIP packaging. The `install` target copies to `~/.fonts/` and runs `fc-cache -f`.
-* **`_config.yml`** — GitHub Pages Jekyll configuration (minimal — only 26 bytes). Used to publish the project's landing page.
-* **`.gitignore`** — Excludes build outputs (`Variants/`, `*.zip`), TeX artifacts, Python bytecode (`*.pyc`), and temp FontForge files (`Sources/*.sfd-*`).
-* **`Dockerfile`** — Provides a reproducible build environment with all dependencies pre-installed. Critical for contributors who cannot or do not want to install FontForge natively.
+* **`config.schema.json`** — JSON Schema draft-07 defining 4 boolean build options (`LargeLineHeight`, `NoLoopK`, `NoCalt`, `UseHinted`) with defaults and `additionalProperties: true`. Validated by `Scripts/configure.py` at build time. Missing file = empty object (no failure).
+* **`Makefile`** — Primary local build orchestrator. Runs on `Sources/*.sfdir` via wildcard, generates per-font variants, triggers ZIP packaging. The `install` target copies to `~/.fonts/` and runs `fc-cache -f`.
+* **`Dockerfile`** — Multi-stage build (ADR-0002): Stage 1 (`ubuntu:26.04` + `fontforge` + `python3-pip` + `future` shim from PyPI), Stage 2 (`ubuntu:26.04` + deadsnakes Python 3.14 + packaging tools). Both stages share the `ubuntu:26.04` baseline.
+* **`.dockerignore`** — Excludes `.git/`, Python cache, test artifacts, archives, and agent infrastructure from the Docker build context.
+* **`.gitignore`** — Excludes build outputs (`Variants/`, `*.zip`), TeX artifacts, Python bytecode (`*.pyc`), and temp FontForge files.
+* **`_config.yml`** — GitHub Pages Jekyll configuration (minimal — 26 bytes).
 * **`AGENTS.md`** — The single most important configuration file for AI agents. Contains the complete SDLC workflow definition, language policy, testing mandate, persona hijacking protocol, and session isolation rules.
 
 ## 8. Entry Points
 
-* **Build Initialization:** `make` at the repository root. Automatically discovers all `Sources/*.sfdir` files and builds each one through the full pipeline.
+### Local Build
+* **Full Build:** `make` at the repository root. Discovers all `Sources/*.sfdir` files and builds each through the full pipeline.
 * **Per-Font Build:** `Scripts/generate-font-variants Sources/FantasqueSansMono-Regular.sfdir Variants` — builds a single font with all variant permutations.
-* **Docker Build:** `docker build -t fantasque . && docker run -v "$(pwd)/Variants:/fantasque/Variants" fantasque` — builds everything inside a container.
-* **Package Creation:** `./pkg.sh` — builds `.deb` or `.rpm` from the `Variants/Normal/` output (requires `fpm`).
-* **Font Comparison:** `./fontdiff font1.ttf font2.ttf` — generates an HTML overlay comparison page.
+* **Docker Build:** `docker build -t fantasque . && docker run -v "$(pwd)/Variants:/fantasque/Variants" fantasque` — containerized build.
+* **Package Creation:** `./pkg.sh` — builds `.deb` or `.rpm` (requires `fpm`).
+* **Font Comparison:** `./fontdiff font1.ttf font2.ttf` — side-by-side HTML overlay.
+
+### Custom Build (Cloud)
+* **GitHub Actions Dispatch:** Navigate to the **Actions** tab → **Custom Build** → **Run workflow**, select options, trigger.
+* **CLI Entry:** `python Scripts/configure.py --config-file config.json --schema-file config.schema.json --output-args-file /tmp/args` — resolve options and generate build args + manifest locally.
+* **Programmatic Dispatch:** `gh workflow run custom-build.yml -f large_line_height=true -f no_calt=false`
+
+### Test Suite
+* **Run All Tests:** `python -m pytest tests/ -v` — 62 tests in `test_configure.py`.
+* **Specific Test Class:** `python -m pytest tests/test_configure.py::TestResolveOptions -v`
 
 ## 9. Environment & Deployment
 
-- **CI/CD:** Not configured in this repository (no GitHub Actions, GitLab CI, or other CI configuration files present).
-- **Deployment (Releases):** Manual — the maintainer builds locally and uploads ZIP archives to [GitHub Releases](https://github.com/belluzj/fantasque-sans/releases).
-- **Package Distribution:**
-  - **Homebrew (macOS):** `brew install --cask font-fantasque-sans-mono`
-  - **Linux (DEB/RPM):** Generated via `pkg.sh` using `fpm`
-- **Critical Environment Variables:** None. The build process is self-contained and deterministic.
+### CI/CD
+- **Platform:** GitHub Actions
+- **Trigger:** `workflow_dispatch` with 4 boolean input fields (`large_line_height`, `no_loop_k`, `no_calt`, `use_hinted`)
+- **Runner:** `ubuntu-latest` (GitHub-hosted)
+- **Permissions:** `contents: write` + `actions: read`
+- **Pipeline:** Single job → Python 3.14 setup → `configure.py` → Docker multi-stage build → artifact upload → GitHub Release
+- **Retry Strategy:** Exponential backoff for release creation (GUD-003): 1s, 5s, 25s for up to 4 attempts (initial + 3 retries)
+
+### Deployment (Releases)
+- **Local:** Manual — maintainer builds locally, uploads ZIP to [GitHub Releases](https://github.com/belluzj/fantasque-sans/releases)
+- **Cloud (V1):** Automated — `gh release create` via `custom-build.yml`, tagged `custom-build-YYYYMMDD-HHMMSS-{run_id}-{run_attempt}`
+- **Artifacts:** `.zip` + `.tar.gz` bundles containing fonts, `manifest.json`, `LICENSE.txt`, `README.md`
+
+### Package Distribution
+- **Homebrew (macOS):** `brew install --cask font-fantasque-sans-mono`
+- **Linux (DEB/RPM):** Generated via `pkg.sh` using `fpm`
 
 ## 10. Testing Strategy
 
-> **Note:** This is a font design project, not an application. There is no traditional test suite.
+### Current Test Suite (V1 Custom Build)
 
-- **Validation:** `Scripts/validate-font` runs basic checks on each `.sfdir` before the build begins.
-- **Visual Inspection:** The `fontdiff` script enables side-by-side glyph comparison with color overlay (red/blue) for spotting regressions between font versions.
-- **Manual QA:** Visual testing across editors (Vim, KDevelop, Sublime Text, urxvt) — specimen screenshots are preserved in `Specimen/`.
-- **SDLC Testing Mandate:** The AGENTS.md Two-Layer Testing Mandate applies to any *future* application code developed under this repository. Currently, no application code exists to test.
+| Aspect | Detail |
+|---|---|
+| **Framework** | `pytest` 9.x (Python 3.12) |
+| **Location** | `tests/test_configure.py` (460 lines) + `tests/conftest.py` + `tests/fixtures/` |
+| **Coverage** | 62 tests across 12 test classes |
+| **Run Command** | `python -m pytest tests/ -v` |
+| **Key Fixtures** | Schema validation, config loading, option resolution, manifest generation, form bool parsing, arg parsing, CLI entry points |
+
+**Test Classes:**
+
+| Class | Scope | Tests |
+|---|---|---|
+| `TestSchemaFile` | Schema validation as draft-07 | 3 |
+| `TestLoadConfig` | Config file loading (missing file → empty object) | 2 |
+| `TestLoadSchema` | Schema loading | 1 |
+| `TestValidateConfig` | Validation (valid, empty, invalid types, unknown keys) | 6 |
+| `TestResolveOptions` | Precedence resolution (defaults, config, form, override, mixed) | 7 |
+| `TestComputeConfigSource` | `config_source` logic per Spec §9.1 | 5 |
+| `TestLogOptionSources` | Per-option source logging format | 4 |
+| `TestBuildDriverArgString` | Driver argument string generation | 3 |
+| `TestGenerateManifest` | Manifest JSON (valid, required fields, schema, license, timestamps) | 8 |
+| `TestFormBoolParser` | Boolean parsing (canonical forms + garbage rejection) | 8 |
+| `TestArgParser` | CLI argument parsing | 2 |
+| `TestMainEntryPoint` | End-to-end main() entry (invalid config, args + manifest output, AC-003 log) | 3 |
+
+### Legacy Validation
+- **Font Validation:** `Scripts/validate-font` runs basic checks on each `.sfdir` before build
+- **Visual Inspection:** `fontdiff` script enables side-by-side glyph comparison
+- **Manual QA:** Specimen screenshots across editors (Vim, KDevelop, Sublime Text, urxvt)
 
 ## 11. AI Agent Boundaries
 
@@ -300,12 +432,13 @@ fantasque-sans/
 - **Code Modification Rules:** Agents must follow the Principle of Simplicity, make Surgical Changes only, and never modify unrelated code. All code changes require accompanying tests.
 - **No Unsolicited Changes:** Agents must not refactor, clean up, or "fix" adjacent code not targeted by the current task.
 - **Font Source Files:** The `.sfdir` directories in `Sources/` are FontForge-native format. They must not be modified by text editors — only through FontForge itself or via FontForge's Python API in the build scripts.
-- **Build Prerequisites:** Any modification to the `.sfdir` sources or build scripts must be verified by running `make` to ensure fonts still generate correctly.
+- **CON-001 (Critical):** `Scripts/build.py`, `Scripts/fontbuilder.py`, `Scripts/features.py`, and root `Makefile` MUST NOT be modified, renamed, or refactored under any circumstances. The V1 custom build wraps them; V2 (ADR-0002) will port them to Python 3 natively.
 
 ## 12. Known Tech Debt & Current Constraints
 
-This section captures current-state limitations in the build pipeline that are already true in the repository today. The proposed remediation for each item is tracked separately in `docs/discovery-draft-20260723-1058-custom-build-workflow.md` (Phase 0 draft, not yet implemented).
-
-- **Python 2.7 EOL:** `Scripts/build.py` and `Scripts/fontbuilder.py` require Python 2.7 (shebang `#!/usr/bin/env python2.7` in `build.py` line 1). The Python 2.7 interpreter reached end-of-life on 2020-01-01. The legacy build must run as-is until a Python 3 wrapper is introduced.
-- **Docker base image EOL:** `Dockerfile` line 1 pins `FROM ubuntu:18.04`, which reached end-of-standard-support in April 2023. A planned upgrade to a current Ubuntu LTS is described in the discovery draft above.
-- **Hardcoded variant options:** Font variant toggles (`LargeLineHeight`, `NoLoopK` active; `NoCalt` commented out) are defined inline in `Scripts/build.py` lines 32–52. There is currently no external configuration file; an external `config.json` driver is proposed in the discovery draft above but not yet implemented.
+| # | Item | Status | Detail |
+|---|------|--------|--------|
+| 1 | **Python 2.7 shebang** | ⚠️ Open (deferred to V2) | `Scripts/build.py` line 1 still declares `#!/usr/bin/env python2.7`; engine scripts are unported Python 2-style code. In the container they run under FontForge's Python 3 via `future` (`past.builtins`) shim. Full Python 3 port deferred to V2 (ADR-0002). |
+| 2 | **Docker base image EOL** | ✅ RESOLVED (2026-07-30) | `Dockerfile` uses `ubuntu:26.04` for both stages (multi-stage per ADR-0002); legacy Ubuntu 18.04 superseded. |
+| 3 | **Hardcoded variant options** | ✅ RESOLVED (V1) | Variant toggles are now externalized via `config.schema.json` + `configure.py`; users configure options through `workflow_dispatch` form or repository `config.json`. Legacy `build.py` in-source definitions remain untouched (CON-001). |
+| 4 | **Engine port to Python 3** | ⚠️ Deferred to V2 | `Scripts/fontbuilder.py` and `Scripts/features.py` remain unported. They run under Python 3 via the `future` shim in the container, but a native Python 3.14 port is deferred to V2 (ADR-0002). |
