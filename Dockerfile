@@ -28,14 +28,17 @@ ENV DEBIAN_FRONTEND=noninteractive
 # embedded; ``-lang=py -script`` invokes that interpreter directly, so
 # no separate ``python3-fontforge`` package is required.
 # ``ca-certificates`` is required for ``apt-get update`` over HTTPS.
-# ``rm -rf /var/lib/apt/lists/*`` keeps the layer small.
+# ``python3-pip`` is required because ``python3-future`` was removed
+# from Ubuntu 26.04 main repos; we install ``future`` from PyPI instead
+# (legacy ``from past.builtins import xrange`` in fontbuilder.py needs it).
 # ``make`` is kept around for the legacy ``Makefile`` smoke path.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
         fontforge \
-        python3-future \
+        python3-pip \
         make \
+    && pip3 install --break-system-packages --no-cache-dir future \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /build
 
