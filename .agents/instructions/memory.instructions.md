@@ -17,6 +17,7 @@
 > - 2026-07-30: Direct additions to KB (no compaction this session — entries are stable, project-validated). Added: DE #6 (apt→pip fallback for shim packages), DE #7 (read-only mount vs script writeback). Added KB patterns: Cross-tool Escape Hierarchy (bash vs jq backtick handling), Defense-in-Depth vs Script Intent in Docker Mounts. Updated DE #5 "Correct Solution" to reflect `pip3 install future` pattern (replaces obsolete `python3-future` apt install). All additions are project-validated through successful end-to-end CI build.
 > - 2026-07-30 (Compaction Pass): 5 old checkpoints compacted (2026-07-26 ×2, 2026-07-29 ×3). Retained 2 most recent: 2026-07-30 (First CI Run Failures) + 2026-07-30 (Build SUCCESS). Updated KB pattern "Multi-Stage Docker with Deferred Engine Port (ADR-0002)" to reflect current Stage 1 (`ubuntu:26.04` + Python 3.x) instead of outdated `ubuntu:18.04` + Python 2.7. Populated empty `Key Metrics & Baselines` section. No KB knowledge deleted (all 7 DEs + 25 patterns still project-relevant).
 > - 2026-07-30 (Plan-Refactor Compaction): Checkpoint A "First CI Run Failures" compacted (subsumed by Checkpoint B). Promoted: DE #8 (no-op retry fix), 3 KB patterns (Doc Sync Scope Enumeration, Plan-as-Record after Execution, Code Review Remediation Triplet). Retained: Checkpoint B (Build SUCCESS) + new Checkpoint C (Plan-Refactor Execution — 16 tasks, 3 phases, all complete).
+> - 2026-07-31 (Spec Multi-Weight Compaction): Sessions 2026-07-30 (Code Phase Debugging) + 2026-07-30 (Plan-Refactor Execution) compacted after Spec v1.3 verification (feature Custom Build fully closed in KB). Promoted: 5 KB patterns (ADR Triple-Gate Filtering, Manual Atomic Commit per Iteration, PoC Failure Path Pattern, Self-Review Diminishing Returns, Glossary-After-Doc Propagation) + DE #9 (container-only tool in host runner workflow step). Retained: 2026-07-31 (PRD v1.1), 2026-07-31 (Spec Audit v1.1), NEW 2026-07-31 (Spec v1.3).
 > Updated during Compaction Mode (Workflow 4). Do NOT delete entries here.
 
 ### Architecture & Patterns
@@ -49,6 +50,11 @@
 - **Doc Sync Scope Enumeration (CR-F2 lesson)**: When CI debugging forces environment deviation, the doc sync must enumerate ALL affected sections, not just the obvious ones. Use `grep` (e.g., `grep -in "python2.7\|ubuntu:18.04"` across all relevant docs) to enumerate the actual surface area, not relying on the original finding's stated scope. For this project, the v1.0 plan said "Spec §4.5 only" but actual env drift required syncing 7 Spec sections (`REQ-004`, §1.1, §1.2, §4.4, §4.5, §7, §8.2) + ADR-0002 + 5 PRD sections + ARCHITECTURE.md. **Lesson**: fix scope must match actual drift surface, not assumed drift surface. [Source: Session 2026-07-30, plan-refactor-code-review TASK-103..TASK-106]
 - **Plan-as-Record after Execution**: After executing a refactor plan, update the plan file itself to reflect the actual state: (1) frontmatter status `Draft → Complete`, (2) version bump (e.g., 1.1 → 1.2), (3) date column on every task row, (4) revision note in Introduction footer, (5) `## 6. Execution Results` section. The plan becomes the historical record of work, not just the work instruction — future readers see both the plan and its execution outcomes in one document. [Source: Session 2026-07-30, plan-refactor-code-review closure]
 - **Code Review Remediation Triplet**: When code review surfaces env drift caused by CI debugging, address all three: (1) **Env sync** (Dockerfile, `.dockerignore`, base images), (2) **Code fixes** (workflow retry, version constants, stale comments), (3) **Doc sync** (plan, spec, ADR, PRD, ARCH). Missing any one = incomplete remediation. The triplet reflects the surface area that drift can affect: runtime config, code-level constants, and human-readable documentation. [Source: Session 2026-07-30, plan-refactor-code-review scope]
+- **ADR Triple-Gate Filtering**: Jangan buat ADR untuk perubahan non-arsitektural (env migration, retry strategy, version constants, `.dockerignore`). Jika keputusan tidak memenuhi triple-gate (hard to reverse / surprising / real trade-off), dokumentasikan cukup sebagai Non-ADR resolution di Spec §8.5. Superseded ADRs tidak pernah dihapus — dipertahankan untuk konteks historis. [Source: Session 2026-07-30 plan-refactor; reaffirmed 2026-07-31]
+- **Manual Atomic Commit per Iteration (user preference)**: User melakukan commit manual per perbaikan/iterasi (satu commit per fix, pesan deskriptif) — memberikan traceability perbaikan ke error spesifik. Jangan batch-commit banyak fix tanpa pemisahan. [Source: Session 2026-07-30 code debugging, user workflow]
+- **PoC Failure Path Pattern**: Setiap definisi kriteria LULUS untuk PoC/eksperimen WAJIB disertai jalur GAGAL eksplisit (≥3 opsi: iterasi subset, revisi cakupan, re-evaluasi tooling, penundaan). Gate check tanpa jalur gagal = proyek bisa stuck. [Source: Session 2026-07-31 PRD, FR-2.5]
+- **Self-Review Diminishing Returns**: Tren temuan per ronde self-review (9→6→8→1) adalah sinyal stabilisasi. Setelah ronde ke-3/4, hentikan self-review persona yang sama dan hand off ke checkpoint khusus (`/sdlc-clarify-reqs`) — melanjutkan berisiko temuan buatan/over-editing. [Source: Session 2026-07-31 PRD, 4 ronde self-review]
+- **Glossary-After-Doc Propagation**: Ketika istilah glosarium dibuat SETELAH dokumen utama selesai, jalankan scan `_Avoid_` terhadap dokumen di sesi yang sama dan perbaiki semua pelanggaran — mencegah temuan audit downstream. [Source: Session 2026-07-31 PRD, 6 fix terminologi]
 
 ### Dead-Ends (Do NOT Repeat)
 
@@ -62,6 +68,7 @@
 | 6 | Install `python3-future` via `apt-get install` on Ubuntu 26.04 | Package removed from Ubuntu 26.04 main repos (PEP 668 / minimalism trend). `apt-get install python3-future` returns `E: Unable to locate package python3-future`. The `future` package (which provides `past.builtins` for Py2/3 compat shims like `from past.builtins import xrange`) is no longer in distro repos. | For legacy Python 2/3 shim packages, bootstrap `python3-pip` via apt then install via pip: `pip3 install --break-system-packages --no-cache-dir <package>`. The `--break-system-packages` flag is required for PEP 668 compliance (Ubuntu 24.04+); `--no-cache-dir` keeps the image small. Lesson: as Ubuntu modernizes, apt-installable shim packages are increasingly unavailable — `pip install` is the de-facto fallback for legacy compat libs. |
 | 7 | Mount source manifest as `:ro` in workflow but have packaging script write updated manifest back to same path | `:ro` mount rejects all writes; script fails with `Read-only file system` error. The defensive `:ro` conflicts with script's clear design intent (update manifest in place for archive step). Even if script's writeback is "questionable" (writing back to source is unusual), the script is trusted code in the same image — blocking it with `:ro` breaks the build. | Three options: (a) **Remove `:ro` flag** (chosen for this build) — trade defense-in-depth for clean build. Container can modify source manifest, but that's the script's design intent. (b) **Refactor script to use different filename** in /app/ (e.g., `manifest.built`) — more complex, breaks canonical `manifest.json` name in archive. (c) **Copy script's writeback target to OUTPUT_DIR first**, then have script write there — adds copy step, more IO. Generalization: when mounting volumes in CI/Docker, ensure mount permissions match the trusted code's intent. Defense-in-depth is good but should not block legitimate build behavior. |
 | 8 | **No-op retry fix (v1.0 → v1.1 lesson)**: Add `3) delay=25 ;;` to a `case $attempt in ... esac` loop where the loop runs only when `attempt < max_attempts` with `max_attempts=3` | The case structure has only 2 delay slots; with 3 attempts (1 initial + 2 retries), only 2 delays (1s, 5s) are needed. The new `3) delay=25 ;;` case never executes because the loop terminates at attempt 3 before reaching the new branch. Initial fix was a no-op — the case structure was unchanged in behavior. | Bump `max_attempts` to match the new delay tiers — e.g., `max_attempts=4` (1 initial + 3 retries) for 1s/5s/25s delays. **General lesson**: when adding a new branch to a loop/case structure, verify the structure actually reaches the new branch — count `attempts × delays` and ensure they match. If they don't, the fix is a no-op. |
+| 9 | Write workflow step examples that invoke container-only tools (e.g., `fontforge -lang=py -script`) directly on the GitHub Actions host runner | FontForge is only available inside the Stage 1 image (`builder-fontforge`) during `docker build`; host runner (Python 3.14 + jsonschema/pytest) and the final Stage 2 image (ttfautohint/woff-tools/woff2/zip/jq) do NOT include FontForge. The §4.9 v1.1 example YAML was non-executable. | Always verify the **runtime context** of every tool before writing workflow step examples: host runner vs container stage. For container-only tools, integrate via **flag forwarding** (workflow → `configure.py` → `BUILD_ARGS` → conditional RUN in the correct stage) instead of direct host steps. [Source: Session 2026-07-31, Spec v1.2 F-5 fix] |
 
 ### Key Metrics & Baselines
 
@@ -73,112 +80,9 @@
 - **GitHub Actions Actions Versions**: `actions/checkout@v7` + `actions/setup-python@v6` + `actions/upload-artifact@v4` (Node.js 24 LTS). [Source: Session 2026-07-30]
 - **Custom-build Release Tag Format**: `custom-build-YYYYMMDD-HHMMSS-{run_id}-{run_attempt}` (UTC). [Source: PRD v1.3, Plan v1.2 §TASK-040]
 - **CON-001 (Constraint)**: `Scripts/features.py` is FORBIDDEN to modify (legacy). All environment fixes go in `Dockerfile` or workflow YAML. Verified via `git diff --stat` on legacy files = empty. [Source: Plan v1.2 §CON-001, verified 2026-07-30 plan-refactor]
+- **Spec Multi-Weight Variants (v1.3)**: 1147 lines, markdownlint 0 issues, 62 balanced code fences, traceability 100% vs PRD v1.3 (FR-1..7 / GH-001..006 / SM-T1..4 / E0.1..4 all covered). [Source: Session 2026-07-31, spec verification pass]
 
 ---
-
-## 📝 Session Checkpoint: 2026-07-30 (Code Phase Debugging — Build SUCCESS After 4 More Iterations)
-
-- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
-- **Previous Phase:** Code phase debugging (2026-07-30 morning) — 4 issues fixed locally, awaiting more iterations
-- **Current SDLC Phase:** Code phase — **first end-to-end CI run SUCCEEDED** after 4 more iteration cycles (issues #5, #6, #7, #8)
-- **Active Artifacts:**
-  - `Dockerfile` — Status: ✅ Ubuntu 26.04 + Python 3.x + `pip3 install --break-system-packages --no-cache-dir future` for shim
-  - `.github/workflows/custom-build.yml` — Status: ✅ Node 24 actions, no `:ro` on manifest mount, jq backticks corrected
-  - `Scripts/packaging.sh` — Status: ✅ Unchanged from original (no workaround needed after workflow fix)
-  - `plan/plan-feature-custom-build-workflow-v1.2.md` — Status: ✅ Unchanged (env deviation pending v1.3 bump)
-  - `spec/spec-custom-build-workflow.md` — Status: ✅ Unchanged (multi-stage contract preserved)
-  - `docs/prd-20260723-1130-custom-build-workflow.md` — Status: ✅ Unchanged
-  - **NEW: GitHub Release** — Status: ✅ `https://github.com/GulajavaMinistudio/fantasque-sans/releases` has new `custom-build-*` release with zip + tar.gz + manifest.json attached
-- **Achieved Milestones (this continuation session):**
-  - **Issue #5** — `ppa:fontforge/fontforge` 404 on `resolute` suite (Ubuntu 26.04). FIX: removed PPA entirely, removed `software-properties-common` and `add-apt-repository`. Use default Ubuntu 26.04 fontforge (Python 3 bindings embedded). [Continuation of DE #5]
-  - **Issue #6** — `python3-future` removed from Ubuntu 26.04 main repos (PEP 668 / minimalism trend). FIX: install `future` via pip with `--break-system-packages --no-cache-dir`. [PROMOTED to DE #6]
-  - **Issue #7** — `packaging.sh:151: Read-only file system` when script tried to write updated manifest to `/app/manifest.json`. ROOT CAUSE: workflow mounts manifest as `:ro` (defensive) but script's design intent is to writeback updated manifest to source path. FIX: removed `:ro` flag from manifest volume mount in workflow (custom-build.yml:152). Script unchanged. Trade-off: lost defense-in-depth in favor of clean build. [PROMOTED to DE #7]
-  - **Issue #8** — `jq: error: Invalid escape at line 1, column 4` at custom-build.yml:294. ROOT CAUSE: `\\\`` (backslash + backtick) in jq string, copied from bash context where backtick IS command substitution. Inside single-quoted bash string passed to jq, backticks are literal in jq — no escape needed. FIX: removed 4 `\\\`` pairs from jq string. Other 5 `\\\`` in workflow (lines 191, 192, 210, 303, 304) are in bash DOUBLE-quoted strings, where escape is correct. [PROMOTED to KB Pattern: Cross-tool Escape Hierarchy]
-  - **8/8 fixes committed** by user (manual `git commit` + `git push` per AGENTS.md workflow): `e4056a4`, `0422e16`, `b108eac`, `b890d6d`, `3ae66d7`, `01fc5f5`, `422f19b` (+ memory/AGENTS.md pending)
-  - **End-to-end CI build SUCCESS** — first successful run on user's fork; GitHub Release created with attached zip + tar.gz + manifest.json
-- **Decisions Made:**
-  - **Trade `:ro` for clean build**: defense-in-depth is nice, but build correctness > defense when the conflicting code is trusted (same image). Future: could be revisited via separate writable manifest mount (e.g., mount OUTPUT_DIR copy for script's writeback target).
-  - **Update DE #5**: DE #5 said "use `python3-future`" but that package is also removed from Ubuntu 26.04. Correction: use `pip3 install --break-system-packages future` instead. DE #5's "Correct Solution" column updated in this session.
-  - **Plan v1.3 bump needed**: Plan v1.2 §Phase 2 still references `python3-future` apt install. v1.3 bump needed (or post-v1.2 erratum) to reflect (a) base image `ubuntu:18.04` → `ubuntu:26.04`, (b) Python 2.7 → 3.x, (c) `python3-future` apt → `pip3 install future` pattern.
-  - **User does manual commits**: 8 individual commits per session iteration matches AGENTS.md "manual commit+push" rule. This pattern worked well for traceability — each fix is atomic and traceable to a specific error.
-- **Updated Files (this session, all committed except memory):**
-  - `Dockerfile` — Stage 1: `ppa:fontforge/fontforge` removed, `software-properties-common` removed, `python3-future` removed, `pip3 install --break-system-packages --no-cache-dir future` added
-  - `.github/workflows/custom-build.yml` — manifest mount `:ro` removed, jq string backticks unescaped (4 locations)
-  - `.agents/instructions/memory.instructions.md` — DE #5 update + DE #6 + DE #7 + 2 new KB patterns + this checkpoint (pending commit)
-  - `AGENTS.md` — `Last Recorded` to be re-confirmed as 2026-07-30 (already current per previous session)
-- **Dead-Ends (do NOT repeat):**
-  - **Attempted**: Install `python3-future` via `apt-get install` on Ubuntu 26.04. **Reason**: Package removed from Ubuntu 26.04 main repos (PEP 668 / minimalism). `apt-get install python3-future` returns `E: Unable to locate package python3-future`. **Solution**: For legacy Python 2/3 shim packages, use `pip3 install --break-system-packages --no-cache-dir <package>` instead of apt. Add `python3-pip` to apt-install list as bootstrap. [PROMOTED to DE #6]
-  - **Attempted**: Mount source manifest as `:ro` in workflow but have packaging script write updated manifest back to same path. **Reason**: `:ro` mount rejects all writes; script fails with `Read-only file system` error. The defensive `:ro` conflicts with script's clear design intent (update manifest in place for archive step). **Solution**: Either (a) remove `:ro` flag (chosen), (b) refactor script to use a different filename in /app/ (more complex, breaks manifest name in archive), or (c) copy script's writeback target to OUTPUT_DIR first and have script write there. [PROMOTED to DE #7]
-- **Lessons Learned (KB candidates for next compaction):**
-  - **Cross-tool escape hierarchy (bash → jq)**: When passing strings to tools like `jq`, `yq`, etc., be aware of escape context. In bash DOUBLE-quoted strings, backtick `` ` `` triggers command substitution → escape with `` \` ``. In bash SINGLE-quoted strings, backtick is literal (no escape). In jq/yq strings (inside bash single-quotes), backtick is also literal (no escape). The pattern `` \`\(.field)\` `` in a single-quoted bash → jq context is a copy-paste mistake from bash double-quoted context. Valid escapes inside jq double-quoted strings: `\\`, `\"`, `\/`, `\b`, `\f`, `\n`, `\r`, `\t`, `\uXXXX`. [PROMOTED to KB Pattern: Cross-tool Escape Hierarchy]
-  - **Defense-in-depth vs script intent in Docker mounts**: When a script's design intent is to write back to a mounted path, but the workflow mount is `:ro`, the workflow needs to grant the necessary write access. Either remove `:ro`, use a different mount path, or refactor the script. Defense-in-depth is good but should not block legitimate build behavior. [PROMOTED to KB Pattern: Defense-in-Depth vs Script Intent]
-- **Next Action / Pending:**
-  - **PRIORITAS #1 (user):** Commit memory updates → `git add .agents/instructions/memory.instructions.md AGENTS.md && git commit -m "docs(memory): checkpoint 2026-07-30 build success + DE #6 #7 + 2 KB patterns"` → `git push origin master`
-  - **PRIORITAS #2 (user, next session):** Open new chat session → invoke `/sdlc-code-review` for formal review of Dockerfile + custom-build.yml + packaging.sh
-  - **PRIORITAS #3 (user, next session):** Formally bump Plan v1.2 → v1.3 to reflect (a) base image `ubuntu:18.04` → `ubuntu:26.04`, (b) Python 2.7 → 3.x, (c) `python3-future` apt → pip install
-  - **PRIORITAS #4 (user, after CI confirms AC-001..AC-005 across multiple matrix values):** Mark TASK-060, TASK-061 (3/5 runtime), TASK-062 (runtime), TASK-063 ✅. Approve TASK-064.
-  - **PRIORITAS #5 (next session, after code review approval):** Invoke `/sdlc-generate-docs` for final user-facing documentation per Diátaxis framework
-  - **User explicit decision (per "Stop setelah save memory"):** Session ends after memory commit. Next SDLC phase (`/sdlc-code-review` or `/sdlc-generate-docs`) will be opened in a NEW session per Strict Session Isolation.
-- **Build Verification:**
-  - GitHub Actions run: `30520458083` (and possibly later runs) — all steps PASS
-  - GitHub Release: created with tag `custom-build-YYYYMMDD-HHMMSS-...` containing zip + tar.gz + manifest.json
-  - URL: `https://github.com/GulajavaMinistudio/fantasque-sans/releases`
-
-<!-- checkpoint-tail: Code phase: end-to-end CI build SUCCESS after 8 iteration cycles. 8 commits, 3 new dead-ends, 2 new KB patterns, Plan v1.3 bump pending. User chose "Stop setelah save memory" — session ends after memory commit. Next: commit memory + /sdlc-code-review + Plan v1.3. -->
-
-## 📝 Session Checkpoint: 2026-07-30 (Plan-Refactor Execution — Documentation Sync & Minor Fixes)
-
-- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
-- **Previous Phase:** Code phase — first end-to-end CI build SUCCESS (8 iterations, 2026-07-30 morning+afternoon); Code Review surfaced 5 findings (CR-F1..CR-F5)
-- **Current SDLC Phase:** Code Review remediation — `plan/plan-refactor-code-review-v1.0.md` v1.1 fully executed; plan itself bumped to v1.2 (Complete); ready for `/sdlc-code-review` next session
-- **Active Artifacts:**
-  - `plan/plan-refactor-code-review-v1.0.md` — Status: ✅ v1.1 → v1.2 (Complete + Execution Results section)
-  - `plan/plan-feature-custom-build-workflow-v1.2.md` → renamed to `v1.3.md` + content synced
-  - `spec/spec-custom-build-workflow.md` — Status: ✅ v1.5 → v1.6 (7 sections: REQ-004, §1.1, §1.2, §4.4, §4.5, §7, §8.2)
-  - `docs/adr/0002-multi-stage-docker-deferred-engine-port.md` — Status: ✅ env sync (Revision Note 2026-07-30)
-  - `docs/prd-20260723-1130-custom-build-workflow.md` — Status: ✅ 5 sections synced (§140, §253, §293, §308, §468)
-  - `docs/ARCHITECTURE.md` — Status: ✅ Tools table, Dockerfile note, EOL section synced
-  - `.github/workflows/custom-build.yml` — Status: ✅ GUD-003 retry fixed (`max_attempts=4` + 1s/5s/25s delays)
-  - `Scripts/configure.py` — Status: ✅ `WORKFLOW_VERSION = "1.3"`
-  - `Scripts/packaging.sh` — Status: ✅ `:ro` mount removed from manifest path
-  - `.dockerignore` — Status: ✅ NEW (9 entries: `.git/`, `__pycache__/`, `*.pyc`, `.pytest_cache/`, `output/`, `*.zip`, `*.tar.gz`, `.agents/`, `.github/`)
-- **Achieved Milestones (this session):**
-  - **5/5 code review findings addressed** (CR-F1 doc sync, CR-F2 full spec sync, CR-F3 GUD-003 fix, CR-F4 stale comment/version, CR-F5 .dockerignore)
-  - **13/13 acceptance criteria met** (8 Phase 1 + 5 Phase 2)
-  - **pytest 62/62 PASS** (regression test, no flakes, 0.20s)
-  - **CON-001 preserved** (`git diff Scripts/build.py Scripts/fontbuilder.py Scripts/features.py Makefile` = empty)
-  - **markdownlint 0 errors** on both plan files
-  - **All internal links resolve** in Plan v1.3 (spec, PRD, ADR, CONTEXT.md)
-  - **No new ADR needed** — existing ADR-0002 covers all architectural decisions; ADR-0001 retained as Superseded for historical reference
-- **Decisions Made:**
-  - **No new ADR for plan-refactor**: All architectural decisions (env migration, `future` shim, deferred engine port) already documented in ADR-0002. Adding ADRs for non-architectural changes (e.g., `.dockerignore` baseline, retry strategy, version constant bump) would violate the triple-gate criteria (hard to reverse / surprising / real trade-off).
-  - **ADR-0001 retained as Superseded**: Standard MADR practice — superseded ADRs are never deleted; they preserve historical decision context.
-  - **Plan itself updated to reflect completion**: v1.1 → v1.2 bump, status `Draft → Complete`, `## 6. Execution Results` section. The plan is the record of work, not just the work instruction.
-- **Updated Files (this session):**
-  - `plan/plan-refactor-code-review-v1.0.md` — v1.1 → v1.2, status Complete, Execution Results section
-  - `plan/plan-feature-custom-build-workflow-v1.2.md` → renamed to `v1.3.md` + content sync
-  - `spec/spec-custom-build-workflow.md` — v1.5 → v1.6
-  - `docs/adr/0002-multi-stage-docker-deferred-engine-port.md` — Revision Note 2026-07-30
-  - `docs/prd-20260723-1130-custom-build-workflow.md` — 5 sections synced
-  - `docs/ARCHITECTURE.md` — synced
-  - `.github/workflows/custom-build.yml` — GUD-003 retry fix
-  - `Scripts/configure.py` — `WORKFLOW_VERSION = "1.3"`
-  - `Scripts/packaging.sh` — `:ro` removed
-  - `.dockerignore` — NEW (9 entries)
-  - `.agents/instructions/memory.instructions.md` — this compaction + new KB entries
-- **Next Action / Pending:**
-  - **PRIORITAS #1 (user, next session):** Open new chat session → invoke `/sdlc-code-review` for formal Two-Axis review of Phase 2 changes (`.github/workflows/custom-build.yml`, `Scripts/configure.py`, `Scripts/packaging.sh`, `.dockerignore`).
-  - **PRIORITAS #2 (user):** Commit memory + plan updates → `git add .agents/instructions/memory.instructions.md plan/ && git commit -m "docs(memory+plan): checkpoint 2026-07-30 plan-refactor complete + DE #8 + 3 KB patterns"` → `git push`.
-  - **PRIORITAS #3 (user, optional):** Trigger CI re-run on fork with `workflow_dispatch` for smoke test (TEST-004 in plan).
-  - **PRIORITAS #4 (user, after code review):** Invoke `/sdlc-generate-docs` for user-facing documentation (Diátaxis framework).
-- **Verification Snapshot:**
-  - pytest: 62/62 PASSED in 0.20s
-  - markdownlint: 0 errors on `plan/plan-feature-custom-build-workflow-v1.3.md` and `plan/plan-refactor-code-review-v1.0.md`
-  - Internal links: 4/4 resolve in Plan v1.3 (spec, PRD, ADR, CONTEXT.md)
-  - `grep "python2.7"` and `grep "ubuntu:18.04"` in 4 target docs: 0 matches each
-  - `git diff Scripts/build.py Scripts/fontbuilder.py Scripts/features.py Makefile`: empty (CON-001 compliant)
-
-<!-- checkpoint-tail: Plan-refactor-code-review v1.0 fully executed (16 tasks, 3 phases, all complete). 5 CR findings addressed; 13/13 AC met; pytest 62/62; CON-001 preserved. Plan itself updated to v1.2 Complete. No new ADR needed. Next: /sdlc-code-review. -->
 
 ## 📝 Session Checkpoint: 2026-07-31 (PRD Multi-Weight Variants — v1.1 Finalized + Glossary Update)
 
@@ -219,3 +123,72 @@
   - Struktur PRD terverifikasi programatik: 7 FR, 6 GH stories, 25 AC, 11 SM metrics
 
 <!-- checkpoint-tail: PRD Multi-Weight Variants v1.1 finalized after 4 self-review rounds (9→6→8→1 findings) + CONTEXT.md glossary (+7 terms, clusters) + terminology propagation (6 fixes). FR-2.5 PoC failure path added. Next: new session → /sdlc-clarify-reqs. -->
+
+---
+
+## 📝 Session Checkpoint: 2026-07-31 (Technical Specification & Traceability Audit — Multi-Weight Variants)
+
+- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
+- **Current SDLC Phase:** Phase Spec — Technical Specification (`spec/spec-multi-weight-variants.md`) Audit & Update
+- **Active Artifacts:**
+  - `spec/spec-multi-weight-variants.md` — Status: ✅ Finalized & Audit-Approved (v1.1)
+  - `docs/prd-20260731-1000-multi-weight-variants.md` — Status: ✅ Finalized (v1.3)
+  - `spec-prd-traceability-audit.md` — Status: ✅ Complete Audit Report
+- **Achieved Milestones:**
+  - **Spec ↔ PRD Traceability Audit Complete**: Melakukan audit traceability menyeluruh antara `spec-multi-weight-variants.md` dan PRD `prd-20260731-1000-multi-weight-variants.md`.
+  - **Audit Findings Resolved**:
+    - **ACT-01**: Menambahkan `§4.12 Harmonization Tracking File Contract` (skema JSON lengkap untuk CSV/JSON tracking file per GH-005 AC#4).
+    - **ACT-02**: Menambahkan step `validate_harmonization.py --strict` di `§4.9` workflow YAML sebagai gating step sebelum interpolasi.
+    - **ACT-03**: Menambahkan klarifikasi di `§8.5` bahwa specimen sheet HTML dihasilkan gabungan untuk seluruh weight (koreksi GH-005 AC#2).
+    - **OPT-01**: Menambahkan cross-reference ke `REQ-I03/REQ-I05` pada `CON-005` untuk advance width.
+    - **OPT-02**: Menambahkan checklist `VAL-008b` di `§11.1` untuk verifikasi manual cross-platform (Windows, macOS, Linux).
+- **Decisions Made:**
+  - Spec disetujui (*APPROVED*) dengan 100% tingkat keselarasan terhadap PRD setelah pengaplikasian 5 item audit.
+- **Updated Files:**
+  - `spec/spec-multi-weight-variants.md` — Modifikasi §3.2 (CON-005), §4.9 (workflow YAML), §4.12 (tracking schema), §8.5 (specimen clarification), §11.1 (VAL-008b).
+- **Next Action / Pending:**
+  - **PRIORITAS #1 (user, next session):** Buka sesi chat baru → jalankan `/sdlc-plan-tasks` untuk membuat Implementation Plan berdasarkan `spec-multi-weight-variants.md`.
+
+<!-- checkpoint-tail: Spec Multi-Weight Variants v1.1 verified & updated with 5 audit items (tracking schema, strict validation CI, specimen clarification, advance width xref, cross-platform checklist). 100% PRD alignment achieved. Next: new session → /sdlc-plan-tasks. -->
+
+## 📝 Session Checkpoint: 2026-07-31 (Spec Multi-Weight Variants — v1.1 → v1.2 → v1.3 Verification & Fixes)
+
+- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
+- **Previous Phase:** Spec v1.1 audit-approved (2026-07-31, traceability audit) — sesi ini melakukan re-verification & hardening
+- **Current SDLC Phase:** Phase Spec — re-verification pass (3 sub-ronde) + cross-check PRD penuh; spec kini v1.3 ✅
+- **Active Artifacts:**
+  - `spec/spec-multi-weight-variants.md` — Status: ✅ Finalized (v1.3, 1147 baris) — terverifikasi vs PRD v1.3
+  - `docs/prd-20260731-1000-multi-weight-variants.md` — Status: ✅ Finalized (v1.3, upstream)
+  - `docs/adr/0002-multi-stage-docker-deferred-engine-port.md` — Status: ✅ Dirujuk (Stage 1 = satu-satunya konteks FontForge)
+- **Achieved Milestones:**
+  - **F-5 (kritis) diperbaiki**: §4.9 ditulis ulang — script multi-weight HANYA dieksekusi di Stage 1 Docker (FontForge tidak ada di host runner MAUPUN image Stage 2; diverifikasi di `custom-build.yml` + `Dockerfile`). Kontrak baru: flag forwarding (input workflow → `configure.py --form-enable-multi-weight` → flag `--multi-weight` di `BUILD_ARGS` → RUN chain kondisional `grep -q` di Dockerfile). Mode `false` → `FONTS=Sources` → byte-identical dengan Custom Build existing (AC-B03).
+  - **REQ-B06 diperjelas**: assembly terjadi di dalam Stage 1 (pre-compilation) via `multi_weight_driver.py`; mode single-weight melewati assembly.
+  - **§6.4 test cases**: test 1 diselaraskan dengan AC-B03 (output lengkap, bukan "hanya Regular + Bold"); test 6 baru `test_flag_forwarding`.
+  - **§2 Definitions +3 istilah** (Build Source Assembly, Interpolation Validation Report, Harmonization Tracking File); §7 Always Do terhubung ke `tracking.json` (§4.12).
+  - **§8.5 resolusi baru**: "Konteks eksekusi integrasi multi-weight (koreksi v1.2)" + catatan log "Harmonizing..." (GUD-003/GH-004 AC#5) + intro "Spec v1.1 dan v1.2".
+  - **Baca ulang PRD v1.3 penuh (396 baris)**: FR-1..7, GH-001..006, SM-T1..4, E0.1..4, §8.1/§8.3, §9.2, §10.1..6 — semua klaim spec terverifikasi; charset `{}[]()<>;:.,!#$%^&*` sesuai GH-002 AC#2; 2 micro-fix (M-4: AC-P01 + space/period/comma/zero; M-5: catatan log §4.9) → spec v1.3.
+  - **Tambahan eksternal terdeteksi & diverifikasi** (mtime 17:53, bukan dari sesi ini): §4.12 Harmonization Tracking File Contract, VAL-008b, "Koreksi GH-005 AC#2" — semuanya konsisten dengan PRD (GH-005 AC#4, GH-001 AC#2).
+  - **Audit link §12**: 9/9 file rujukan ada (termasuk `spec-custom-build-workflow.md` v1.6).
+  - Validasi final: markdownlint 0 issues, 62 fences seimbang, tidak ada teks lama tersisa ("Workflow Step Tambahan", "output hanya Regular + Bold").
+- **Decisions Made:**
+  - **Opsi A (disetujui user)**: perbaiki SEMUA temuan (F-5 + M-1..M-3), lalu M-4 + M-5 di pass segar → v1.2 → v1.3.
+  - **Mekanisme integrasi**: flag forwarding via `BUILD_ARGS` (bukan step host runner, bukan modifikasi driver). Ekstensi `configure.py` diperbolehkan (TIDAK dilindungi CON-001); Custom Build Spec perlu minor update (PRD §8.1, audit C5) — dikoordinasikan di fase plan.
+  - **Kontrak log**: "Harmonizing..." ditampilkan saat harmonized sources dimuat (harmonisasi itu sendiri manual — FR-1.3).
+- **Updated Files:**
+  - `spec/spec-multi-weight-variants.md` — v1.1 → v1.2 (F-5, REQ-B06, §6.4, §2, §7, §8.5) → v1.3 (AC-P01, catatan log §4.9); 1147 baris
+- **Dead-Ends (Do NOT Repeat):**
+  - **Attempted**: Contoh step workflow yang memanggil `fontforge` langsung di host runner (§4.9 v1.1). **Reason**: FontForge hanya ada di image Stage 1 saat `docker build`; host runner & Stage 2 tidak memuatnya. **Solution**: RUN kondisional Stage 1 via flag forwarding `BUILD_ARGS`. [PROMOTED to DE #9]
+  - Batch edit gagal atomik (anchor `└──` §4.3) — sudah tercakup KB DE #3 (stale anchors); tidak ada DE baru.
+- **Next Action / Pending:**
+  - **PRIORITAS #1 (user):** Commit: `git add spec/spec-multi-weight-variants.md .agents/instructions/memory.instructions.md && git commit -m "docs(spec+memory): spec multi-weight v1.3 (Stage 1 integration contract) + checkpoint 2026-07-31"` → `git push`.
+  - **PRIORITAS #2 (user, next session):** Sesi chat baru → `/sdlc-clarify-reqs` dengan @spec/spec-multi-weight-variants.md (v1.3) + @docs/prd-20260731-1000-multi-weight-variants.md (v1.3).
+  - **PRIORITAS #3 (fase plan):** Koordinasikan Custom Build Spec minor update (`configure.py --form-enable-multi-weight`, Dockerfile Stage 1 RUN, input `custom-build.yml`) — cross-spec, PRD §8.1 / audit C5.
+- **Verification Snapshot:**
+  - markdownlint: 0 issues (spec v1.3)
+  - Code fences: 62 seimbang
+  - Traceability PRD: 100% cakupan (FR/GH/SM/E0/klarifikasi E10)
+  - Link §12: 9/9 file ada
+  - Fakta Dockerfile/configure.py/custom-build.yml diverifikasi ulang dari source (RUN chain baris 60–62, pola `--form-*`, `build_driver_arg_string`)
+
+<!-- checkpoint-tail: Spec Multi-Weight v1.3 finalized setelah 3-pass re-verification: F-5 Stage 1 integration contract (flag forwarding via BUILD_ARGS), REQ-B06 clarification, §6.4 tests, +2 micro-fixes; 100% alignment PRD v1.3. Next: sesi baru → /sdlc-clarify-reqs. -->
+
