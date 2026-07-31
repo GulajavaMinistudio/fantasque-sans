@@ -179,3 +179,43 @@
   - `git diff Scripts/build.py Scripts/fontbuilder.py Scripts/features.py Makefile`: empty (CON-001 compliant)
 
 <!-- checkpoint-tail: Plan-refactor-code-review v1.0 fully executed (16 tasks, 3 phases, all complete). 5 CR findings addressed; 13/13 AC met; pytest 62/62; CON-001 preserved. Plan itself updated to v1.2 Complete. No new ADR needed. Next: /sdlc-code-review. -->
+
+## 📝 Session Checkpoint: 2026-07-31 (PRD Multi-Weight Variants — v1.1 Finalized + Glossary Update)
+
+- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
+- **Previous Phase:** Phase 0 Discovery (multi-weight variants) — `docs/discovery-draft-20260730-2110-multi-weight-variants.md` (approved)
+- **Current SDLC Phase:** Phase 1 (PRD) — fitur **Multi-Weight Variants** (jalur baru, paralel dengan fitur Custom Build yang sudah di Code Review). PRD v1.1 DRAFT final, siap `/sdlc-clarify-reqs`
+- **Active Artifacts:**
+  - `docs/prd-20260731-1000-multi-weight-variants.md` — Status: ✅ v1.1 DRAFT (4 ronde self-review, pending stakeholder approval)
+  - `docs/discovery-draft-20260730-2110-multi-weight-variants.md` — Status: ✅ Phase 0 (upstream, approved)
+  - `CONTEXT.md` — Status: ✅ Diperbarui (Project Context + klaster Multi-Weight Variants)
+- **Achieved Milestones:**
+  - **PRD v1.1 disusun lengkap**: 7 FR (FR-1..FR-7), 6 user stories (GH-001..GH-006), 25 acceptance criteria, 11 success metrics (SM-U1..U4, SM-B1..B3, SM-T1..T4), 4 personas (Alex, Rina, Dewi, Bayu), timeline 14-18 minggu + Buffer Phase
+  - **4 ronde self-review**: temuan 9 → 6 → 8 → 1. Ronde ke-4 menghasilkan keputusan jujur *diminishing returns* → rekomendasi handoff ke `/sdlc-clarify-reqs`
+  - **Gap risk management ditutup**: FR-2.5 *PoC Failure Path* (4 jalur keputusan jika PoC GAGAL) — sebelumnya hanya ada kriteria LULUS tanpa jalur gagal
+  - **CONTEXT.md direstrukturisasi**: judul `Custom Build Context` → `Project Context`, subheading per klaster fitur, +7 istilah Multi-Weight Variants dengan sintaks `_Avoid_` ketat
+  - **Propagasi terminologi**: 6 pelanggaran `_Avoid_` di PRD diperbaiki setelah glosarium dibuat (outline harmonization→master harmonization, static instances→weight variant, dll.) — scan programatik bersih
+- **Decisions Made:**
+  - **V1 tooling = Workflow A** (interpolasi FontForge, `.sfdir` existing); Workflow B (UFO v3 + `fontmake`) ditunda ke V2 — dieksplorasi via GH-006
+  - **V1 scope**: 6 weight statis (Light 300 s/d ExtraBold 800), TANPA Variable Font, *fidelity ketat* (visual review manual wajib, toleransi ≤2% minor artifact)
+  - **Keputusan tooling V1 berpotensi ADR** (triple-gate candidate: sulit dibalik, surprising, ada trade-off) — diserahkan ke architect di fase Spec untuk evaluasi
+  - **Istilah kanonikal dikunci di CONTEXT.md**: `Master Harmonization` (avoid: outline harmonization, glyph harmonization), `Weight Variant` (avoid: static instance, discrete weight), `Workflow A`/`Workflow B` (disambiguasi eksplisit vs istilah `Workflow` klaster Custom Build)
+- **Updated Files:**
+  - `docs/prd-20260731-1000-multi-weight-variants.md` — NEW v1.0 → v1.1 (4 ronde review + FR-2.5 + propagasi terminologi)
+  - `CONTEXT.md` — title/description diperbarui, +7 istilah baru, subheading klaster
+- **Dead-Ends:** Tidak ada dead-end baru sesi ini (lihat KB #1-#8 untuk yang sudah ada)
+- **Lessons Learned (KB candidates for next compaction):**
+  - **PoC Failure Path Pattern**: ketika mendefinisikan kriteria LULUS untuk PoC/eksperimen (mis. FR-2.4), WAJIB juga definisikan jalur GAGAL (FR-2.5) — minimal 3 opsi: iterasi subset, revisi cakupan, re-evaluasi tooling, penundaan. Gate check tanpa jalur gagal = proyek bisa stuck.
+  - **Self-Review Diminishing Returns**: tren jumlah temuan per ronde (9→6→8→1) adalah sinyal stabilisasi. Setelah ronde ke-3/4, hentikan self-review persona yang sama dan hand off ke checkpoint khusus (`/sdlc-clarify-reqs`) — melanjutkan berisiko menghasilkan temuan buatan/over-editing.
+  - **Glossary-After-Doc Propagation**: ketika istilah glosarium dibuat SETELAH dokumen utama selesai, jalankan scan `_Avoid_` terhadap dokumen di sesi yang sama dan perbaiki semua pelanggaran (6 spot di sesi ini) — mencegah temuan audit downstream.
+- **Next Action / Pending:**
+  - **PRIORITAS #1 (user, next session):** Setujui PRD v1.1 → buka sesi chat baru → `/sdlc-clarify-reqs Analyze the approved PRD in @docs/prd-20260731-1000-multi-weight-variants.md for ambiguities and hidden assumptions.` (Strict Session Isolation)
+  - **PRIORITAS #2 (user, optional):** Buat GitHub Issues GH-001..GH-006 dari user stories PRD (`gh issue create`)
+  - **PRIORITAS #3 (Spec phase):** Architect mengevaluasi ADR untuk keputusan tooling V1 (Workflow A) — triple gate check
+  - **PRIORITAS #4 (user):** Commit perubahan sesi ini (PRD + CONTEXT.md + memory) saat sudah siap
+- **Verification Snapshot:**
+  - markdownlint: PRD v1.1 = 0 error; CONTEXT.md MD013 *line-length* = pre-existing (8 pelanggaran sudah ada sebelum edit, gaya file dipertahankan)
+  - Scan `_Avoid_`: PRD bersih dari 16 istilah terlarang setelah 6 perbaikan
+  - Struktur PRD terverifikasi programatik: 7 FR, 6 GH stories, 25 AC, 11 SM metrics
+
+<!-- checkpoint-tail: PRD Multi-Weight Variants v1.1 finalized after 4 self-review rounds (9→6→8→1 findings) + CONTEXT.md glossary (+7 terms, clusters) + terminology propagation (6 fixes). FR-2.5 PoC failure path added. Next: new session → /sdlc-clarify-reqs. -->

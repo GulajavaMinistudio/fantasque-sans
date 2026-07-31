@@ -3,11 +3,11 @@ title: Project Discovery & Architecture Summary
 status: DRAFT (Phase 0)
 date_analyzed: 2026-07-30
 ---
+<!-- markdownlint-disable -->
 
 # Project Discovery Summary: Multi-Weight Variants
 
 ## 1. Project Overview
-
 Fantasque Sans Mono adalah font pemrograman (monospace) bergaya *handwritten*. Saat ini font didistribusikan dalam format statis TTF/OTF/Webfonts dengan jumlah varian weight yang sangat terbatas (hanya 2: Regular 400 dan Bold 700, ditambah versi italic-nya). Inisiatif eksplorasi ini bertujuan untuk menginvestigasi kelayakan teknis penambahan varian weight multi-level (misal 100-800 seperti pada Maple Mono) untuk meningkatkan fleksibilitas tipografi bagi pengguna modern.
 
 ## 2. Technology Stack & Infrastructure
