@@ -57,6 +57,10 @@ _Avoid_: primary weight, required weight, main weight
 Weight yang menjadi target opsional V1: Light 300 dan ExtraBold 800. Karena berada di luar rentang master Regular-Bold, keduanya memerlukan *extrapolation* (bukan interpolasi). Dirilis hanya jika ekstrapolasi lolos *Visual Quality Rubric*; ditunda ke V2 jika tidak.
 _Avoid_: aspirational weight, optional weight, bonus weight
 
+**Release Upstream Pipeline**:
+Jalur produksi *stretch weight* (Light 300, ExtraBold 800) yang dieksekusi secara manual/terisolasi oleh *upstream maintainer* di luar Custom Build CI, aktif hanya setelah *core weight* lolos *visual review*; *stretch weight* yang gagal *visual review* dikeluarkan dari V1 ke V2 (GUD-004).
+_Avoid_: upstream CI pipeline, release build, upstream release pipeline
+
 **Master**:
 Font sumber yang menjadi titik ujung interpolasi — Regular (400), Bold (700), Italic, dan BoldItalic — yang struktur konturnya menjadi acuan harmonisasi.
 _Avoid_: source font, base font, interpolation endpoint
