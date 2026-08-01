@@ -1,19 +1,22 @@
 ---
 title: "PRD — Multi-Weight Font Variants for Fantasque Sans Mono"
-status: DRAFT (Phase 1 — post consistency audit revision v1.3)
+status: DRAFT (Phase 1 — post tri-directional consistency audit revision v1.4)
 date: 2026-07-31
-version: 1.3
+version: 1.4
 phase: SDLC Phase 1 (PRD)
 project: Fantasque Sans Mono
 author: Senior Product Manager
 upstream_discovery: docs/discovery-draft-20260730-2110-multi-weight-variants.md
 upstream_clarification: docs/audit/clarification-report-multi-weight-variants-2026-07-31.md
 upstream_consistency_audit: docs/audit/consistency-audit-multi-weight-variants-2026-07-31.md
+upstream_audit_tri: docs/audit/consistency-audit-plan-vs-prd-spec-2026-08-01.md
 downstream_phase: "@SpecificationArchitect → /sdlc-define-specs"
 related_docs:
   - docs/ARCHITECTURE.md
   - docs/audit/clarification-report-multi-weight-variants-2026-07-31.md
   - docs/audit/consistency-audit-multi-weight-variants-2026-07-31.md
+  - docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-07-31-r2.md
+  - docs/audit/consistency-audit-plan-vs-prd-spec-2026-08-01.md
   - docs/adr/0001-multi-stage-docker-legacy-tools.md (Superseded — see ADR-0002)
   - docs/adr/0002-multi-stage-docker-deferred-engine-port.md
   - docs/adr/0003-workflow-a-fontforge-v1-interpolation.md
@@ -31,14 +34,16 @@ license_impact: None — all new weight variants remain under SIL Open Font Lice
 ### 1.1 Document title and version
 
 - **PRD**: Multi-Weight Font Variants for Fantasque Sans Mono
-- **Version**: 1.3 (DRAFT — post consistency audit revision, ready for Technical Specification)
-- **SDLC Phase**: Phase 1 (PRD) — upstream: Phase 0 Discovery (approved) + Clarification Checkpoint (completed) + Consistency Audit (completed); downstream: Technical Specification (`/sdlc-define-specs`)
+- **Version**: 1.4 (DRAFT — post tri-directional consistency audit revision, ready for Technical Specification)
+- **SDLC Phase**: Phase 1 (PRD) — upstream: Phase 0 Discovery (approved) + Clarification Checkpoint (completed) + Consistency Audit (completed) + Tri-Directional Audit (completed); downstream: Technical Specification (`/sdlc-define-specs`)
 - **Date**: 2026-07-31
 - **Author**: Product Manager PRD persona
 - **Upstream artifacts**:
   - Discovery Draft: [`docs/discovery-draft-20260730-2110-multi-weight-variants.md`](/docs/discovery-draft-20260730-2110-multi-weight-variants.md)
   - Clarification Report: [`docs/audit/clarification-report-multi-weight-variants-2026-07-31.md`](/docs/audit/clarification-report-multi-weight-variants-2026-07-31.md)
   - Consistency Audit: [`docs/audit/consistency-audit-multi-weight-variants-2026-07-31.md`](/docs/audit/consistency-audit-multi-weight-variants-2026-07-31.md)
+  - Tri-Directional Consistency Audit: [`docs/audit/consistency-audit-plan-vs-prd-spec-2026-08-01.md`](/docs/audit/consistency-audit-plan-vs-prd-spec-2026-08-01.md)
+  - Clarification Report (r2): [`docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-07-31-r2.md`](/docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-07-31-r2.md)
 - **Target release window**: After V1 implementation completes, no fixed calendar date
 - **License impact**: None — all new weight variants remain under SIL Open Font License (OFL-1.1); no relicensing or rebranding
 
@@ -103,8 +108,8 @@ Proyek ini bersifat *type-design-heavy*: terdapat ~1.042 *glyph* yang konturnya 
 | **End User / Anonymous Downloader** (Alex, Rina, Dewi) | Dapat mengunduh dan menggunakan seluruh varian *weight* yang dipublikasikan di GitHub Releases. Tidak ada akun atau akses tulis yang diperlukan. Semua aset didistribusikan di bawah SIL Open Font License (OFL-1.1). |
 | **Fork Owner** | Pengguna GitHub yang mem-fork repository upstream. Dapat memicu *Custom Build* dengan parameter `enable_multi_weight = true` untuk menghasilkan build personal berisi 4 *core weight* (Regular, Medium, SemiBold, Bold). *Stretch weight* (Light, ExtraBold) hanya tersedia di *release* publik upstream. Build artifact dipublikasikan hanya di *fork* mereka sendiri. |
 | **Upstream Maintainer** | Memiliki kontrol administratif atas repository `belluzj/fantasque-sans`. Dapat memperbarui *source* harmonisasi, *wrapper script*, dan parameter *workflow* tanpa batasan. |
-| **Type Designer Lead** (Bayu — Designer A) | Kontributor internal yang memimpin harmonisasi manual. Fokus pada pasangan Regular↔Bold (Latin/Cyrillic/Greek, ~70% *glyph*). Akses tulis ke `sources/Harmonized/Regular/` dan `sources/Harmonized/Bold/`. Bertindak sebagai *merge gate* untuk *branch* Designer B. |
-| **Type Designer Support** (Designer B) | Kontributor internal part-time yang mendukung harmonisasi. Fokus pada pasangan Italic↔BoldItalic (Latin/Cyrillic/Greek, ~25% *glyph*). Akses tulis ke `sources/Harmonized/Italic/` dan `sources/Harmonized/BoldItalic/`. Bekerja di *branch* Git terisolasi, di-*merge* oleh Designer A. |
+| **Type Designer Lead** (Bayu — Designer A) | Kontributor internal yang memimpin harmonisasi manual. Fokus pada pasangan Regular↔Bold (Latin/Cyrillic/Greek, ~70% *glyph*). Akses tulis ke `Sources/Harmonized/Regular/` dan `Sources/Harmonized/Bold/`. Bertindak sebagai *merge gate* untuk *branch* Designer B. |
+| **Type Designer Support** (Designer B) | Kontributor internal part-time yang mendukung harmonisasi. Fokus pada pasangan Italic↔BoldItalic (Latin/Cyrillic/Greek, ~25% *glyph*). Akses tulis ke `Sources/Harmonized/Italic/` dan `Sources/Harmonized/BoldItalic/`. Bekerja di *branch* Git terisolasi, di-*merge* oleh Designer A. |
 | **GitHub Actions Bot** | Peran sistem yang menjalankan *workflow* atas nama *fork owner*. Memiliki *scoped token* dengan izin `contents: write` yang terbatas pada *fork* tempat *workflow* dijalankan. |
 
 ## 4. Functional requirements
@@ -139,7 +144,11 @@ Sebelum pengerjaan penuh pada seluruh ~1.042 *glyph*, PoC dengan subset terbatas
   **Catatan**: Pasangan Italic↔BoldItalic tidak memerlukan PoC terpisah karena prinsip harmonisasi identik dengan pasangan Regular↔Bold. Risiko spesifik *italic* (misalnya *slant angle* tidak konsisten antar *master*) diterima dan akan ditangani di Phase 2.
 - **FR-2.2**: Subset PoC WAJIB diharmonisasikan (FR-1) dan diinterpolasi untuk menghasilkan *weight* Medium (500) sebagai satu-satunya *target weight* PoC.
 - **FR-2.3**: Hasil interpolasi PoC HARUS menjalani *visual diff review*: perbandingan *side-by-side* antara *glyph* asli Regular/Bold dengan *glyph* hasil interpolasi Medium, pada berbagai ukuran teks (8 pt, 12 pt, 16 pt, 24 pt).
-- **FR-2.4**: PoC dinyatakan **LULUS** jika ≥ 90% *glyph* hasil interpolasi dinilai "mempertahankan nuansa *handwritten*" oleh *type designer* berdasarkan **Visual Quality Rubric** (dokumen acuan yang disusun di Phase 0 sebagai *deliverable* E0.4), dan tidak ada *glyph* yang mengalami distorsi berat (kerusakan kontur, *self-intersection*, *counter* tertutup). Rubric berisi: (a) 5–10 *glyph* referensi dari Regular existing sebagai *gold standard* "wibbly-wobbly", (b) 5 contoh distorsi yang tidak dapat diterima (*counter* tertutup, kurva terlalu kaku, *self-intersection*), dan (c) *checklist* terstruktur per *glyph*: *counter shape preserved*?, *Bézier asymmetry maintained*?, *terminal style consistent*?.
+- **FR-2.4**: PoC dinyatakan **LULUS** jika kedua kondisi terpenuhi (**gate ganda**):
+  - (i) **Script**: `validate_interpolation.py` melaporkan `pass_rate ≥ 90%` dan `fail_count = 0` (tidak ada distorsi berat: kerusakan kontur, *self-intersection*, *counter* tertutup).
+  - (ii) **Manusia**: *type designer* meninjau seluruh *glyph* dengan status `warning`/`fail` plus sampel *glyph* `pass`, dan ≥ 90% di antaranya dinilai "mempertahankan nuansa *handwritten*" berdasarkan **Visual Quality Rubric** (dokumen acuan yang disusun di Phase 0 sebagai *deliverable* E0.4).
+  Rubric berisi: (a) 5–10 *glyph* referensi dari Regular existing sebagai *gold standard* "wibbly-wobbly", (b) 5 contoh distorsi yang tidak dapat diterima (*counter* tertutup, kurva terlalu kaku, *self-intersection*), dan (c) *checklist* terstruktur per *glyph*: *counter shape preserved*?, *Bézier asymmetry maintained*?, *terminal style consistent*?.
+  **Catatan**: Toleransi PoC (≤ 10% *warning*) disengaja lebih longgar dari Phase 3 (≤ 2% *warning*, FR-5.4) karena PoC adalah uji kelayakan, bukan uji rilis. Tingkat keterbatasan ini didokumentasikan dari Clarification Report r2 §3 (Resolved Ambiguity: "Gate PoC").
 - **FR-2.5 — PoC Failure Path**: Jika PoC dinyatakan **GAGAL** (tidak memenuhi FR-2.4), proyek TIDAK BOLEH melanjutkan ke Phase 2 (Full Harmonization). Jalur keputusan yang tersedia:
   1. **Iterasi harmonisasi ulang pada subset PoC** (maksimal 2 siklus tambahan) — jika kegagalan disebabkan oleh teknik harmonisasi yang belum tepat.
   2. **Revisi cakupan V1** — misalnya, membatasi V1 hanya pada Medium (500) dan SemiBold (600) tanpa *extrapolated weights* (Light/ExtraBold), jika kegagalan terkonsentrasi pada *weight* ekstrem.
@@ -154,8 +163,8 @@ Setelah PoC dinyatakan LULUS, harmonisasi diperluas ke seluruh *glyph set*.
 - **FR-3.1**: Seluruh *glyph* pada **empat *master*** (Regular, Bold, Italic, dan BoldItalic) HARUS diharmonisasikan dalam dua pasangan independen (Regular↔Bold dan Italic↔BoldItalic) dan lolos validasi `node-count-equal`, `contour-order-equal`, dan `curve-direction-equal` untuk setiap pasangan. Untuk *glyph* tanpa pasangan di *master* target, diterapkan *copy as fallback* (lihat FR-1.1).
 - **FR-3.2**: Setiap *glyph* yang tidak kompatibel HARUS ditangani secara manual. Estimasi awal: dari 1.042 *glyph*, diperkirakan 60–80% membutuhkan penyesuaian manual berdasarkan tingkat ketidakcocokan yang terdeteksi.
 - **FR-3.3**: *Glyph* harmonisasi HARUS disimpan dalam direktori `.sfdir` baru yang terpisah dari *source legacy*:
-  - `sources/Harmonized/Regular/` dan `sources/Harmonized/Bold/` — untuk interpolasi *upright weight* baru.
-  - `sources/Harmonized/Italic/` dan `sources/Harmonized/BoldItalic/` — untuk fondasi V2.
+  - `Sources/Harmonized/Regular/` dan `Sources/Harmonized/Bold/` — untuk interpolasi *upright weight* baru.
+  - `Sources/Harmonized/Italic/` dan `Sources/Harmonized/BoldItalic/` — untuk fondasi V2.
   Struktur ini mematuhi `CON-001` dan menjaga *source* asli tetap utuh.
 
 ### FR-4: Multi-Weight Interpolation (Priority: HIGH)
@@ -189,8 +198,8 @@ Setelah seluruh *glyph* terharmonisasi, interpolasi dilakukan untuk menghasilkan
 
 ### FR-7: Build Pipeline Integration (Priority: MEDIUM)
 
-- **FR-7.1**: *Script* harmonisasi dan interpolasi DIINTEGRASIKAN ke dalam *Custom Build Workflow* (`.github/workflows/custom-build.yml`) sebagai tahap opsional yang dapat dipicu melalui `workflow_dispatch` dengan parameter boolean `enable_multi_weight`.
-- **FR-7.2**: *Build pipeline* HARUS tetap berfungsi dalam mode *single-weight* (hanya Regular + Bold) ketika `enable_multi_weight = false`, mempertahankan kompatibilitas mundur pada **level pipeline** — mode *single-weight* masih dapat di-*trigger*. Namun, output TTF/OTF Regular dan Bold di V1 **tidak *byte-identical*** dengan V0 karena harmonisasi kontur (FR-1.1) mengubah struktur *node*, sehingga `ttfautohint` akan menghasilkan *hinting* yang berbeda. *Release notes* V1 menyatakan secara eksplisit bahwa *rendering* mungkin berbeda halus (<1px di beberapa ukuran) dibanding V0. Semua fitur yang ada tetap identik.
+- **FR-7.1**: *Script* harmonisasi dan interpolasi DIINTEGRASIKAN ke dalam *Custom Build Workflow* (`.github/workflows/custom-build.yml`) melalui **flag forwarding** — `workflow_dispatch` dengan parameter boolean `enable_multi_weight` → `Scripts/configure.py --form-enable-multi-weight` → `BUILD_ARGS` → **RUN kondisional** di Dockerfile **Stage 1** (`builder-fontforge`). Flag ini tidak menambah *step workflow* baru — memanfaatkan *step* `Configure build options` existing untuk menulis `build-args.txt`, kemudian Dockerfile Stage 1 memeriksa `--multi-weight` di `BUILD_ARGS` dan menjalankan rantai eksekusi multi-weight. FontForge hanya tersedia di image Stage 1 — seluruh script multi-weight (deteksi, validasi, interpolasi, assembl) dieksekusi di dalam container, bukan di *step host runner*.
+- **FR-7.2**: *Build pipeline* HARUS tetap berfungsi dalam mode *single-weight* ketika `enable_multi_weight = false` — mode ini **tidak menyentuh** *harmonized sources* dan outputnya **byte-identical dengan V0** (Regular, Bold, Italic, BoldItalic, FantasqueSans), mempertahankan kompatibilitas mundur penuh pada **level pipeline dan level output**. Namun, dalam mode *multi-weight* (`enable_multi_weight = true`), Regular dan Bold **direbuild dari *harmonized masters*** (FR-1.1), sehingga `ttfautohint` dapat menghasilkan *hinting* yang berbeda dari V0. *Release notes* V1 menyatakan secara eksplisit bahwa *rendering* Regular/Bold dalam build multi-weight mungkin berbeda halus (<1px di beberapa ukuran) dibanding V0 single-weight, padahal semua fitur yang ada tetap identik.
 - **FR-7.3**: Durasi *build* multi-*weight* TIDAK BOLEH melebihi **≤ 240 menit** pada *GitHub Actions free-tier runner*. Estimasi kasar: harmonisasi 15 menit, interpolasi 140 menit, *auto-hinting* 80 menit, *packaging* 10 menit. Optimasi *script* menjadi target eksplisit: *batching* interpolasi per *glyph*, `parallel` GNU untuk operasi independen (lihat SM-T3).
 
 ## 5. User experience
@@ -261,7 +270,10 @@ Di balik layar, **Bayu** (Designer A, Lead) dan satu *type designer* pendukung (
 ### 8.1 Integration points
 
 - **FontForge Python API**: Seluruh proses harmonisasi dan interpolasi bertumpu pada FontForge CLI dengan Python 3 *bindings* (via `fontforge -lang=py -script`). Spesifikasi *stack* runtime yang tepat, *base image* Docker, dan *dependency* instalasi akan ditentukan oleh tim teknis pada fase *Spec* dengan mengacu pada `docs/ARCHITECTURE.md` dan ADR-0002.
-- **Custom Build Workflow** (`.github/workflows/custom-build.yml`): *Wrapper script* baru (`scripts/multi_weight_driver.py`) akan dipanggil dari *workflow* yang sudah ada sebagai langkah *pre-build* opsional. *Wrapper* **memanggil** `features.py` (via subprocess atau `import`) **6 kali** — satu kali per *weight master* (Regular, Medium, SemiBold, Bold, Italic, BoldItalic) — menghasilkan file `.fea` terpisah dengan *output path* unik per *weight*. `features.py` **tidak dimodifikasi** — hanya dipanggil lebih sering (mematuhi invariant `CON-001` yang melindungi `Scripts/build.py`, `Scripts/fontbuilder.py`, `Scripts/features.py`). **Asumsi**: `features.py` deterministik & *idempotent* — wajib divalidasi di Phase 0 (eksperimen E0.1).
+- **Custom Build Workflow** (`.github/workflows/custom-build.yml`): *Wrapper script* baru (`Scripts/multi_weight_driver.py`) dipanggil dari *workflow* yang sudah ada melalui **flag forwarding** (bukan *step workflow* baru). *Wrapper* **tidak memanggil** `features.py` secara langsung — cukup memastikan seluruh `.sfdir` tersedia (4 *harmonized masters* + 2–4 *interpolated weights* + `FantasqueSans.sfdir` legacy) di direktori build sumber `build/sources/` sebelum driver existing dijalankan. Pemanggilan `features.py` dilakukan **in-process oleh `custom_build_driver.py` existing** melalui `update_features(font)` — satu kali per `.sfdir` di `build/sources/` (6–8 weight source: Regular, Medium, SemiBold, Bold, Italic, BoldItalic, + *stretch* jika aktif). `features.py` **tidak dimodifikasi** — hanya dipanggil lebih sering (mematuhi invariant `CON-001` yang melindungi `Scripts/build.py`, `Scripts/fontbuilder.py`, `Scripts/features.py`). **Asumsi**: `features.py` deterministik & *idempotent* — wajib divalidasi di Phase 0 (eksperimen E0.1, lihat §9.2 Phase 0).
+
+  **Detail eksekusi** (mengikuti Spec REQ-B03, §4.7, §4.10): Flag `enable_multi_weight` di-*forward* melalui `Scripts/configure.py --form-enable-multi-weight` → `build-args.txt` → `ARG BUILD_ARGS` → RUN kondisional di Dockerfile Stage 1 (`builder-fontforge`). Di dalam RUN chain: (1) `detect_incompatibility.py` pada `Sources/Harmonized/Regular` + `Sources/Harmonized/Bold` → `build/incompatibility_report.json`; (2) `validate_harmonization.py --strict` → `build/harmonization_report.json`; (3) `pytest tests/ -v` (fail-fast sebelum interpolasi); (4) `multi_weight_driver.py --sources Sources --output Sources/Harmonized/Interpolated` → menghasilkan interpolated `.sfdir` + menyusun `build/sources/`; (5) `custom_build_driver.py build/sources /build $BUILD_ARGS` → in-process `update_features()` per weight + generate TTF/OTF/SVG. Stage 2 selanjutnya: `ttfautohint`, WOFF/WOFF2, packaging. Pesan log progres: "Detecting incompatibilities..." → "Harmonizing..." → "Interpolating Medium (500)..." → "Generating {Weight}..." → "ttfautohint"/"packaging: ...". (PDF specimen deferred — lihat §9.2 Phase 0 E0.4 dan GH-005.)
+
 - **Release Pipeline**: *Script* `Scripts/packaging.sh` yang sudah ada akan DIPERBARUI untuk mengenali *multi-weight output directory* dan menyertakan seluruh *weight* dalam *archive release*. Format arsip (zip/tar.gz) dan struktur direktori internal akan mengikuti konvensi *Custom Build* existing.
 - **Cross-PRD Integration — Custom Build Workflow**: Parameter `enable_multi_weight` yang diusulkan di PRD ini (§5.1, FR-7.1) merupakan *extension point* terhadap Custom Build Workflow yang didefinisikan di [`docs/prd-20260723-1130-custom-build-workflow.md`](../prd-20260723-1130-custom-build-workflow.md). Custom Build Spec mungkin memerlukan *minor update* untuk mengakomodasi parameter baru ini. Format WOFF dan SVG untuk *weight* baru akan diputuskan di fase Spec Multi-Weight — tidak dibahas di PRD ini.
 - **Dokumen Terkait**: Spesifikasi teknis detail tentang *integration points* akan didokumentasikan di *Technical Specification* (`spec/spec-multi-weight-variants.md`) setelah PRD ini disetujui.
@@ -270,7 +282,7 @@ Di balik layar, **Bayu** (Designer A, Lead) dan satu *type designer* pendukung (
 
 - **Tidak ada data pengguna**: Seluruh proses berjalan di dalam Docker container pada GitHub Actions runner. Tidak ada data pengguna yang dikumpulkan, disimpan, atau ditransmisikan.
 - **Artifact Retention**: GitHub Actions *artifact retention* (default 90 hari) berlaku untuk *build artifact* multi-*weight*. *Release artifact* bersifat permanen.
-- **Source .sfdir**: Direktori `.sfdir` baru (`sources/Harmonized/`) disimpan di repository Git yang sama. Ukuran tambahan diperkirakan 4–8 MB (setara dengan duplikasi `Regular.sfdir` + `Bold.sfdir` + `Italic.sfdir` + `BoldItalic.sfdir` untuk 4 *master harmonisasi*).
+- **Source .sfdir**: Direktori `.sfdir` baru (`Sources/Harmonized/`) disimpan di repository Git yang sama. Ukuran tambahan diperkirakan 4–8 MB (setara dengan duplikasi `Regular.sfdir` + `Bold.sfdir` + `Italic.sfdir` + `BoldItalic.sfdir` untuk 4 *master harmonisasi*).
 
 ### 8.3 Scalability & potential technical challenges
 
@@ -293,7 +305,7 @@ Di balik layar, **Bayu** (Designer A, Lead) dan satu *type designer* pendukung (
   - Siapkan *specimen sheet generator* untuk *visual review*.
   - Siapkan *branch* Git terisolasi (`feature/multi-weight-poc`).
   - **Eksperimen validasi awal (wajib sebelum Phase 1)**:
-    - **E0.1 — `features.py` idempotency test**: Panggil `features.py` 6 kali (satu per *weight master*), bandingkan output *byte-by-byte*. Jika identik, deterministik *confirmed*.
+    - **E0.1 — `features.py` idempotency test**: Panggil pipeline (`custom_build_driver.py` → `features.update_features`) **6 kali berturut-turut pada source yang SAMA** (mis. Regular), simpan output font untuk setiap pemanggilan, dan bandingkan *byte-by-byte* (`sha256sum`). **Catatan**: versi ini membandingkan 6 pemanggilan pada source yang sama — *test idempotency sejati* yang tidak terkontaminasi perbedaan antar *weight master* (koreksi Spec §6.2 E0.1/§4.7). Jika semua 6 output memiliki SHA-256 checksum identik, deterministik *confirmed*.
     - **E0.2 — FontForge interpolation *advance width* test**: Harmonisasi 10 *glyph* sample (`a`, `g`, `&`, `@`, `M`, dll.), interpolasi Medium, bandingkan *advance width* Regular original vs Medium hasil interpolasi. Jika berbeda, *script* harus *post-process*: salin *hmtx* table dari Regular ke Medium.
     - **E0.3 — 2-*designer* parallel work simulation**: Kedua *designer* berlatih satu siklus harmonisasi pada 10 *glyph* bersama untuk mengkalibrasi *throughput* aktual dan mengidentifikasi potensi konflik pada *shared pool*.
     - **E0.4 — Visual Quality Rubric dokumentasi**: Susun dokumen berisi 5–10 *glyph* referensi dari Regular existing sebagai *gold standard* "wibbly-wobbly", 5 contoh distorsi yang tidak dapat diterima, dan *checklist* terstruktur per *glyph*. Rubric menjadi acuan bagi *type designer* untuk validasi konsisten (lihat FR-2.4).
@@ -312,19 +324,19 @@ Di balik layar, **Bayu** (Designer A, Lead) dan satu *type designer* pendukung (
   - Validasi otomatis: `node-count-equal`, `contour-order-equal`, `curve-direction-equal`.
   - *Visual spot-check* per *glyph family* (misal: semua *arrow glyphs*, semua *bracket glyphs*).
 
-- **Phase 3 — Multi-Weight Interpolation & QA (Minggu 11–12)**:
+- **Phase 3 — Core Weight Interpolation & QA (Minggu 11–12)**:
   - Interpolasi *core weight* (Medium 500, SemiBold 600) — wajib.
-  - Interpolasi *stretch weight* (Light 300, ExtraBold 800) — opsional, hanya jika ekstrapolasi memungkinkan.
-  - *Auto-hinting* untuk semua *weight* baru.
-  - *Full visual review* dengan *specimen sheet* (8–72 pt, termasuk *discontinuity checklist* untuk 48 pt dan 72 pt).
+  - *Auto-hinting* untuk semua *core weight* baru.
+  - *Full visual review* dengan *specimen sheet* HTML (8–72 pt, termasuk *discontinuity checklist* untuk 48 pt dan 72 pt).
   - *Iterative fix*: *glyph* gagal → harmonisasi ulang → interpolasi ulang.
-  - *Gate Check*: *Stretch weight* yang gagal *visual review* dikeluarkan dari V1 (masuk V2). Proyek **tidak dianggap gagal** — *partial success* tier tercapai.
+  - *Gate Check*: Semua *core weight* harus lulus *visual review* — ≤ 2% minor artifact (FR-5.4) + 0 distorsi berat. Jika gagal, kembali ke Phase 2 untuk harmonisasi ulang.
+  - **Catatan**: *Stretch weight* (Light 300, ExtraBold 800) **tidak diproduksi di fase ini**. Produksi *stretch weight* ditangguhkan ke **Release Upstream Pipeline** — eksekusi manual oleh *upstream maintainer* di luar CI (lokal atau `docker run` ad-hoc pada image Stage 1) dengan flag `--enable-light`/`--enable-extrabold`. Factor ekstrapolasi ditentukan oleh Designer A (Lead) + *upstream maintainer* sebelum produksi, berdasarkan trial ekstrapolasi pada subset *glyph* kritis (lihat E0.1). Jika ekstrapolasi gagal *visual review* (FR-5), *weight* tersebut dikeluarkan dari V1 dan ditunda ke V2 dengan pendekatan *additional master drawing* (lihat §8.3).
 
 - **Phase 4 — Pipeline Integration & Release (Minggu 13–14)**:
-  - Integrasi ke *Custom Build Workflow* (`enable_multi_weight` parameter) — *wrapper* `multi_weight_driver.py` memanggil `features.py` 6×.
+  - Integrasi ke *Custom Build Workflow* (`enable_multi_weight` parameter) melalui flag forwarding — `multi_weight_driver.py` (di Stage 1 Docker) menghasilkan interpolated `.sfdir` dan menyusun `build/sources/`, kemudian driver existing (`custom_build_driver.py`) memanggil `features.py` in-process per weight. `multi_weight_driver.py` **tidak** memanggil `features.py` secara langsung (koreksi A11).
   - *End-to-end CI test*: *workflow_dispatch* → *build* → *artifact* → *release*.
   - Pembaruan dokumentasi (`README.md` termasuk *section* "Faux Italic Limitations", `Specimen/`, *release notes* dengan tabel kompatibilitas platform).
-  - Publikasi *release* publik dengan *core weight* (4–6 *weight* tergantung hasil *stretch weight*) × 3 format.
+  - Publikasi *release* publik dengan **4 *core weight*** (Regular, Medium, SemiBold, Bold) × 3 format. *Stretch weight* (Light, ExtraBold) **tidak termasuk** — diproduksi terpisah di *Release Upstream Pipeline* (lihat catatan Phase 3 di atas dan GH-004 Edge Case E10).
 
 - **Buffer Phase — Iteration & Stabilization (Minggu 15–18, *optional based on PoC outcome*):**
   - *Reserved* untuk iterasi harmonisasi ulang, perbaikan *visual review* yang ditemukan di Phase 3, dan stabilisasi build.
@@ -372,9 +384,9 @@ Di balik layar, **Bayu** (Designer A, Lead) dan satu *type designer* pendukung (
 - **Acceptance criteria**:
   - [ ] *Custom Build Workflow* memiliki parameter *boolean* `enable_multi_weight` di halaman *Run workflow*.
   - [ ] Ketika `enable_multi_weight = true`, *build* menghasilkan 4 *core weight* (Regular, Medium, SemiBold, Bold) × 3 format (TTF, OTF, WOFF2) dalam satu *artifact*. *Stretch weight* (Light, ExtraBold) **tidak** tersedia di Custom Build — hanya di *release* publik upstream (lihat Edge Case E10 di *clarification report*).
-  - [ ] Ketika `enable_multi_weight = false`, *build* hanya menghasilkan Regular + Bold (kompatibilitas mundur penuh pada level pipeline).
+  - [ ] Ketika `enable_multi_weight = false`, *build* berjalan tanpa pemanggilan script multi-weight dan outputnya **byte-identical dengan Custom Build existing** (Regular, Bold, Italic, BoldItalic, FantasqueSans) — kompatibilitas mundur penuh pada level pipeline dan level output.
   - [ ] *Artifact* ZIP multi-*weight* memiliki ukuran yang wajar (≤ 5 MB) dan dapat diunduh dari halaman *Actions*.
-  - [ ] *Build log* menampilkan progres per *weight*: "Harmonizing...", "Calling features.py for Regular...", "Interpolating Medium (500)...", "Hinting...", "Packaging...".
+  - [ ] *Build log* menampilkan progres per tahap: "Detecting incompatibilities...", "Harmonizing...", "Interpolating Medium (500)...", "Generating {Weight}...", "ttfautohint"/"Packaging...".
 
 ### 10.5. Type designer memvalidasi kualitas visual hasil interpolasi
 
@@ -382,7 +394,7 @@ Di balik layar, **Bayu** (Designer A, Lead) dan satu *type designer* pendukung (
 - **Story**: Sebagai seorang *type designer*, saya ingin memiliki *tool* validasi otomatis yang membandingkan *glyph* hasil interpolasi dengan *master* asli, sehingga saya dapat dengan cepat mengidentifikasi *glyph* mana yang memerlukan harmonisasi ulang.
 - **Acceptance criteria**:
   - [ ] *Script* validasi menghasilkan laporan JSON yang mencantumkan setiap *glyph* hasil interpolasi dengan status: `pass`, `warning` (*minor artifact*), atau `fail` (distorsi berat), mengacu pada **Visual Quality Rubric** (E0.4).
-  - [ ] *Specimen sheet* PDF dihasilkan secara otomatis untuk setiap *weight*, menampilkan seluruh *glyph* dalam format grid, termasuk ukuran 48 pt dan 72 pt dengan *discontinuity checklist*.
+  - [ ] *Specimen sheet* HTML dihasilkan secara otomatis (satu set halaman HTML gabungan untuk *side-by-side review*), menampilkan seluruh *glyph* dalam format grid, termasak 48 pt dan 72 pt dengan *discontinuity checklist*. (Format HTML, bukan PDF — PDF ditunda ke V2; koreksi Spec §8.5.)
   - [ ] *Script* `diff` visual menghasilkan *overlay* gambar PNG antara *glyph* interpolasi dan *glyph master* terdekat untuk *glyph* dengan status `warning` atau `fail`.
   - [ ] *Type designer* dapat menandai *glyph* yang memerlukan perbaikan dalam file *tracking* (CSV atau JSON) yang akan digunakan oleh *script* harmonisasi ulang.
 
