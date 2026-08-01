@@ -1,6 +1,6 @@
 ---
 title: Technical Specification — Multi-Weight Font Variants for Fantasque Sans Mono
-version: 1.6
+version: 1.8
 date_created: 2026-07-31
 last_updated: 2026-08-01
 owner: Fantasque Sans Mono Core Team
@@ -10,7 +10,9 @@ related_adrs:
   - docs/adr/0002-multi-stage-docker-deferred-engine-port.md
   - docs/adr/0003-workflow-a-fontforge-v1-interpolation.md
 audit_reference: docs/audit/consistency-audit-plan-vs-prd-spec-2026-08-01.md
-clarification_reference: docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-08-01-r4.md
+clarification_reference:
+  - docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-08-01-r5.md
+  - docs/audit/clarification-report-spec-multi-weight-variants-2026-08-01-r6.md
 ---
 
 <!-- markdownlint-disable -->
@@ -86,10 +88,10 @@ Seluruh istilah dalam dokumen ini mengacu pada Domain Glossary proyek ([`CONTEXT
 - **REQ-I02 (Stretch Weight Extrapolation)**: Sistem HARUS menghasilkan dua stretch weight statis melalui ekstrapolasi (factor eksak ditentukan **sebelum produksi stretch (Phase 5)** oleh Designer A (Lead) + upstream maintainer berdasarkan trial ekstrapolasi pada subset glyph kritis; hasil dicatat di `docs/audit/stretch-factor-decision-{date}.md` dan menjadi kontrak via amendemen §4.6 — selaras dengan FR-2.2 yang menetapkan PoC hanya Medium):
   - **Light (300)**: Ekstrapolasi ke arah lebih ringan dari Regular (factor negatif).
   - **ExtraBold (800)**: Ekstrapolasi ke arah lebih berat dari Bold (factor > 1.0).
-- **REQ-I03 (Advance Width Preservation)**: Seluruh weight baru HARUS memiliki advance width yang identik dengan master Regular dan Bold. Jika interpolasi FontForge menghasilkan deviasi, script HARUS mem-post-process dengan menyalin tabel `hmtx` (horizontal metrics) dari master Regular ke weight baru.
+- **REQ-I03 (Advance Width Preservation)**: Seluruh weight baru HARUS memiliki advance width yang identik dengan master Regular dan Bold. Asumsi monospace dinyatakan eksplisit: seluruh glyph berbagi advance width yang sama — diverifikasi oleh E0.2/AC-I04; jika deviasi advance width antar master ditemukan → eskalasi via failure path E0.2, bukan koreksi diam-diam (klarifikasi r5 — E3). Post-process tabel `hmtx` bersifat **unconditional** (klarifikasi r5 — E5): script SELALU menyalin advance width ke weight baru — glyph yang ada di Regular → advance width dari Regular; glyph `only_in_b` (copy-as-fallback dari Bold) → advance width dari **Bold** (master sumber fallback; klarifikasi r5 — E3). Copy saat nilai identik adalah no-op semantik; deterministik (GUD-001).
 - **REQ-I04 (Auto-Hinting)**: Setiap weight baru HARUS melewati `ttfautohint` untuk menghasilkan TrueType bytecode hinting yang konsisten. Eksekusi `ttfautohint` terjadi di **Stage 2** (packaging, per ADR-0002 — Stage 2 adalah satu-satunya stage yang boleh memanggil `ttfautohint`); `multi_weight_driver.py` TIDAK menjalankan hinting. Untuk weight baru, hinting WAJIB dilakukan **terlepas dari opsi `UseHinted`** (FR-4.3 mengalahkan `UseHinted=false` untuk weight baru; weight existing tetap mengikuti `UseHinted` — lihat §8.5). **Mekanisme override di packaging (klarifikasi r3 — K9)**: `packaging.sh` (§4.10) mengenali file weight baru (Medium, SemiBold; + Light, ExtraBold di mode release) dan menjalankan `ttfautohint` padanya **selalu**, terlepas nilai `UseHinted` yang dibaca dari manifest via `jq`; weight existing (Regular, Bold, Italic, BoldItalic, FantasqueSans) tetap mengikuti `UseHinted` (perilaku existing — hinting terkondisi di `Scripts/packaging.sh`).
 - **REQ-I05 (Monospace Guarantee)**: Seluruh weight baru HARUS mempertahankan lebar karakter (advance width) yang identik — teks yang sama menempati jumlah kolom yang sama saat weight diganti di editor monospace.
-- **REQ-I06 (Ligature Compatibility)**: Seluruh ligature existing (`->`, `=>`, `!=`, dll.) HARUS berfungsi identik di seluruh weight baru. Jika ligature tertentu rusak akibat interpolasi, glyph tersebut harus dikeluarkan dari output dan dikembalikan ke tahap harmonisasi.
+- **REQ-I06 (Ligature Compatibility)**: Seluruh ligature existing (`->`, `=>`, `!=`, dll.) HARUS berfungsi identik di seluruh weight baru. Jika ligature tertentu rusak akibat interpolasi, glyph tersebut dikeluarkan dari output **SEMENTARA** (durasi iterasi fix loop FR-5.3) dan dikembalikan ke tahap harmonisasi — dilarang hilang permanen dari output final (REQ-H04; klarifikasi r5 — E7). Jika fix loop tidak menyelesaikan dalam batas iterasi → jalur keputusan FR-2.5 (revisi cakupan V1).
 - **REQ-I07 (Proportional Stem & Counter)**: Setiap weight baru HARUS memiliki stem width dan counter size yang proporsional terhadap posisinya pada sumbu Regular–Bold — tidak boleh ada glyph dengan counter tertutup atau stroke yang bertabrakan (FR-4.2). Verifikasi dilakukan melalui interpolation validation report (REQ-S05) dan checklist Visual Quality Rubric (E0.4).
 
 #### Build Pipeline Integration
@@ -111,7 +113,7 @@ Seluruh istilah dalam dokumen ini mengacu pada Domain Glossary proyek ([`CONTEXT
 #### Specimen & Visual QA
 
 - **REQ-S01 (Specimen Generator)**: Sistem HARUS menyediakan script generator specimen sheet dalam format HTML yang dapat dibuka di browser secara lokal.
-- **REQ-S02 (Specimen Content)**: Specimen sheet mencakup: waterfall teks (8, 10, 12, 14, 16, 20, 24, 32, 48, 72 pt), pangram bahasa Inggris dan Indonesia, set karakter pemrograman (`{}[]()<>;:.,!#$%^&*`), ligature sequences, dan discontinuity checklist untuk 48 pt dan 72 pt.
+- **REQ-S02 (Specimen Content)**: Specimen sheet mencakup: waterfall teks (8, 10, 12, 14, 16, 20, 24, 32, 48, 72 pt), pangram bahasa Inggris dan Indonesia, set karakter pemrograman (kontrak operatif: §4.8 — `{}[]()<>;:.,!#$%^&*+-=/\|~`@`; klarifikasi r6 — Q-11), ligature sequences, dan discontinuity checklist untuk 48 pt dan 72 pt.
 - **REQ-S03 (Specimen Metrics)**: Specimen sheet menyertakan informasi metrik untuk setiap weight: stem width, x-height, cap height, dan advance width.
 - **REQ-S04 (Visual Diff)**: Script validasi HARUS menghasilkan overlay gambar PNG antara glyph interpolasi dan glyph master terdekat untuk glyph dengan status `warning` atau `fail`.
 - **REQ-S05 (Interpolation Validation Report)**: Sistem HARUS menyediakan script `validate_interpolation.py` yang menghasilkan laporan JSON per glyph hasil interpolasi dengan status `pass`, `warning` (minor artifact), atau `fail` (distorsi berat — kerusakan kontur, self-intersection, counter tertutup), mengacu pada Visual Quality Rubric (E0.4) dan GH-005. Kontrak lengkap di §4.11.
@@ -172,26 +174,23 @@ Direktori `Interpolated/` berisi weight-weight baru hasil interpolasi dalam form
 ### 4.3 Multi-Weight Build Output
 
 ```
-Variants/
-├── Normal/
+<output_dir>/            # OUTPUT_DIR dari custom_build_driver.py (mis. /build)
+├── TTF/
 │   ├── FantasqueSansMono-Regular.ttf
 │   ├── FantasqueSansMono-Medium.ttf
 │   ├── FantasqueSansMono-SemiBold.ttf
 │   ├── FantasqueSansMono-Bold.ttf
-│   ├── FantasqueSansMono-Light.ttf          # Jika lolos visual review
-│   ├── FantasqueSansMono-ExtraBold.ttf       # Jika lolos visual review
+│   ├── FantasqueSansMono-Light.ttf          # Jika lolos visual review (release upstream)
+│   ├── FantasqueSansMono-ExtraBold.ttf      # Jika lolos visual review (release upstream)
 │   ├── FantasqueSansMono-Italic.ttf
 │   ├── FantasqueSansMono-BoldItalic.ttf
+│   ├── FantasqueSans.ttf                    # Proportional variant
 │   └── ...
-├── NoLoopK/
-│   └── (struktur identik dengan Normal/)
-├── LargeLineHeight/
-│   └── (struktur identik dengan Normal/)
-└── NoLoopK-LargeLineHeight/
-    └── (struktur identik dengan Normal/)
+├── OTF/                                     # Struktur identik dengan TTF/
+└── Webfonts/                                # WOFF + WOFF2 (struktur identik dengan TTF/)
 ```
 
-**Catatan**: Struktur di atas adalah kontrak output driver existing — driver membuild **seluruh** `.sfdir` di `SOURCES_DIR` (termasuk `FantasqueSans` proportional variant) dan menamai output dari basename direktori. Di mode multi-weight, driver menerima `build/sources/` (REQ-B06) sehingga output mencakup weight baru; di mode single-weight, output identik dengan Custom Build existing (Regular, Bold, Italic, BoldItalic, FantasqueSans). **Sumber Italic/BoldItalic di `build/sources/` adalah harmonized masters** (`Sources/Harmonized/Italic/`, `Sources/Harmonized/BoldItalic/`) yang lolos `validate_harmonization.py --strict` (klarifikasi r3 — K4), bukan source legacy.
+**Catatan (klarifikasi r6 — Q-01)**: Layout di atas adalah layout **aktual** driver existing — `build_one_weight()` menulis langsung ke `OUTPUT_DIR/TTF|OTF|Webfonts` **tanpa subdirektori per varian** (terverifikasi di `Scripts/custom_build_driver.py` docstring; konsisten dengan `Dockerfile` Stage 2 `COPY /build/{OTF,TTF,Webfonts}` dan `packaging.sh` `/app/TTF|OTF|Webfonts`). Pohon `Variants/{Normal,NoLoopK,LargeLineHeight,...}` yang muncul di versi spec sebelumnya adalah layout legacy root `Makefile` (bahkan sudah di-ignore di `.gitignore`) — **bukan kontrak workflow** dan tidak dipakai pipeline. Driver membuild **seluruh** `.sfdir` di `SOURCES_DIR` (termasuk `FantasqueSans` proportional variant) dan menamai output dari basename direktori. Di mode multi-weight, driver menerima `build/sources/` (REQ-B06) sehingga output mencakup weight baru; di mode single-weight, output identik dengan Custom Build existing (Regular, Bold, Italic, BoldItalic, FantasqueSans). **Sumber Italic/BoldItalic di `build/sources/` adalah harmonized masters** (`Sources/Harmonized/Italic/`, `Sources/Harmonized/BoldItalic/`) yang lolos `validate_harmonization.py --strict` (klarifikasi r3 — K4), bukan source legacy.
 
 ### 4.4 Incompatibility Detection Script
 
@@ -205,6 +204,10 @@ Arguments:
   MASTER_B.sfdir    Path ke direktori .sfdir master kedua
   --output PATH     Path untuk output laporan JSON (default: incompatibility_report.json)
 ```
+
+**Kontrak exit code (klarifikasi r5 — E4)**:
+- Input tidak valid (direktori tidak ada/tidak terbaca, master tidak dapat dibuka, 0 glyph) → exit code non-zero + pesan error ke stderr.
+- Laporan berhasil dihasilkan (termasuk seluruh glyph `compatible`) → exit code 0.
 
 **Output JSON Schema**:
 
@@ -262,19 +265,21 @@ Arguments:
 **File**: `Scripts/validate_harmonization.py`
 
 ```text
-Usage: fontforge -lang=py -script Scripts/validate_harmonization.py MASTER_A.sfdir MASTER_B.sfdir [--output REPORT.json] [--strict]
+Usage: fontforge -lang=py -script Scripts/validate_harmonization.py MASTER_A.sfdir MASTER_B.sfdir [--output REPORT.json] [--strict] [--threshold DEG]
 
 Arguments:
   MASTER_A.sfdir    Path ke direktori .sfdir master pertama (harmonized)
   MASTER_B.sfdir    Path ke direktori .sfdir master kedua (harmonized)
   --output PATH     Path untuk output laporan JSON
   --strict          Mode strict: kegagalan pada satu glyph menghasilkan exit code non-zero
+  --threshold DEG   Threshold discontinuity antar-node dalam derajat (default: 15.0) — hanya untuk check ke-4 `curve_smoothness_ok` (klarifikasi r6 — Q-07)
 ```
 
 **Validasi per pasangan glyph:**
 1. `node-count-equal`: Jumlah control point per kontur identik antara master A dan B.
 2. `contour-order-equal`: Jumlah dan urutan kontur identik.
 3. `curve-direction-equal`: Arah kurva (clockwise/counter-clockwise) identik per kontur.
+4. `curve_smoothness_ok`: Deteksi discontinuity antar-node (perubahan tangent arah > `--threshold` derajat) pada glyph hasil harmonisasi (klarifikasi r6 — Q-07). **Non-blocking terhadap `--strict`** — kegagalan check ini HANYA dilaporkan (field `details`) dan TIDAK menghasilkan exit code non-zero, konsisten dengan sifat Soft Invariant (REQ-H06: deviasi minor 24–72 pt diizinkan). Check ini menutup celah AC-H05 yang sebelumnya hanya manual checklist.
 
 **Output JSON Schema**:
 
@@ -304,12 +309,13 @@ Arguments:
             "properties": {
               "node_count_equal": { "type": "boolean" },
               "contour_order_equal": { "type": "boolean" },
-              "curve_direction_equal": { "type": "boolean" }
+              "curve_direction_equal": { "type": "boolean" },
+              "curve_smoothness_ok": { "type": "boolean", "description": "Deteksi discontinuity antar-node (threshold via --threshold, default 15.0°) — non-blocking terhadap --strict (klarifikasi r6 — Q-07)" }
             }
           },
           "details": {
             "type": "string",
-            "description": "Deskripsi kegagalan (hanya untuk status fail)"
+            "description": "Deskripsi kegagalan (hanya untuk status fail) atau peringatan curve_smoothness_ok (non-blocking, selalu dilaporkan saat check ke-4 gagal)"
           }
         }
       }
@@ -332,8 +338,8 @@ Arguments:
   --output DIR             Path ke direktori output untuk weight hasil interpolasi
   --enable-light           Aktifkan ekstrapolasi Light (300)
   --enable-extrabold       Aktifkan ekstrapolasi ExtraBold (800)
-  --light-factor F         Factor ekstrapolasi untuk Light (default: ditetapkan Phase 5 oleh Designer A + maintainer — REQ-I02; hasil dicatat di docs/audit/stretch-factor-decision-{date}.md)
-  --extrabold-factor F     Factor ekstrapolasi untuk ExtraBold (default: ditetapkan Phase 5 oleh Designer A + maintainer — REQ-I02; hasil dicatat di docs/audit/stretch-factor-decision-{date}.md)
+  --light-factor F         Factor ekstrapolasi untuk Light — WAJIB diberikan bersama --enable-light; tanpa nilai → exit non-zero + pesan instruktif ("factor stretch ditetapkan Phase 5 — lihat docs/audit/stretch-factor-decision-{date}.md"); TIDAK ada default di kode (klarifikasi r5 — E6)
+  --extrabold-factor F     Factor ekstrapolasi untuk ExtraBold — WAJIB diberikan bersama --enable-extrabold; tanpa nilai → exit non-zero + pesan instruktif ("factor stretch ditetapkan Phase 5 — lihat docs/audit/stretch-factor-decision-{date}.md"); TIDAK ada default di kode (klarifikasi r5 — E6)
   --dry-run                Hanya validasi — tidak menulis file output
 
 Catatan: flag `--enable-light` / `--enable-extrabold` HANYA digunakan oleh pipeline release upstream. Custom Build (`enable_multi_weight=true`) TIDAK membangun stretch weight (PRD GH-004, Clarification E10).
@@ -364,14 +370,14 @@ flowchart TD
 - Membaca harmonized masters dari `Sources/Harmonized/Regular/` dan `Sources/Harmonized/Bold/`.
 - Menghasilkan interpolated `.sfdir` di `Sources/Harmonized/Interpolated/{Medium,SemiBold,Light,ExtraBold}/` (tidak di-commit; lihat §4.2).
 - Menerapkan copy-as-fallback untuk glyph tanpa pasangan.
-- Mem-post-process: menyalin tabel `hmtx` dari master Regular ke seluruh weight baru untuk memastikan advance width identik.
-- Meng-inject metadata internal **sebelum menyimpan** setiap `.sfdir` interpolated: `os2_weight` (Medium 500, SemiBold 600), `familyname`, `fullname` — unik per weight dan tidak identik dengan master (Regular 400, Bold 700). Verifikasi dua lapis: lapis 1 di Phase 3 pada `.sfdir` (one-liner FontForge), lapis 2 di Phase 4 pada TTF final (`ttx -t name -t OS/2` + `fc-scan`).
-- Nilai factor stretch final (ditetapkan Phase 5 — REQ-I02) menjadi kontrak: dicatat di sini dan di `docs/audit/stretch-factor-decision-{date}.md`.
+- Mem-post-process **unconditional** (klarifikasi r5 — E5): menyalin tabel `hmtx` ke seluruh weight baru — glyph yang ada di Regular → advance width dari Regular; glyph `only_in_b` (copy-as-fallback) → advance width dari **Bold** (master sumber fallback; klarifikasi r5 — E3) — untuk memastikan advance width identik.
+- Meng-inject metadata internal **sebelum menyimpan** setiap `.sfdir` interpolated dengan **nilai eksak (klarifikasi r6 — Q-08)**: `familyname` = `"Fantasque Sans Mono"` — **identik di seluruh weight** (family grouping di font picker, memenuhi AC-I03); `fullname` = `"Fantasque Sans Mono {Weight}"`; `os2_weight` = 300/400/500/600/700/800 sesuai weight (Light 300, Regular 400, Medium 500, SemiBold 600, Bold 700, ExtraBold 800). Klausul "tidak identik dengan master" hanya berlaku untuk `os2_weight` & `fullname` — bukan `familyname`. Verifikasi dua lapis: lapis 1 di Phase 3 pada `.sfdir` (one-liner FontForge), lapis 2 di Phase 4 pada TTF final (`ttx -t name -t OS/2` + `fc-scan`). Test #11 `test_metadata_injection` (§6.3) disinkronkan dengan nilai eksak ini.
+- Nilai factor stretch final (ditetapkan Phase 5 — REQ-I02) menjadi kontrak: dicatat di sini dan di `docs/audit/stretch-factor-decision-{date}.md`. Flag `--light-factor`/`--extrabold-factor` WAJIB diberikan bersama `--enable-light`/`--enable-extrabold` — tanpa nilai → exit non-zero + pesan instruktif; TIDAK ada default di kode (klarifikasi r5 — E6).
 - Menyusun direktori build source `build/sources/` (REQ-B06): menyalin 4 harmonized masters + interpolated weights dengan nama `FantasqueSansMono-{Weight}.sfdir`, plus salinan `FantasqueSans.sfdir` legacy.
 - **TIDAK memanggil `features.py` dan TIDAK menjalankan `ttfautohint`** — keduanya adalah tanggung jawab pipeline existing: `features.py` dipanggil in-process oleh `custom_build_driver.py` per weight (REQ-B03), `ttfautohint` dieksekusi di Stage 2 (REQ-I04, ADR-0002).
 - Gating distorsi kontur berat BUKAN tanggung jawab driver (klarifikasi r3 — K8): driver cukup mempropagasi error FontForge (exit code non-zero + pesan diagnostik). Deteksi distorsi berat (self-intersection / counter tertutup / kontur rusak) menjadi tanggung jawab tunggal `validate_interpolation.py` — di-enforce di RUN chain build via loop `--fail-fast` per core weight (§4.9) dan di runbook release upstream (§4.10) — tanpa duplikasi logika deteksi.
 - **Output PoC (klarifikasi r3 — K11)**: `poc_interpolation.py` (Phase 0) menghasilkan **dua output** — `.sfdir` interpolated subset DAN TTF untuk rendering (via `font.generate`, tanpa hinting — konsisten "TANPA ttfautohint") — TTF tersebut menjadi input `generate_specimen.py` dan visual diff review (FR-2.3 butuh font yang dapat dirender pada 8/12/16/24 pt; lihat §5.2 AC-P02).
-- **Push-gate unit test (klarifikasi r4 — R4)**: suite pytest dijalankan di host runner pada SETIAP push ke branch `feature/multi-weight-*` via workflow `test-multi-weight.yml` (bukan `custom-build.yml` yang bersifat `workflow_dispatch` manual — tidak memenuhi trigger push). File test FontForge-dependent di-skip otomatis via `pytest.importorskip("fontforge")` di level modul; eksekusi nyata dengan FontForge tetap dilakukan di container Stage 1 (RUN chain §4.9 / TASK-0.X; lihat §6.6).
+- **Push-gate unit test (klarifikasi r4 — R4)**: suite pytest dijalankan di host runner pada SETIAP push ke branch `feature/multi-weight-*` via workflow `test-multi-weight.yml` (bukan `custom-build.yml` yang bersifat `workflow_dispatch` manual — tidak memenuhi trigger push). File test FontForge-dependent di-skip otomatis via `pytest.importorskip("fontforge")` di level modul; eksekusi nyata dengan FontForge tetap dilakukan di container Stage 1 (RUN chain §4.9 / TASK-0.X; lihat §6.6). Peran: **smoke gate** (sintaks/import + test non-FontForge — klarifikasi r5 H4); host runner TIDAK mengukur coverage (MO-1) — eksekusi nyata dan pengukuran coverage terjadi di container Stage 1.
 
 ### 4.7 features.py Invocation Contract
 
@@ -401,6 +407,10 @@ Arguments:
   --weights DIR    Path ke direktori yang berisi file TTF untuk seluruh weight
   --output DIR     Path ke direktori output HTML (default: Specimen/MultiWeight/)
 ```
+
+**Sumber TTF specimen Phase 3 (klarifikasi r5 — B3)**: TTF input `--weights` untuk specimen sheet core weight dihasilkan secara lokal oleh type designer dengan menjalankan driver existing atas hasil assembly `build/sources` (TASK-3.1): `fontforge --quiet -lang=py -script Scripts/custom_build_driver.py build/sources <tmp_output>` (tanpa flag variant — varian Normal) → direktori `<tmp_output>/TTF` menjadi input `--weights`. TTF pra-hinting; CON-001 tidak tersentuh — `features.py` tetap dipanggil in-process oleh driver (konsisten dengan rendering final).
+
+**Sumber metrik specimen (klarifikasi r6 — Q-10)**: Metode ekstraksi metrik per weight dikunci: `x_height`/`cap_height` dari tabel OS/2 (`sxHeight`/`sCapHeight`) atau `font.x_height`/`font.cap_height` (FontForge); advance width dari tabel `hmtx`; stem width dari `OS/2.usStemV` atau pengukuran glyph referensi (`n`). **Dependency**: `fontTools` sebagai **dev dependency lokal type designer** (bukan CI) untuk parsing TTF — dicatat pada FILE-004. Alternatif menjalankan generator di Stage 1 (FontForge) TIDAK direkomendasikan (kompleksitas eksekusi lokal); `generate_specimen.py` tetap berjalan via `python3` host.
 
 **Output HTML Structure:**
 
@@ -471,6 +481,9 @@ custom-build.yml (workflow_dispatch input: enable_multi_weight)
 ARG BUILD_ARGS=""
 RUN if echo "$BUILD_ARGS" | grep -q -- "--multi-weight"; then \
         echo "::group::Multi-Weight Pipeline"; \
+        T_FINAL=15.0; \
+        echo "T_FINAL=${T_FINAL} (nilai final protokol dua-pass — klarifikasi r3 K7 / r5 B2; sumber: docs/audit/phase0-experiments-{date}.md + docs/audit/visual-quality-rubric.md; TASK-4.2 hardcode nilai T_final terkalibrasi, bukan default 15.0)"; \
+        python3 -c "import fontforge" || { echo "::error::python3-fontforge tidak tersedia di Stage 1 (instalasi apt gagal) — unit test FontForge-dependent tidak dapat dieksekusi" >&2; exit 1; }; \
         echo "Checking harmonized sources..."; \
         for d in Sources/Harmonized/Regular Sources/Harmonized/Bold \
                  Sources/Harmonized/Italic Sources/Harmonized/BoldItalic; do \
@@ -494,7 +507,8 @@ RUN if echo "$BUILD_ARGS" | grep -q -- "--multi-weight"; then \
             --output build/harmonization_report_italic_bolditalic.json \
             --strict; \
         echo "Running unit tests (fail-fast)..."; \
-        pytest tests/ -v; \
+        mkdir -p build/reports; \
+        pytest tests/ -v --cov=Scripts --cov-report=term-missing --cov-report=xml:build/reports/coverage.xml; \
         echo "Running multi-weight driver..."; \
         fontforge -lang=py -script Scripts/multi_weight_driver.py \
             --sources Sources \
@@ -504,7 +518,7 @@ RUN if echo "$BUILD_ARGS" | grep -q -- "--multi-weight"; then \
             fontforge --quiet -lang=py -script Scripts/validate_interpolation.py \
                 --interpolated "Sources/Harmonized/Interpolated/$w" \
                 --masters Sources/Harmonized \
-                --threshold 15.0 \
+                --threshold "${T_FINAL}" \
                 --output "build/interpolation_report_${w}.json" \
                 --fail-fast; \
         done; \
@@ -521,30 +535,42 @@ RUN if echo "$BUILD_ARGS" | grep -q -- "--multi-weight"; then \
 
 Catatan kontrak:
 - `build/`, `Sources/Harmonized/Interpolated/` dan `build/sources/` adalah direktori runtime di dalam container — tidak di-commit (GUD-001, §4.2).
+- **`mkdir -p build` (klarifikasi r6 — Q-17)**: `mkdir -p build` dijalankan **unconditional** di base Stage 1 (tidak mengubah output font — AC-B03 tetap berlaku; sinkron NOTE-4.2(ii)), dan `mkdir -p build/reports` di RUN chain sebelum `pytest` agar `--cov-report=xml:build/reports/coverage.xml` dapat menulis; alternatif kontrak script: `--output` membuat parent dir secara otomatis.
+- **Posisi & path coverage pytest (klarifikasi r6 — Q-02)**: `pytest` (dengan `--cov`) dieksekusi **sebelum interpolasi** — validasi tooling lebih dulu, error muncul paling awal (urutan RUN chain di atas: guard → detect → validate kedua pasangan → pytest --cov → multi_weight_driver → loop validate_interpolation --fail-fast → custom_build_driver). Laporan coverage ditulis ke `build/reports/coverage.xml` — selaras alur surfacing H3 (`COPY /build/build /app/build-reports` → packaging → `output/reports/`); dengan varian `--cov` ini klaim §6.7 benar-benar terukur di RUN chain.
+- **Status informatif laporan detect di CI (klarifikasi r6 — Q-16)**: laporan `detect_incompatibility.py` di RUN chain (pasangan Regular↔Bold dari source **legacy**, bukan harmonized) bersifat **informatif/audit baseline** — exit code-nya selalu 0 selama laporan dihasilkan (r5 E4). Gate kualitas aktual = `validate_harmonization.py --strict` kedua pasangan + loop `validate_interpolation.py --fail-fast`. Pasangan Italic↔BoldItalic tidak melewati detect di CI; penambahan detect I↔BI bersifat opsional (biaya kecil, tidak menambah gate) — bukan rekomendasi utama.
 - **Guard eksistensi harmonized sources (klarifikasi r4 — R5)**: keempat direktori `Sources/Harmonized/{Regular,Bold,Italic,BoldItalic}` diperiksa **paling awal** di RUN chain (sebelum `detect_incompatibility.py`) — jika salah satu hilang → `echo "::error::multi-weight build requires harmonized sources (Sources/Harmonized/{Regular,Bold,Italic,BoldItalic}); sync upstream or run harmonization first" >&2; exit 1`. Menggantikan error mentah FontForge ("unable to open") yang tidak informatif bagi fork owner yang belum sync hasil harmonisasi upstream; fail-fast tetap terjaga (GUD-002). Prasyarat dicatat di README section multi-weight (TASK-4.5).
 - Mode `false` → `FONTS=Sources` + `DRIVER_ARGS="$BUILD_ARGS"` → RUN identik dengan Custom Build existing → output byte-identical (AC-B03).
 - Stripping `--multi-weight` dari `$BUILD_ARGS` via `DRIVER_ARGS=$(printf '%s' "$BUILD_ARGS" | sed 's/--multi-weight//g')` WAJIB dilakukan sebelum pemanggilan driver — `parse_args()` driver existing melakukan `_die("unknown flag(s): ...")` untuk flag di luar `--line-height`/`--no-loop-k`/`--no-calt` (klarifikasi r3 — K1; terverifikasi di `Scripts/custom_build_driver.py`).
+- Substring matching `grep -q -- "--multi-weight"` dan `sed 's/--multi-weight//g'` (tanpa word boundary) aman terhadap flag lain — vocabulary flag dikontrol tunggal oleh `configure.py` (`OPTION_TO_DRIVER_FLAG`); tidak ada flag lain yang mengandung substring `--multi-weight` (klarifikasi r5 — H5, non-issue terdokumentasi).
 - Bentuk grep portabel `echo "$BUILD_ARGS" | grep -q -- "--multi-weight"` menggantikan bashism here-string `<<<` — Dockerfile Stage 1 tanpa `SHELL` directive → `/bin/sh` (dash) tidak mendukung `<<<` (klarifikasi r3 — K1).
 - `validate_harmonization.py --strict` dijalankan untuk **kedua pasangan master** — Regular↔Bold DAN Italic↔BoldItalic (hasil harmonisasi Italic/BoldItalic ikut di-assembly ke `build/sources/`; klarifikasi r3 — K4). Fail-fast jika masih ada glyph `fail` yang belum diperbaiki (Never Do — seluruh glyph fail HARUS diperbaiki sebelum interpolasi).
-- Loop fail-fast `validate_interpolation.py --threshold 15.0 --fail-fast` per core weight interpolated (Medium, SemiBold) dijalankan SETELAH `multi_weight_driver.py` dan SEBELUM `custom_build_driver.py` — status `fail` (self-intersection / counter tertutup / kontur rusak) → exit non-zero (GUD-002 ter-enforce di CI; klarifikasi r3 — K8); `warning` ≤ 2% tidak memblokir build (metrik QA Phase 3). Nilai `--threshold` mengikuti REQ-H06/§11.2 — diperbarui ke `T_final` setelah kalibrasi (klarifikasi r3 — K7).
+- Loop fail-fast `validate_interpolation.py --threshold "${T_FINAL}" --fail-fast` per core weight interpolated (Medium, SemiBold) dijalankan SETELAH `multi_weight_driver.py` dan SEBELUM `custom_build_driver.py` — status `fail` (self-intersection / counter tertutup / kontur rusak) → exit non-zero (GUD-002 ter-enforce di CI; klarifikasi r3 — K8); `warning` ≤ 2% tidak memblokir build (metrik QA Phase 3). **`T_FINAL` adalah variabel shell yang didefinisikan di awal cabang multi-weight (klarifikasi r5 — B2)**: nilainya diambil dari `docs/audit/phase0-experiments-{date}.md` (R-full hasil kalibrasi PoC) + `docs/audit/visual-quality-rubric.md`; nilai `15.0` pada definisi variabel di snippet adalah placeholder pra-kalibrasi — TASK-4.2 WAJIB menggantinya dengan `T_final` hasil protokol dua-pass (klarifikasi r3 — K7), `15.0` hanya berlaku sebagai default CLI `--threshold` sebelum kalibrasi. Parameterisasi via ARG/env (Opsi B) ditolak — nilai berubah sekali, menambah permukaan kontrak tanpa manfaat.
 - `multi_weight_driver.py` menghasilkan interpolated `.sfdir` DAN menyusun `build/sources/` (assembly — §4.6, REQ-B06).
 - Stretch weight (Light, ExtraBold) TIDAK dibangun di Custom Build — flag `--enable-light`/`--enable-extrabold` hanya dipakai pipeline release upstream (E10).
-- `pytest` + `jsonschema` diinstal **tidak kondisional** di Stage 1 — baris `pip3 install --break-system-packages --no-cache-dir future` diperpanjang menjadi `... future pytest jsonschema` (pola existing, satu layer; image single-weight tidak terpengaruh pada output font — AC-B03 tetap berlaku; klarifikasi r3 — K2).
-- `pytest tests/ -v` dijalankan di dalam RUN chain multi-weight (fail-fast **sebelum interpolasi**): keempat file test FontForge-dependent (`test_detect_incompatibility.py`, `test_validate_harmonization.py`, `test_validate_interpolation.py`, `test_multi_weight_driver.py`) dieksekusi dengan FontForge nyata dari Stage 1. Di host runner, keempat file tersebut memakai `pytest.importorskip("fontforge")` di level modul sehingga gate pytest host tidak crash (TASK-4.2, TASK-0.10; klarifikasi r3 — K6).
+- `pytest` + `jsonschema` + `pytest-cov` diinstal **tidak kondisional** di Stage 1 — baris `pip3 install --break-system-packages --no-cache-dir future` diperpanjang menjadi `... future pytest jsonschema pytest-cov` (pola existing, satu layer; image single-weight tidak terpengaruh pada output font — AC-B03 tetap berlaku; klarifikasi r3 — K2 + r5 — MO-1). **Paket apt `python3-fontforge` ditambahkan di Stage 1 (klarifikasi r5 — B1)**: instalasi via `apt-get install -y --no-install-recommends python3-fontforge` (bukan pip — versi identik dari repo yang sama, tanpa risiko ABI); komentar Dockerfile "bindings embedded" dikoreksi → "system FontForge module" — bindings embedded di binary FontForge TIDAK terlihat oleh system `python3` (interpreter yang menjalankan `pytest`), sehingga tanpa paket apt keempat file test FontForge-dependent selalu di-skip (gate fail-fast hampa).
+- `pytest tests/ -v --cov=Scripts --cov-report=term-missing --cov-report=xml:build/reports/coverage.xml` dijalankan di dalam RUN chain multi-weight (fail-fast **sebelum interpolasi**; varian `--cov` — klarifikasi r6 — Q-02): keempat file test FontForge-dependent (`test_detect_incompatibility.py`, `test_validate_harmonization.py`, `test_validate_interpolation.py`, `test_multi_weight_driver.py`) dieksekusi dengan FontForge nyata dari Stage 1 — **klaim ini terpenuhi setelah klarifikasi r5 (B1)**: dengan `python3-fontforge` (apt) terpasang, system `python3` dapat `import fontforge`, sehingga keempat file test benar-benar dieksekusi (bukan `importorskip`-skip); pre-check `python3 -c "import fontforge"` di awal RUN chain memberi error informatif jika instalasi gagal. Di host runner, keempat file tersebut memakai `pytest.importorskip("fontforge")` di level modul sehingga gate pytest host tidak crash (TASK-4.2, TASK-0.10; klarifikasi r3 — K6; peran push-gate = smoke gate — klarifikasi r5 — H4; host runner TIDAK mengukur coverage — MO-1).
 - Pesan log tahap mengikuti GUD-003 / GH-004 AC#5 — termasuk `Harmonizing...` (ditampilkan saat harmonized sources dimuat oleh driver; harmonisasi itu sendiri adalah kerja manual type designer — FR-1.3).
 
 **Workflow custom-build.yml — kontrak step (step EXISTING yang diperluas, tanpa step baru):**
 
 ```yaml
+# Perluasan step existing "Configure build options" (step 5 custom-build.yml) —
+# SELURUH flag existing dipertahankan; SATU-SATUNYA penambahan adalah
+# --form-enable-multi-weight (klarifikasi r6 — Q-05). Implementasi literal
+# snippet lama (hanya --form-* + --output-args-file) akan memutus validasi
+# config dan membuat pre-flight manifest packaging.sh gagal.
 - name: Configure build options
   run: |
-    python3 Scripts/configure.py \
+    python Scripts/configure.py \
+      --config-file config.json \
+      --schema-file config.schema.json \
       --form-large-line-height "${{ inputs.large_line_height }}" \
       --form-no-loop-k "${{ inputs.no_loop_k }}" \
       --form-no-calt "${{ inputs.no_calt }}" \
       --form-use-hinted "${{ inputs.use_hinted }}" \
       --form-enable-multi-weight "${{ inputs.enable_multi_weight }}" \
-      --output-args-file build-args.txt
+      --output-args-file build-args.txt \
+      --generate-manifest manifest.json
     echo "BUILD_ARGS=$(cat build-args.txt)" >> "$GITHUB_ENV"
 ```
 
@@ -621,7 +647,7 @@ Usage: fontforge -lang=py -script Scripts/validate_interpolation.py --interpolat
 
 Arguments:
   --interpolated DIR   Path ke .sfdir hasil interpolasi
-  --masters DIR        Path ke direktori harmonized masters (Regular & Bold)
+  --masters DIR        Path ke direktori INDUK harmonized masters yang memuat subdirektori `Regular/` dan `Bold/` (contoh pemanggilan RUN chain: `--masters Sources/Harmonized`); script me-resolve kedua subdirektori tersebut, dan jika salah satu hilang → exit non-zero + pesan instruktif (klarifikasi r6 — Q-09)
   --rubric FILE        Visual Quality Rubric (E0.4) sebagai acuan klasifikasi warning/fail
   --threshold DEG      Threshold discontinuity dalam derajat (default: 15.0) — REQ-H06; dipisahkan dari rubric markdown (rubric mendokumentasikan nilai final, bukan sumber parsing script) — klarifikasi r3 K7
   --output FILE        Path output laporan JSON (default: interpolation_report.json)
@@ -672,6 +698,8 @@ Arguments:
 **File**: `Sources/Harmonized/tracking.json`
 
 Format file JSON yang digunakan oleh type designer untuk menandai glyph yang memerlukan harmonisasi ulang atau yang telah di-review (memenuhi PRD GH-005 AC#4). Keputusan visual review per-glyph dicatat melalui field `review_verdict`/`reviewed_by`/`date` (Phase 3 — core weight: Designer A (Lead) = otoritas final, Designer B untuk glyph shared pool yang ia kerjakan; Phase 5 — stretch weight: Designer A + upstream maintainer). File ini dikomit ke dalam repository.
+
+**Aturan kolaborasi dua-designer (klarifikasi r5 — E1)**: (1) masing-masing designer TIDAK memformat ulang atau merombak urutan array `glyphs` di luar glyph yang sedang dikerjakan (meminimalkan permukaan konflik merge pada file bersama); (2) konflik merge `tracking.json` diresolusi dengan **union + sort** — seluruh entry dipertahankan (tidak ada field yang di-drop), urutan akhir di-sort berdasarkan `glyph_name`; (3) entry duplikat untuk glyph yang sama → overwrite dengan verdict terbaru. Berlaku untuk TASK-2.1/2.2/2.3 (shared pool, first-come-first-served; deadlock → eskalasi ke upstream maintainer).
 
 **Output JSON Schema**:
 
@@ -741,7 +769,7 @@ Format file JSON yang digunakan oleh type designer untuk menandai glyph yang mem
 ### 5.4 Build Pipeline
 
 - **AC-B01**: Custom Build Workflow memiliki parameter boolean `enable_multi_weight` di halaman "Run workflow".
-- **AC-B02**: Ketika `enable_multi_weight = true`, build menghasilkan 4 core weight (Regular, Medium, SemiBold, Bold) dalam 3 format distribusi (TTF, OTF, WOFF2) + output existing (Italic, BoldItalic, FantasqueSans) — Regular/Bold dibangun dari harmonized masters (TIDAK byte-identical dengan V0). Stretch weight TIDAK dihasilkan di Custom Build (E10).
+- **AC-B02**: Ketika `enable_multi_weight = true`, build menghasilkan 4 core weight (Regular, Medium, SemiBold, Bold) dalam 3 format distribusi (TTF, OTF, WOFF2) + output existing (Italic, BoldItalic, FantasqueSans) — Regular, Bold, Italic, BoldItalic dibangun dari harmonized masters (TIDAK byte-identical dengan V0); `FantasqueSans` tetap salinan legacy (byte-identical) (klarifikasi r5 — E8). Stretch weight TIDAK dihasilkan di Custom Build (E10).
 - **AC-B03**: Ketika `enable_multi_weight = false`, build berjalan tanpa pemanggilan script multi-weight dan outputnya **byte-identical dengan Custom Build existing** (Regular, Bold, Italic, BoldItalic, FantasqueSans) — kompatibilitas mundur penuh pada level pipeline DAN level output.
 - **AC-B04**: Total durasi build multi-weight ≤ 240 menit pada GitHub Actions free-tier runner (SM-T3).
 - **AC-B05**: Build log menampilkan pesan progres aktual: "Detecting incompatibilities...", "Harmonizing...", "Interpolating Medium (500)...", "Generating {Weight}...", "ttfautohint", "packaging: ..." (GUD-003).
@@ -791,7 +819,7 @@ Eksperimen berikut HARUS diselesaikan dan didokumentasikan sebelum Phase 1 (PoC)
 - **Tujuan**: Memvalidasi bahwa `font.interpolateFonts()` mempertahankan advance width yang identik antara master dan hasil interpolasi.
 - **Metode**: Harmonisasi 10 glyph sample (`a`, `g`, `&`, `@`, `M`, `space`, `zero`, `period`, `backslash`, `fi`), interpolasi Medium (factor 0.5), bandingkan advance width Regular original vs Medium hasil interpolasi.
 - **Acceptance**: Advance width Medium identik dengan Regular untuk seluruh 10 glyph.
-- **Failure path**: Jika advance width berbeda, script `multi_weight_driver.py` HARUS menyalin tabel `hmtx` dari Regular ke seluruh weight baru sebagai post-processing step.
+- **Failure path (klarifikasi r6 — Q-12)**: hmtx copy adalah post-process **unconditional** (klarifikasi r5 — E5; REQ-I03) — BUKAN keputusan reaktif hasil E0.2: script `multi_weight_driver.py` SELALU menyalin tabel `hmtx` ke seluruh weight baru (copy saat nilai identik adalah no-op semantik). E0.2 tetap dijalankan sebagai eksperimen validasi asumsi (hasilnya menginformasikan AC-P05), bukan penentu implementasi. Jika deviasi advance width antar master ditemukan → eskalasi via failure path (klarifikasi r5 — E3), bukan koreksi diam-diam.
 - **Catatan (klarifikasi r2)**: E0.2 adalah eksperimen terpisah dari pemilihan subset PoC (FR-2.1) — subset 10 glyph-nya TIDAK wajib identik dengan daftar FR-2.1.
 
 #### E0.3 — 2-Designer Parallel Work Simulation
@@ -842,6 +870,7 @@ Test Cases:
 5. test_multiple_failures — Dua atau lebih kondisi gagal → status "fail", semua flag sesuai
 6. test_pass_rate_calculation — Verifikasi kalkulasi pass_rate = pass_count / total_pairs * 100
 7. test_strict_mode_exit_code — Mode strict: satu glyph gagal → exit code non-zero
+8. test_curve_smoothness_non_blocking — Tangent-angle > threshold → checks.curve_smoothness_ok=false + details terisi, namun exit code tetap 0 bahkan dengan --strict (check ke-4 non-blocking — klarifikasi r6 Q-07)
 
 Catatan: file test memakai `pytest.importorskip("fontforge")` di level modul — eksekusi nyata dilakukan di Stage 1 Docker via `pytest tests/ -v` dalam RUN chain multi-weight (§4.9); gate pytest host runner tidak crash tanpa FontForge (klarifikasi r3 — K6).
 ```
@@ -862,7 +891,7 @@ Test Cases:
 8. test_missing_master_error — Master tidak ditemukan → exit code non-zero
 9. test_source_assembly_naming — Direktori build/sources/ berisi nama `FantasqueSansMono-{Weight}.sfdir` sesuai REQ-D02/REQ-B06
 10. test_assembly_includes_fantasque_sans — Salinan `FantasqueSans.sfdir` ada di build/sources/ (REQ-B06)
-11. test_metadata_injection — Verifikasi injeksi metadata os2_weight/fullname pada `.sfdir` interpolated: unik per weight (500/600) dan tidak identik dengan master (400/700)
+11. test_metadata_injection — Verifikasi injeksi metadata pada `.sfdir` interpolated sesuai **nilai eksak (klarifikasi r6 — Q-08)**: familyname = "Fantasque Sans Mono" identik di seluruh weight (Regular/Bold/Medium/SemiBold/Light/ExtraBold); fullname = "Fantasque Sans Mono {Weight}"; os2_weight = 300/400/500/600/700/800 sesuai weight
 
 Catatan: file test memakai `pytest.importorskip("fontforge")` — eksekusi nyata dilakukan di Stage 1 Docker via `pytest tests/ -v` dalam RUN chain multi-weight (§4.9); gate pytest host runner tidak crash tanpa FontForge.
 ```
@@ -878,6 +907,7 @@ Test Cases:
 3. test_fail_status — Distorsi berat (self-intersection, counter tertutup) → status "fail"
 4. test_overlay_png_generated — Flag --overlay-dir menghasilkan PNG untuk status warning/fail
 5. test_report_json_valid — Output JSON valid terhadap schema §4.11
+6. test_masters_parent_dir_resolution — `--masters` menerima direktori induk berisi subdirektori `Regular/` dan `Bold/` (resolve sukses); salah satu subdirektori hilang → exit non-zero + pesan instruktif (klarifikasi r6 — Q-09)
 
 Catatan: file test memakai `pytest.importorskip("fontforge")` di level modul — eksekusi nyata dilakukan di Stage 1 Docker via `pytest tests/ -v` dalam RUN chain multi-weight (§4.9); gate pytest host runner tidak crash tanpa FontForge (klarifikasi r3 — K6). Script menerima `--threshold DEG` (default 15.0) dan `--fail-fast` — kontrak §4.11 (klarifikasi r3 — K7/K8); perubahan nilai threshold hanya via parameter eksplisit, bukan parsing rubric markdown.
 ```
@@ -905,7 +935,7 @@ Test Cases:
 
 ### 6.6 CI/CD Integration
 
-- Unit test dijalankan pada setiap push ke branch `feature/multi-weight-*` — **implementasi (klarifikasi r4 — R4)**: workflow `.github/workflows/test-multi-weight.yml` (push-gate host runner: `pip install pytest jsonschema` + `pytest tests/ -v`, tanpa Docker); keempat file test FontForge-dependent di-skip otomatis via `pytest.importorskip("fontforge")` di level modul — eksekusi nyata dengan FontForge tetap di container Stage 1 (RUN chain §4.9). Workflow `custom-build.yml` existing bersifat `workflow_dispatch` manual sehingga tidak memenuhi trigger push; workflow e2e `test-multi-weight-build.yml` (§6.4) tetap opsional — verifikasi e2e dijalankan manual (TASK-4.X).
+- Unit test dijalankan pada setiap push ke branch `feature/multi-weight-*` — **implementasi (klarifikasi r4 — R4)**: workflow `.github/workflows/test-multi-weight.yml` (push-gate host runner: `pip install pytest jsonschema` + `pytest tests/ -v`, tanpa Docker); keempat file test FontForge-dependent di-skip otomatis via `pytest.importorskip("fontforge")` di level modul — eksekusi nyata dengan FontForge tetap di container Stage 1 (RUN chain §4.9). Workflow `custom-build.yml` existing bersifat `workflow_dispatch` manual sehingga tidak memenuhi trigger push; workflow e2e `test-multi-weight-build.yml` (§6.4) tetap opsional — verifikasi e2e dijalankan manual (TASK-4.X). Push-gate = **smoke gate** (sintaks/import + test non-FontForge; klarifikasi r5 — H4) — eksekusi nyata logika multi-weight terjadi di RUN chain Stage 1, terpenuhi setelah `python3-fontforge` terpasang (klarifikasi r5 — B1).
 - Eksperimen Phase 0 didokumentasikan secara manual (tidak diotomatisasi).
 - End-to-end build test dipicu secara manual melalui `workflow_dispatch` pada branch feature.
 
@@ -913,6 +943,7 @@ Test Cases:
 
 - Unit test untuk script deteksi dan validasi: ≥ 90% code coverage.
 - Integration test: mencakup happy path (core weight build sukses) dan failure path (incompatible glyph, build timeout).
+- **Mekanisme ukur (klarifikasi r5 — MO-1; path sinkron dengan r6 — Q-02)**: coverage diukur via `pytest-cov` pada eksekusi pytest DI DALAM container Stage 1 (`pytest tests/ -v --cov=Scripts --cov-report=term-missing --cov-report=xml:build/reports/coverage.xml`, pada RUN chain multi-weight §4.9). Push-gate host runner (`test-multi-weight.yml`, §6.6) TIDAK mengukur coverage — perannya smoke gate (klarifikasi r5 — H4). Hasil coverage (`build/reports/coverage.xml`) tersedia sebagai artifact build via surfacing laporan (plan-side, r5 — H3: `COPY /build/build /app/build-reports` → packaging → `output/reports/`).
 
 ## 7. Implementation Boundaries
 
@@ -928,14 +959,14 @@ Test Cases:
 
 ### Ask First
 
-- Menambah dependency Python baru di luar `future` shim yang sudah ada. **DISETUJUI untuk konteks klarifikasi r3 (K2)**: penambahan `pytest` + `jsonschema` pada instalasi pip Stage 1 (baris `pip3 install --break-system-packages --no-cache-dir future` → `... future pytest jsonschema`) telah disetujui pada sesi r3 — perubahan ini saja; penambahan dependency lain tetap Ask First.
+- Menambah dependency Python baru di luar `future` shim yang sudah ada. **DISETUJUI untuk konteks klarifikasi r3 (K2) dan r5 (MO-1)**: penambahan `pytest` + `jsonschema` (sesi r3) dan `pytest-cov` (sesi r5) pada instalasi pip Stage 1 (baris `pip3 install --break-system-packages --no-cache-dir future` → `... future pytest jsonschema pytest-cov`) telah disetujui — perubahan ini saja; penambahan dependency lain tetap Ask First.
 - Mengubah struktur direktori `Sources/Harmonized/` yang telah disepakati.
 - Mengubah factor interpolasi untuk core weight (0.5 dan 0.67) — nilai ini adalah kontrak spesifikasi.
 - Mengubah nama font family atau nama file output.
 - Menambah weight baru di luar daftar yang telah disepakati (Light 300, Medium 500, SemiBold 600, ExtraBold 800).
 - Mengubah format output specimen sheet (HTML → format lain).
 - Mengubah strategi copy-as-fallback menjadi strategi lain.
-- Memodifikasi `Dockerfile` untuk menambah/mengganti package sistem. **DISETUJUI untuk konteks klarifikasi r3 (K2)**: perubahan baris instalasi pip Stage 1 sebagaimana disebut di atas; perubahan Dockerfile lain tetap Ask First.
+- Memodifikasi `Dockerfile` untuk menambah/mengganti package sistem. **DISETUJUI untuk konteks klarifikasi r3 (K2) dan r5 (B1)**: perubahan baris instalasi pip Stage 1 (`future pytest jsonschema pytest-cov`) DAN penambahan paket apt `python3-fontforge` di Stage 1 (klarifikasi r5 — B1: `apt-get install -y --no-install-recommends python3-fontforge` — agar unit test FontForge-dependent benar-benar dieksekusi di container); perubahan Dockerfile lain tetap Ask First.
 - Mengubah batas toleransi cacat visual (2%) — nilai ini adalah kontrak spesifikasi (FR-5.4).
 - Mengubah threshold discontinuity (15.0°) — nilai ini adalah kontrak spesifikasi (REQ-H06).
 
@@ -1005,6 +1036,9 @@ Keputusan berikut bersifat mudah dibalik atau merupakan resolusi spesifik (tidak
 - **Definisi Release Upstream Pipeline (klarifikasi r2)**: Eksekusi **manual/terisolasi oleh upstream maintainer di luar CI** — menjalankan `multi_weight_driver.py --enable-light --enable-extrabold` (lokal atau `docker run` ad-hoc pada image Stage 1), memanfaatkan driver yang sama dengan Custom Build. Stretch weight yang lolos visual review masuk V1; yang gagal dikeluarkan ke V2 (GUD-004). Custom Build (`enable_multi_weight=true`) TIDAK pernah memproduksi stretch weight (E10).
 - **Resolusi sesi klarifikasi r3 (Spec v1.5)**: Seluruh keputusan dari `docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-08-01-r3.md` (K1–K16) diklasifikasikan sebagai spec-level resolutions — mudah dibalik, tidak memenuhi triple-gate ADR. Ringkasan implementasi: (K1) grep portabel tanpa bashism `<<<` + stripping `--multi-weight` → `$DRIVER_ARGS` di RUN chain (§4.9); (K2) instalasi `pytest`/`jsonschema` tidak kondisional di Stage 1 + item Ask First ditandai disetujui (§4.9, §7, §9.2); (K3) gate harmonisasi dua-tingkat — ≥98% checkpoint / `fail_count = 0` pra-interpolasi (AC-H02, §5.1); (K4) validasi harmonisasi kedua pasangan master + sumber Italic/BoldItalic dari harmonized masters (§4.3, §4.9); (K5) kontrak `test_validate_interpolation.py` 5 test case (§6.3); (K6) `pytest.importorskip("fontforge")` di seluruh file test FontForge-dependent (§6.3); (K7) parameter `--threshold` + protokol dua-pass kalibrasi (§4.11, REQ-H06, §11.2); (K8) gating distorsi berat via `validate_interpolation.py --fail-fast` di RUN chain — satu sumber deteksi tanpa duplikasi (§4.6, §4.9); (K9) override hinting weight baru di packaging terlepas `UseHinted` (§4.10, REQ-I04); (K10) komposisi budget WOFF2 dihitung atas 6 weight baru (AC-D03, §4.10); (K11) output ganda `poc_interpolation.py` — `.sfdir` + TTF tanpa hinting (§4.6, §5.2); (K12) pohon sintetis temp untuk test assembly (§6.5); (K13) review manusia 100% glyph PoC (implementasi plan-side); (K14) definisi `RELEASE_MODE=1` + runbook release upstream (§4.10); (K15) entri `.gitignore` untuk `build/` dan `Sources/Harmonized/Interpolated/` (implementasi plan-side, §4.2/§4.9); (K16) jumlah `.sfdir` assembly — 7 (Custom Build) / 9 (release upstream) (VAL-017, §11.1).
 - **Resolusi sesi klarifikasi r4 (Spec v1.6)**: Seluruh keputusan dari `docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-08-01-r4.md` (R1–R5 + MO-1) diklasifikasikan sebagai spec-level resolutions — mudah dibalik, tidak memenuhi triple-gate ADR. Ringkasan implementasi: (R1) cabang `ENABLE_MULTI_WEIGHT` dihapus total — perilaku Custom Build kembali ke zip-all existing; override hinting REQ-I04 murni dari pola nama file `NEW_WEIGHTS` (`Medium|SemiBold|Light|ExtraBold`); satu-satunya mode eksplisit `RELEASE_MODE=1`; manifest mencatat `resolved_options.EnableMultiWeight` sebagai info audit, tidak dikonsumsi packaging (§4.10); (R2) sumber nilai `{VERSION}` = env var eksplisit `VERSION` (wajib pada `RELEASE_MODE=1`, guard `_die` jika kosong) untuk penamaan archive `FantasqueSansMono-${VERSION}-${Format}.zip`; runbook release memuat langkah generate `manifest.json` via `configure.py` sebelum packaging (§4.10); (R3) factor SemiBold dikunci eksak `0.67` (REQ-I01, §6.3); (R4) push-gate unit test via workflow `test-multi-weight.yml` (host runner, `importorskip`; eksekusi nyata di Stage 1) (§4.6, §6.6); (R5) guard eksistensi `Sources/Harmonized/{Regular,Bold,Italic,BoldItalic}` di awal RUN chain dengan pesan `::error::` + exit 1 (§4.9).
+- **Resolusi sesi klarifikasi r5 (Spec v1.7)**: Seluruh keputusan dari `docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-08-01-r5.md` (B1–B3, E1–E8, H1–H6, MO-1–MO-3) diklasifikasikan sebagai spec-level resolutions — mudah dibalik, tidak memenuhi triple-gate ADR. Ringkasan implementasi di spesifikasi ini: (B1) instalasi `python3-fontforge` via apt di Stage 1 + pre-check `python3 -c "import fontforge"` di awal RUN chain — keempat file test FontForge-dependent benar-benar dieksekusi di container (klaim K6 terpenuhi; §4.9, §6.6, §9.2, §7); (B2) variabel shell `T_FINAL` di RUN chain validasi, bersumber dari `phase0-experiments-{date}.md` + `visual-quality-rubric.md`, bukan hardcode 15.0 (§4.9); (B3) sumber TTF specimen Phase 3 = output lokal driver existing atas assembly `build/sources` (§4.8); (E1) aturan kolaborasi `tracking.json` — no-reformat, union + sort (§4.12); (E3/E5) hmtx copy unconditional + `only_in_b` dari Bold + asumsi monospace eksplisit (REQ-I03, §4.6); (E4) kontrak exit code `detect_incompatibility.py` (§4.4); (E6) `--light-factor`/`--extrabold-factor` wajib bersama `--enable-*`, tanpa default di kode (§4.6); (E7) REQ-I06 "dikeluarkan SEMENTARA" (REQ-I06); (E8) parenthetical AC-B02 diperluas — Italic/BoldItalic juga non-byte-identical, `FantasqueSans` tetap legacy (AC-B02); (H5) substring matching aman — vocabulary flag dikontrol configure.py (§4.9); (MO-1) `pytest-cov` di eksekusi container Stage 1 (§6.7, §9.2, §7). Resolusi plan-side diimplementasikan di Plan v1.11: H1 (generalisasi `T_final` — laporan R-full vs PoC, TASK-3.X), H2 (FILE-024 owned by TASK-0.7), H3 (surfacing laporan JSON ke artifact build — TASK-4.2/4.3/4.4), H4 (push-gate = smoke gate), E2 (validasi stretch per weight + jalur eksklusi, TASK-5.4), H6 (runbook anotasi stage per langkah).
+
+- **Resolusi sesi klarifikasi r6 (Spec v1.8)**: Seluruh keputusan dari `docs/audit/clarification-report-spec-multi-weight-variants-2026-08-01-r6.md` (Q-01–Q-17) diklasifikasikan sebagai spec-level resolutions — mudah dibalik, tidak memenuhi triple-gate ADR. Ringkasan implementasi di spesifikasi ini: (Q-01) §4.3 layout output aktual `TTF|OTF|Webfonts` (pohon `Variants/` ditandai legacy Makefile, bukan kontrak workflow); (Q-02) posisi `pytest --cov` sebelum interpolasi + path coverage `build/reports/coverage.xml` (§4.9, §6.7); (Q-05) snippet YAML = perluasan step existing dengan seluruh flag (`--config-file`, `--schema-file`, `--generate-manifest`) dipertahankan (§4.9); (Q-07) §4.5 check ke-4 `curve_smoothness_ok` non-blocking terhadap `--strict`; (Q-08) §4.6 nilai eksak metadata (familyname identik, fullname per weight, os2_weight 300–800); (Q-09) §4.11 kontrak `--masters` = direktori induk berisi subdirektori `Regular/`/`Bold/`; (Q-10) §4.8 sumber metrik specimen + dependency `fontTools` lokal; (Q-11) REQ-S02 merujuk §4.8 sebagai kontrak operatif set karakter; (Q-12) §6.2 failure path E0.2 = hmtx copy unconditional (E5); (Q-16) §4.9 laporan detect di CI bersifat informatif/audit baseline; (Q-17) §4.9 `mkdir -p build` di base Stage 1. Q-03/Q-04/Q-06/Q-13/Q-14/Q-15 bersifat Plan-side (mekanisme `--exclude` dihapus, `check_type` dihapus, anotasi stage runbook, tanpa fallback env `T_FINAL`, path `build/pre_hint/TTF/`, pengukuran zip empiris) — tidak mengubah kontrak spec.
 
 ## 9. Dependencies & External Integrations
 
@@ -1019,11 +1053,11 @@ Keputusan berikut bersifat mudah dibalik atau merupakan resolusi spesifik (tidak
 
 | ID | Tool | Version Constraint | Purpose | Runtime |
 |---|---|---|---|---|
-| **SVC-001** | FontForge | Default package ubuntu:26.04 | Font compilation, interpolasi, validasi kontur | Stage 1 Docker |
+| **SVC-001** | FontForge (+ `python3-fontforge` apt) | Default package ubuntu:26.04 | Font compilation, interpolasi, validasi kontur. **Klarifikasi r5 — B1**: bindings Python TIDAK embedded-visible untuk system `python3` (interpreter `pytest`) — paket apt `python3-fontforge` (repo yang sama, tanpa risiko ABI) diperlukan agar keempat file test FontForge-dependent benar-benar dieksekusi di container | Stage 1 Docker |
 | **SVC-002** | `ttfautohint` | Default package ubuntu:26.04 | TrueType auto-hinting untuk weight baru | Stage 2 Docker |
 | **SVC-003** | `sfnt2woff` (woff-tools) | Default package ubuntu:26.04 | Konversi TTF → WOFF | Stage 2 Docker |
 | **SVC-004** | `woff2_compress` (Google WOFF2) | Default package ubuntu:26.04 | Konversi TTF → WOFF2 | Stage 2 Docker |
-| **SVC-005** | `future`, `pytest`, `jsonschema` (PyPI) | Latest via pip3 | `future` = compatibility shim (`past.builtins`) untuk engine script Python 2.7 di FontForge Python 3; `pytest` + `jsonschema` = runner & validator unit test yang dieksekusi di RUN chain Stage 1 (klarifikasi r3 — K2) | Stage 1 Docker |
+| **SVC-005** | `future`, `pytest`, `jsonschema`, `pytest-cov` (PyPI) | Latest via pip3 | `future` = compatibility shim (`past.builtins`) untuk engine script Python 2.7 di FontForge Python 3; `pytest` + `jsonschema` = runner & validator unit test yang dieksekusi di RUN chain Stage 1 (klarifikasi r3 — K2); `pytest-cov` = coverage measurement ≥ 90% pada eksekusi container Stage 1 (klarifikasi r5 — MO-1; host gate tidak mengukur) | Stage 1 Docker |
 
 ### 9.3 Infrastructure Dependencies
 
@@ -1217,6 +1251,8 @@ Sebelum spesifikasi ini dianggap terpenuhi, seluruh kriteria berikut HARUS diver
 - [`docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-07-31-r2.md`](../docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-07-31-r2.md) — Clarification Report r2 (Implementation Plan)
 - [`docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-08-01-r3.md`](../docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-08-01-r3.md) — Clarification Report r3 (Implementation Plan)
 - [`docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-08-01-r4.md`](../docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-08-01-r4.md) — Clarification Report r4 (Implementation Plan)
+- [`docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-08-01-r5.md`](../docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-08-01-r5.md) — Clarification Report r5 (Implementation Plan)
+- [`docs/audit/clarification-report-spec-multi-weight-variants-2026-08-01-r6.md`](../docs/audit/clarification-report-spec-multi-weight-variants-2026-08-01-r6.md) — Clarification Report r6 (Technical Specification)
 - [`docs/audit/consistency-audit-multi-weight-variants-2026-07-31.md`](../docs/audit/consistency-audit-multi-weight-variants-2026-07-31.md) — Consistency Audit Report
 - [`docs/audit/consistency-audit-plan-vs-prd-spec-2026-08-01.md`](../docs/audit/consistency-audit-plan-vs-prd-spec-2026-08-01.md) — Consistency Audit (Plan vs PRD vs Spec)
 - [`docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md) — Project Architecture Documentation
