@@ -1,6 +1,6 @@
 ---
 title: Technical Specification — Multi-Weight Font Variants for Fantasque Sans Mono
-version: 1.5
+version: 1.6
 date_created: 2026-07-31
 last_updated: 2026-08-01
 owner: Fantasque Sans Mono Core Team
@@ -10,7 +10,7 @@ related_adrs:
   - docs/adr/0002-multi-stage-docker-deferred-engine-port.md
   - docs/adr/0003-workflow-a-fontforge-v1-interpolation.md
 audit_reference: docs/audit/consistency-audit-plan-vs-prd-spec-2026-08-01.md
-clarification_reference: docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-08-01-r3.md
+clarification_reference: docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-08-01-r4.md
 ---
 
 <!-- markdownlint-disable -->
@@ -81,7 +81,7 @@ Seluruh istilah dalam dokumen ini mengacu pada Domain Glossary proyek ([`CONTEXT
 - **REQ-I01 (Core Weight Interpolation)**: Sistem HARUS menghasilkan empat core weight statis melalui interpolasi dari master yang telah diharmonisasikan:
   - **Regular (400)**: Master asli yang telah diharmonisasikan.
   - **Medium (500)**: Interpolasi dengan factor 0.5 antara Regular↔Bold.
-  - **SemiBold (600)**: Interpolasi dengan factor ~0.67 antara Regular↔Bold.
+  - **SemiBold (600)**: Interpolasi dengan factor **0.67 eksak** (dua desimal) antara Regular↔Bold — klarifikasi r4 (R3): "~0.67" pada dokumen upstream adalah pembulatan presentasi; toleransi test ±0.005 hanyalah kelonggaran presisi float (artefak perhitungan titik mengambang), BUKAN kebebasan memilih nilai — `0.67` vs `2/3` (0.6666…) menghasilkan koordinat interpolasi berbeda hingga 0.34% dari ekstrem master dan melanggar determinisme GUD-001 antar-varian implementasi.
   - **Bold (700)**: Master asli yang telah diharmonisasikan.
 - **REQ-I02 (Stretch Weight Extrapolation)**: Sistem HARUS menghasilkan dua stretch weight statis melalui ekstrapolasi (factor eksak ditentukan **sebelum produksi stretch (Phase 5)** oleh Designer A (Lead) + upstream maintainer berdasarkan trial ekstrapolasi pada subset glyph kritis; hasil dicatat di `docs/audit/stretch-factor-decision-{date}.md` dan menjadi kontrak via amendemen §4.6 — selaras dengan FR-2.2 yang menetapkan PoC hanya Medium):
   - **Light (300)**: Ekstrapolasi ke arah lebih ringan dari Regular (factor negatif).
@@ -162,7 +162,7 @@ Setiap direktori di `Sources/Harmonized/` adalah FontForge `.sfdir` directory ya
 ```
 Sources/Harmonized/Interpolated/
 ├── Medium/              # .sfdir — interpolasi factor 0.5 (Regular↔Bold)
-├── SemiBold/            # .sfdir — interpolasi factor ~0.67 (Regular↔Bold)
+├── SemiBold/            # .sfdir — interpolasi factor 0.67 eksak (Regular↔Bold)
 ├── Light/               # .sfdir — ekstrapolasi (factor TBD — ditetapkan Phase 5, REQ-I02)
 └── ExtraBold/           # .sfdir — ekstrapolasi (factor TBD — ditetapkan Phase 5, REQ-I02)
 ```
@@ -344,7 +344,7 @@ Catatan: flag `--enable-light` / `--enable-extrabold` HANYA digunakan oleh pipel
 ```mermaid
 flowchart TD
     A[Harmonized Regular + Bold .sfdir] --> B[Interpolasi Medium 500<br/>factor = 0.5]
-    A --> C[Interpolasi SemiBold 600<br/>factor = ~0.67]
+    A --> C[Interpolasi SemiBold 600<br/>factor = 0.67 eksak]
     A --> D{Ekstrapolasi Light?<br/>(release upstream saja)}
     D -->|--enable-light| E[Ekstrapolasi Light 300<br/>factor = TBD]
     D -->|skip| F[Skip Light]
@@ -371,6 +371,7 @@ flowchart TD
 - **TIDAK memanggil `features.py` dan TIDAK menjalankan `ttfautohint`** — keduanya adalah tanggung jawab pipeline existing: `features.py` dipanggil in-process oleh `custom_build_driver.py` per weight (REQ-B03), `ttfautohint` dieksekusi di Stage 2 (REQ-I04, ADR-0002).
 - Gating distorsi kontur berat BUKAN tanggung jawab driver (klarifikasi r3 — K8): driver cukup mempropagasi error FontForge (exit code non-zero + pesan diagnostik). Deteksi distorsi berat (self-intersection / counter tertutup / kontur rusak) menjadi tanggung jawab tunggal `validate_interpolation.py` — di-enforce di RUN chain build via loop `--fail-fast` per core weight (§4.9) dan di runbook release upstream (§4.10) — tanpa duplikasi logika deteksi.
 - **Output PoC (klarifikasi r3 — K11)**: `poc_interpolation.py` (Phase 0) menghasilkan **dua output** — `.sfdir` interpolated subset DAN TTF untuk rendering (via `font.generate`, tanpa hinting — konsisten "TANPA ttfautohint") — TTF tersebut menjadi input `generate_specimen.py` dan visual diff review (FR-2.3 butuh font yang dapat dirender pada 8/12/16/24 pt; lihat §5.2 AC-P02).
+- **Push-gate unit test (klarifikasi r4 — R4)**: suite pytest dijalankan di host runner pada SETIAP push ke branch `feature/multi-weight-*` via workflow `test-multi-weight.yml` (bukan `custom-build.yml` yang bersifat `workflow_dispatch` manual — tidak memenuhi trigger push). File test FontForge-dependent di-skip otomatis via `pytest.importorskip("fontforge")` di level modul; eksekusi nyata dengan FontForge tetap dilakukan di container Stage 1 (RUN chain §4.9 / TASK-0.X; lihat §6.6).
 
 ### 4.7 features.py Invocation Contract
 
@@ -461,7 +462,7 @@ custom-build.yml (workflow_dispatch input: enable_multi_weight)
                  └─ Stage 1 RUN kondisional: echo "$BUILD_ARGS" | grep -q -- "--multi-weight"   # bentuk portabel (tanpa bashism <<< — Dockerfile tanpa SHELL directive; klarifikasi r3 K1)
 ```
 
-**Kontrak configure.py**: Tambahkan argumen `--form-enable-multi-weight` (boolean, default `false`) pada parser existing dan mapping ke flag driver `--multi-weight` (mengikuti pola `FORM_KEY_TO_OPTION` / `OPTION_TO_DRIVER_FLAG` yang sudah ada). Modifikasi `Scripts/configure.py` diperbolehkan — file ini TIDAK dilindungi CON-001; namun dikelola oleh Custom Build Spec, sehingga minor update cross-spec diperlukan (PRD §8.1, audit C5).
+**Kontrak configure.py**: Tambahkan argumen `--form-enable-multi-weight` (boolean, default `false`) pada parser existing dan mapping ke flag driver `--multi-weight` (mengikuti pola `FORM_KEY_TO_OPTION` / `OPTION_TO_DRIVER_FLAG` yang sudah ada). Tambahkan juga properti `EnableMultiWeight` (boolean, default `false`) ke `config.schema.json` untuk konsistensi (klarifikasi r4 — R1). Manifest mencatat `resolved_options.EnableMultiWeight` sebagai **informasi audit** — TIDAK dikonsumsi oleh `packaging.sh` (packaging tidak memiliki cabang `ENABLE_MULTI_WEIGHT`; lihat §4.10). Modifikasi `Scripts/configure.py` diperbolehkan — file ini TIDAK dilindungi CON-001; namun dikelola oleh Custom Build Spec, sehingga minor update cross-spec diperlukan (PRD §8.1, audit C5).
 
 **Dockerfile Stage 1 — RUN chain kontrak:**
 
@@ -470,6 +471,11 @@ custom-build.yml (workflow_dispatch input: enable_multi_weight)
 ARG BUILD_ARGS=""
 RUN if echo "$BUILD_ARGS" | grep -q -- "--multi-weight"; then \
         echo "::group::Multi-Weight Pipeline"; \
+        echo "Checking harmonized sources..."; \
+        for d in Sources/Harmonized/Regular Sources/Harmonized/Bold \
+                 Sources/Harmonized/Italic Sources/Harmonized/BoldItalic; do \
+            [ -d "$d" ] || { echo "::error::multi-weight build requires harmonized sources (Sources/Harmonized/{Regular,Bold,Italic,BoldItalic}); sync upstream or run harmonization first" >&2; exit 1; }; \
+        done; \
         echo "Detecting incompatibilities..."; \
         fontforge --quiet -lang=py -script Scripts/detect_incompatibility.py \
             Sources/FantasqueSansMono-Regular.sfdir \
@@ -515,6 +521,7 @@ RUN if echo "$BUILD_ARGS" | grep -q -- "--multi-weight"; then \
 
 Catatan kontrak:
 - `build/`, `Sources/Harmonized/Interpolated/` dan `build/sources/` adalah direktori runtime di dalam container — tidak di-commit (GUD-001, §4.2).
+- **Guard eksistensi harmonized sources (klarifikasi r4 — R5)**: keempat direktori `Sources/Harmonized/{Regular,Bold,Italic,BoldItalic}` diperiksa **paling awal** di RUN chain (sebelum `detect_incompatibility.py`) — jika salah satu hilang → `echo "::error::multi-weight build requires harmonized sources (Sources/Harmonized/{Regular,Bold,Italic,BoldItalic}); sync upstream or run harmonization first" >&2; exit 1`. Menggantikan error mentah FontForge ("unable to open") yang tidak informatif bagi fork owner yang belum sync hasil harmonisasi upstream; fail-fast tetap terjaga (GUD-002). Prasyarat dicatat di README section multi-weight (TASK-4.5).
 - Mode `false` → `FONTS=Sources` + `DRIVER_ARGS="$BUILD_ARGS"` → RUN identik dengan Custom Build existing → output byte-identical (AC-B03).
 - Stripping `--multi-weight` dari `$BUILD_ARGS` via `DRIVER_ARGS=$(printf '%s' "$BUILD_ARGS" | sed 's/--multi-weight//g')` WAJIB dilakukan sebelum pemanggilan driver — `parse_args()` driver existing melakukan `_die("unknown flag(s): ...")` untuk flag di luar `--line-height`/`--no-loop-k`/`--no-calt` (klarifikasi r3 — K1; terverifikasi di `Scripts/custom_build_driver.py`).
 - Bentuk grep portabel `echo "$BUILD_ARGS" | grep -q -- "--multi-weight"` menggantikan bashism here-string `<<<` — Dockerfile Stage 1 tanpa `SHELL` directive → `/bin/sh` (dash) tidak mendukung `<<<` (klarifikasi r3 — K1).
@@ -547,37 +554,56 @@ Build tetap satu kali `docker build` — multi-weight pipeline berjalan di dalam
 
 **File**: `Scripts/packaging.sh`
 
-Fungsi packaging diperluas untuk mengenali struktur direktori multi-weight:
+Fungsi packaging diperluas untuk mendukung multi-weight (klarifikasi r4 R1 — perilaku Custom Build berbasis file zip-all, tanpa cabang mode env var):
 
 ```bash
 # Pseudo-code — kontrak, bukan implementasi
-# RELEASE_MODE=1 → pipeline release upstream (dipicu maintainer secara eksplisit
-# via env var; CI Custom Build TIDAK pernah menyetelnya — E10, klarifikasi r3 K14).
+# Satu-satunya mode eksplisit adalah RELEASE_MODE=1 (klarifikasi r3 K14 — env
+# var yang di-invoke maintainer secara eksplisit; CI Custom Build TIDAK pernah
+# menyetelnya — E10). Cabang ENABLE_MULTI_WEIGHT TIDAK ADA (klarifikasi r4 R1):
+# verifikasi codebase membuktikan workflow memanggil packaging via `docker run`
+# TANPA `-e` — cabang env var tidak akan pernah aktif (silent fallback ke
+# kompatibilitas mundur); perilaku Custom Build kembali ke zip-all existing.
 if [ "$RELEASE_MODE" = "1" ]; then
-    # Release upstream (publik): 4–6 weight sesuai kelolosan stretch (FR-6.3)
+    # Release upstream (publik) — archive per format dengan penamaan
+    # FantasqueSansMono-${VERSION}-{TTF|OTF|WOFF2}.zip.
+    # ${VERSION} = env var eksplisit VERSION yang WAJIB di-invoke bersama
+    # RELEASE_MODE=1 (`docker run -e RELEASE_MODE=1 -e VERSION=...`); jika
+    # kosong → `_die` dengan pesan instruktif (klarifikasi r4 R2 — version
+    # adalah keputusan rilis, bukan hasil parsing dokumen/tabel font).
+    [ -n "${VERSION:-}" ] || { echo "packaging: RELEASE_MODE=1 requires VERSION (docker run -e RELEASE_MODE=1 -e VERSION=...)" >&2; exit 1; }
+    # Pre-flight packaging.sh existing mewajibkan manifest.json
+    # (`[ -f "${INPUT_MANIFEST}" ]`) — runbook release WAJIB memuat langkah
+    # generate manifest via configure.py sebelum packaging (klarifikasi r4 R2).
     WEIGHTS=("Regular" "Medium" "SemiBold" "Bold" "Italic" "BoldItalic"
-             ["Light"] ["ExtraBold"]  # hanya jika lolos visual review
-             "FantasqueSans")
-elif [ "$ENABLE_MULTI_WEIGHT" = "true" ]; then
-    # Mode Custom Build (fork owner, Stage 2): stretch weight TIDAK pernah disertakan (E10)
-    WEIGHTS=("Regular" "Medium" "SemiBold" "Bold" "Italic" "BoldItalic")
+             "Light" "ExtraBold" "FantasqueSans")
+    # Filter runtime (FR-6.3): Light/ExtraBold otomatis tidak tersertakan jika
+    # file-nya tidak diproduksi (gagal visual review) — per weight dicek
+    # keberadaan file TTF/OTF/WOFF2 sebelum disertakan ke archive.
 else
-    # Kompatibilitas mundur penuh — identik dengan Custom Build existing:
-    # driver membuild seluruh .sfdir di Sources/ (termasuk FantasqueSans)
-    WEIGHTS=("Regular" "Bold" "Italic" "BoldItalic" "FantasqueSans")
+    # Custom Build (fork owner, Stage 2) — perilaku zip-all existing
+    # (kompatibilitas mundur penuh, klarifikasi r4 R1): zip seluruh file di
+    # TTF/, OTF/, Webfonts/ + manifest + LICENSE + README → archive tetap
+    # fantasque-sans-custom-build.zip/.tar.gz. Tanpa daftar weight eksplisit —
+    # Medium/SemiBold/FantasqueSans otomatis tersertakan jika diproduksi
+    # (AC-B02 terpenuhi). Stretch weight TIDAK pernah diproduksi di mode ini (E10).
 fi
 
-# Override hinting REQ-I04 (klarifikasi r3 — K9): weight baru (Medium, SemiBold;
-# + Light, ExtraBold di mode release) WAJIB di-hint SELALU, terlepas nilai
-# UseHinted yang dibaca dari manifest via jq. Weight existing (Regular, Bold,
-# Italic, BoldItalic, FantasqueSans) tetap mengikuti UseHinted (perilaku
-# packaging.sh existing — hinting terkondisi).
-NEW_WEIGHTS=("Medium" "SemiBold" "Light" "ExtraBold")  # subset aktif sesuai mode
+# Override hinting REQ-I04 (klarifikasi r3 K9 + r4 R1): diputuskan MURNI dari
+# pola nama file — NEW_WEIGHTS = file yang basename-nya match
+# Medium|SemiBold|Light|ExtraBold → SELALU di-hint via ttfautohint, terlepas
+# nilai UseHinted yang dibaca dari manifest via jq (pola existing
+# `USE_HINTED=$(jq -r '.resolved_options.UseHinted' ...)`). Weight existing
+# (Regular, Bold, Italic, BoldItalic, FantasqueSans) tetap mengikuti UseHinted
+# (perilaku packaging.sh existing — hinting terkondisi).
+NEW_WEIGHTS_PATTERN='Medium|SemiBold|Light|ExtraBold'
 
-for weight in "${WEIGHTS[@]}"; do
-    # Cek apakah file TTF/OTF/WOFF2 untuk weight ini ada
-    # Sertakan dalam archive .zip per format
-done
+# Manifest `resolved_options.EnableMultiWeight` TIDAK dikonsumsi oleh packaging
+# (klarifikasi r4 R1) — dicatat configure.py sebagai informasi audit saja.
+
+# Assembly archive: mode release → satu .zip per format (TTF/OTF/WOFF2) berisi
+# file weight yang ada — loop per weight dideklarasikan di cabang release di
+# atas; mode Custom Build → archive tunggal zip-all (perilaku existing).
 
 # Komposisi budget WOFF2 ≤ 500 KB (AC-D03, klarifikasi r3 — K10):
 #   dihitung atas 6 weight baru pada set release — Regular, Medium, SemiBold,
@@ -827,7 +853,7 @@ File: tests/test_multi_weight_driver.py
 
 Test Cases:
 1. test_medium_interpolation_factor — Verifikasi factor 0.5 menghasilkan interpolasi tepat di tengah
-2. test_semibold_interpolation_factor — Verifikasi factor 0.67 (toleransi ±0.005)
+2. test_semibold_interpolation_factor — Verifikasi factor **0.67 eksak** (toleransi ±0.005) — klarifikasi r4 (R3): toleransi ±0.005 = kelonggaran presisi float (artefak perhitungan titik mengambang), BUKAN kebebasan memilih nilai — `0.67` vs `2/3` (0.6666…) sama-sama lolos toleransi namun menghasilkan koordinat interpolasi berbeda
 3. test_copy_as_fallback — Glyph only_in_a disalin ke output tanpa interpolasi
 4. test_hmtx_copy — Advance width output identik dengan master Regular
 5. test_output_sfdir_structure — Direktori output memiliki struktur .sfdir yang valid
@@ -879,7 +905,7 @@ Test Cases:
 
 ### 6.6 CI/CD Integration
 
-- Unit test dijalankan pada setiap push ke branch `feature/multi-weight-*`.
+- Unit test dijalankan pada setiap push ke branch `feature/multi-weight-*` — **implementasi (klarifikasi r4 — R4)**: workflow `.github/workflows/test-multi-weight.yml` (push-gate host runner: `pip install pytest jsonschema` + `pytest tests/ -v`, tanpa Docker); keempat file test FontForge-dependent di-skip otomatis via `pytest.importorskip("fontforge")` di level modul — eksekusi nyata dengan FontForge tetap di container Stage 1 (RUN chain §4.9). Workflow `custom-build.yml` existing bersifat `workflow_dispatch` manual sehingga tidak memenuhi trigger push; workflow e2e `test-multi-weight-build.yml` (§6.4) tetap opsional — verifikasi e2e dijalankan manual (TASK-4.X).
 - Eksperimen Phase 0 didokumentasikan secara manual (tidak diotomatisasi).
 - End-to-end build test dipicu secara manual melalui `workflow_dispatch` pada branch feature.
 
@@ -978,6 +1004,7 @@ Keputusan berikut bersifat mudah dibalik atau merupakan resolusi spesifik (tidak
 - **Konteks eksekusi integrasi multi-weight (koreksi v1.2)**: Script multi-weight (detect, validate, interpolate, assembly) dieksekusi di dalam Stage 1 Docker melalui RUN kondisional pada flag `--multi-weight` di `BUILD_ARGS` — BUKAN step workflow host runner (§4.9). Alasan: FontForge hanya tersedia di image `builder-fontforge` (ADR-0002); host runner dan image Stage 2 tidak memuat FontForge. Konsekuensi: `Scripts/configure.py` diperluas dengan `--form-enable-multi-weight` (tidak dilindungi CON-001) dan Custom Build Spec memerlukan minor update (PRD §8.1, audit C5).
 - **Definisi Release Upstream Pipeline (klarifikasi r2)**: Eksekusi **manual/terisolasi oleh upstream maintainer di luar CI** — menjalankan `multi_weight_driver.py --enable-light --enable-extrabold` (lokal atau `docker run` ad-hoc pada image Stage 1), memanfaatkan driver yang sama dengan Custom Build. Stretch weight yang lolos visual review masuk V1; yang gagal dikeluarkan ke V2 (GUD-004). Custom Build (`enable_multi_weight=true`) TIDAK pernah memproduksi stretch weight (E10).
 - **Resolusi sesi klarifikasi r3 (Spec v1.5)**: Seluruh keputusan dari `docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-08-01-r3.md` (K1–K16) diklasifikasikan sebagai spec-level resolutions — mudah dibalik, tidak memenuhi triple-gate ADR. Ringkasan implementasi: (K1) grep portabel tanpa bashism `<<<` + stripping `--multi-weight` → `$DRIVER_ARGS` di RUN chain (§4.9); (K2) instalasi `pytest`/`jsonschema` tidak kondisional di Stage 1 + item Ask First ditandai disetujui (§4.9, §7, §9.2); (K3) gate harmonisasi dua-tingkat — ≥98% checkpoint / `fail_count = 0` pra-interpolasi (AC-H02, §5.1); (K4) validasi harmonisasi kedua pasangan master + sumber Italic/BoldItalic dari harmonized masters (§4.3, §4.9); (K5) kontrak `test_validate_interpolation.py` 5 test case (§6.3); (K6) `pytest.importorskip("fontforge")` di seluruh file test FontForge-dependent (§6.3); (K7) parameter `--threshold` + protokol dua-pass kalibrasi (§4.11, REQ-H06, §11.2); (K8) gating distorsi berat via `validate_interpolation.py --fail-fast` di RUN chain — satu sumber deteksi tanpa duplikasi (§4.6, §4.9); (K9) override hinting weight baru di packaging terlepas `UseHinted` (§4.10, REQ-I04); (K10) komposisi budget WOFF2 dihitung atas 6 weight baru (AC-D03, §4.10); (K11) output ganda `poc_interpolation.py` — `.sfdir` + TTF tanpa hinting (§4.6, §5.2); (K12) pohon sintetis temp untuk test assembly (§6.5); (K13) review manusia 100% glyph PoC (implementasi plan-side); (K14) definisi `RELEASE_MODE=1` + runbook release upstream (§4.10); (K15) entri `.gitignore` untuk `build/` dan `Sources/Harmonized/Interpolated/` (implementasi plan-side, §4.2/§4.9); (K16) jumlah `.sfdir` assembly — 7 (Custom Build) / 9 (release upstream) (VAL-017, §11.1).
+- **Resolusi sesi klarifikasi r4 (Spec v1.6)**: Seluruh keputusan dari `docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-08-01-r4.md` (R1–R5 + MO-1) diklasifikasikan sebagai spec-level resolutions — mudah dibalik, tidak memenuhi triple-gate ADR. Ringkasan implementasi: (R1) cabang `ENABLE_MULTI_WEIGHT` dihapus total — perilaku Custom Build kembali ke zip-all existing; override hinting REQ-I04 murni dari pola nama file `NEW_WEIGHTS` (`Medium|SemiBold|Light|ExtraBold`); satu-satunya mode eksplisit `RELEASE_MODE=1`; manifest mencatat `resolved_options.EnableMultiWeight` sebagai info audit, tidak dikonsumsi packaging (§4.10); (R2) sumber nilai `{VERSION}` = env var eksplisit `VERSION` (wajib pada `RELEASE_MODE=1`, guard `_die` jika kosong) untuk penamaan archive `FantasqueSansMono-${VERSION}-${Format}.zip`; runbook release memuat langkah generate `manifest.json` via `configure.py` sebelum packaging (§4.10); (R3) factor SemiBold dikunci eksak `0.67` (REQ-I01, §6.3); (R4) push-gate unit test via workflow `test-multi-weight.yml` (host runner, `importorskip`; eksekusi nyata di Stage 1) (§4.6, §6.6); (R5) guard eksistensi `Sources/Harmonized/{Regular,Bold,Italic,BoldItalic}` di awal RUN chain dengan pesan `::error::` + exit 1 (§4.9).
 
 ## 9. Dependencies & External Integrations
 
@@ -1184,11 +1211,12 @@ Sebelum spesifikasi ini dianggap terpenuhi, seluruh kriteria berikut HARUS diver
 
 ### Internal Documents
 
-- [`docs/prd-20260731-1000-multi-weight-variants.md`](../docs/prd-20260731-1000-multi-weight-variants.md) — Product Requirements Document (v1.3)
+- [`docs/prd-20260731-1000-multi-weight-variants.md`](../docs/prd-20260731-1000-multi-weight-variants.md) — Product Requirements Document (v1.4)
 - [`docs/discovery-draft-20260730-2110-multi-weight-variants.md`](../docs/discovery-draft-20260730-2110-multi-weight-variants.md) — Phase 0 Discovery Draft
 - [`docs/audit/clarification-report-multi-weight-variants-2026-07-31.md`](../docs/audit/clarification-report-multi-weight-variants-2026-07-31.md) — Clarification Report
 - [`docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-07-31-r2.md`](../docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-07-31-r2.md) — Clarification Report r2 (Implementation Plan)
 - [`docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-08-01-r3.md`](../docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-08-01-r3.md) — Clarification Report r3 (Implementation Plan)
+- [`docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-08-01-r4.md`](../docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-08-01-r4.md) — Clarification Report r4 (Implementation Plan)
 - [`docs/audit/consistency-audit-multi-weight-variants-2026-07-31.md`](../docs/audit/consistency-audit-multi-weight-variants-2026-07-31.md) — Consistency Audit Report
 - [`docs/audit/consistency-audit-plan-vs-prd-spec-2026-08-01.md`](../docs/audit/consistency-audit-plan-vs-prd-spec-2026-08-01.md) — Consistency Audit (Plan vs PRD vs Spec)
 - [`docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md) — Project Architecture Documentation
