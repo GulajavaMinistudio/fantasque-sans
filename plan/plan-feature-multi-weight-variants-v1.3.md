@@ -1,15 +1,15 @@
 ---
 goal: Multi-Weight Font Variants for Fantasque Sans Mono
-version: 1.6
+version: 1.7
 date_created: 2026-07-31
-last_updated: 2026-07-31
+last_updated: 2026-08-01
 owner: Fantasque Sans Mono Core Team
 status: 'Planned'
 tags: [feature, architecture, interpolation, type-design]
 upstream_prd: docs/prd-20260731-1000-multi-weight-variants.md
 upstream_spec: spec/spec-multi-weight-variants.md
 audit_reference: docs/audit/consistency-audit-plan-vs-prd-spec-2026-07-31.md
-clarification_reference: docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-07-31.md
+clarification_reference: docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-07-31-r2.md
 ---
 <!-- markdownlint-disable -->
 
@@ -18,6 +18,9 @@ clarification_reference: docs/audit/clarification-report-implementation-plan-mul
 ![Status: Planned](https://img.shields.io/badge/status-Planned-lightgrey)
 
 This plan outlines the step-by-step execution to implement Multi-Weight Font Variants (Medium, SemiBold, Light, ExtraBold) for Fantasque Sans Mono via FontForge master harmonization and linear interpolation. The execution strictly preserves legacy source files (CON-001) and integrates with the existing Custom Build Workflow. Stretch weights (Light 300, ExtraBold 800) only ship via the upstream release pipeline after core weights pass visual review (E10) — Custom Build produces core weights only.
+Sesi klarifikasi kedua (laporan r2, 2026-07-31) menghasilkan 12 resolusi yang diimplementasikan di v1.7 — termasuk: definisi "release upstream pipeline" (eksekusi manual maintainer di luar CI), penguncian factor SemiBold 0.67 (toleransi test ±0.005), kalibrasi inheren threshold 15.0°, gate PoC ganda (script + manusia), verifikasi metadata dua lapis, mode switch packaging (Custom Build tetap 1 archive), daftar pesan log aktual GUD-003/AC-B05, dan fixture dummy input sintetis.
+
+**Koordinasi cross-document (amendemen upstream yang dijadwalkan, referensi r2 §4):** amendemen `spec/spec-multi-weight-variants.md` (REQ-I02, REQ-H06, §4.6, §4.11, §4.12, §6.2 — termasuk path rubric kanonik `docs/audit/visual-quality-rubric.md` —, §6.3, §6.5, GUD-003/AC-B05, §8.5) dan `docs/prd-20260731-1000-multi-weight-variants.md` (GH-004 AC#5, catatan interpretasi FR-2.4) dijadwalkan via `/sdlc-define-specs` & `/sdlc-draft-prd`. Istilah "Release Upstream Pipeline" telah ditambahkan ke `CONTEXT.md` (sesi klarifikasi r2).
 
 ## 1. Requirements & Constraints
 
@@ -46,18 +49,18 @@ This plan outlines the step-by-step execution to implement Multi-Weight Font Var
 | --------- | ---------------------------------------------------------------------------- | ------- | ------ | ----- | ----- | --------- | ---- |
 | TASK-0.0  | Buat *branch* Git terisolasi `feature/multi-weight-poc`                      | -       | -      | -     | -     |           |      |
 | TASK-0.1  | Buat `Scripts/detect_incompatibility.py` (Deteksi kontur)                    | REQ-H01 | AC-H01 | -     | 1     |           |      |
-| TASK-0.2  | Buat `Scripts/validate_harmonization.py` (Validasi node & kontur)            | REQ-H02 | -      | -     | 1     |           |      |
-| TASK-0.3  | Buat `Scripts/validate_interpolation.py` (Validasi hasil interpolasi)        | REQ-S05 | AC-I08 | -     | 1     |           |      |
+| TASK-0.2  | Buat `Scripts/validate_harmonization.py` (Validasi node & kontur, termasuk implementasi deteksi *tangent-angle*) | REQ-H02 | -      | -     | 1     |           |      |
+| TASK-0.3  | Buat `Scripts/validate_interpolation.py` (Validasi hasil interpolasi, termasuk deteksi *tangent-angle*). Definisi operasional unit = per glyph: `warning` = artifact non-self-intersect (tangent-angle > threshold); `fail` = self-intersection / counter tertutup / kontur rusak. | REQ-S05 | AC-I08 | -     | 1     |           |      |
 | TASK-0.4  | Buat `Scripts/generate_specimen.py` (Generator HTML *waterfall*)             | REQ-S01 | AC-S01 | -     | 1     |           |      |
-| TASK-0.5  | Buat `docs/audit/visual-quality-rubric.md` & `Sources/Harmonized/tracking.json` | -       | AC-P03 | -     | 2     |           |      |
+| TASK-0.5  | Buat `docs/audit/visual-quality-rubric.md` (PATH KANONIK — keputusan plan v1.7: lokasi `docs/audit/`; Spec §6.2 E0.4 diamendemen mengikuti, lihat koordinasi cross-document) & `Sources/Harmonized/tracking.json` (schema diperluas: field `review_verdict` (`pass\|fail`), `reviewed_by`, `date` — Spec §4.12 diamendemen) | -       | AC-P03 | -     | 2     |           |      |
 | TASK-0.6  | Buat `Scripts/poc_interpolation.py` (Script interpolasi subset)              | REQ-I01 | AC-P02 | -     | 1     |           |      |
 | TASK-0.7  | Buat `Scripts/multi_weight_driver.py` (Interpolasi & Assembly): flag `--enable-light`/`--enable-extrabold` (HANYA dipakai release upstream, E10 — bukan `--include-stretch`), TIDAK memanggil `features.py` & TIDAK menjalankan `ttfautohint` (Spec §4.6), injeksi metadata internal (os2_weight, fullname) sebelum menyimpan `.sfdir`, copy-as-fallback + hmtx copy, assembly `build/sources/` (REQ-B06) | REQ-B06 | AC-B02 | -     | 1     |           |      |
 | TASK-0.8  | Buat `tests/test_detect_incompatibility.py` (Unit test deteksi kontur)       | Spec §6.3 | -   | TASK-0.1 | 1  |           |      |
 | TASK-0.9  | Buat `tests/test_validate_harmonization.py` (Unit test validasi harmonisasi) | Spec §6.3 | -   | TASK-0.2 | 1  |           |      |
-| TASK-0.10 | Buat `tests/test_multi_weight_driver.py` — 10 test case Spec §6.3 (factor 0.5 & ~0.67, copy-as-fallback, hmtx copy, no-ttfautohint, dry-run, missing-master, assembly naming, FantasqueSans copy) | Spec §6.3 | -   | TASK-0.7 | 1  |           |      |
-| TASK-0.11 | Jalankan eksperimen E0.1 (Idempotensi) & E0.2 (Advance Width)                | REQ-I03 | AC-P05 | -     | -     |           |      |
+| TASK-0.10 | Buat `tests/test_multi_weight_driver.py` — 11 test case Spec §6.3. Tambahan: toleransi test SemiBold factor ±0.005, test case ke-11 `test_metadata_injection`. Menggunakan `pytest.importorskip("fontforge")`. Deliverable: fixture `.sfdir` (konten dikunci: 2 master, ≥6 glyph termasuk advance width beda & edge cases) di `tests/fixtures/multi_weight/`. | Spec §6.3 | -   | TASK-0.7 | 1  |           |      |
+| TASK-0.11 | Jalankan eksperimen E0.1 (Idempotensi) & E0.2 (Advance Width). *Catatan: E0.2 adalah eksperimen terpisah, subset 10 glyph-nya tidak wajib identik dengan FR-2.1.* | REQ-I03 | AC-P05 | -     | -     |           |      |
 | TASK-0.12 | Jalankan eksperimen E0.3 (Simulasi paralel 2-designer)                       | -       | AC-P01 | -     | -     |           |      |
-| TASK-0.X  | **VERIFY**: Jalankan semua script validasi dengan dummy input + seluruh unit test (`pytest`) memastikan tidak ada *syntax error* dan test *passing*. | - | - | - | - |        |      |
+| TASK-0.X  | **VERIFY**: Jalankan semua script validasi dengan dummy input (menggunakan fixture dari `tests/fixtures/multi_weight/`) + seluruh unit test (`pytest`) memastikan tidak ada *syntax error* dan test *passing*. | - | - | - | - |        |      |
 | TASK-0.Y  | **APPROVAL**: Wait for explicit user confirmation to proceed to Phase 1      | -       | -      | -     | -     |           |      |
 
 ### Implementation Phase 1: Proof of Concept (MVP)
@@ -66,10 +69,10 @@ This plan outlines the step-by-step execution to implement Multi-Weight Font Var
 
 | Task     | Description                                                     | Ref ID  | AC Ref | Dep      | Files | Completed | Date |
 | -------- | --------------------------------------------------------------- | ------- | ------ | -------- | ----- | --------- | ---- |
-| TASK-1.1 | Harmonisasi manual ~40-50 *glyph* untuk pasangan Regular ↔ Bold | REQ-H03 | AC-P01 | TASK-0.2 | 1-2   |           |      |
+| TASK-1.1 | Harmonisasi manual ~40-50 *glyph* untuk pasangan Regular ↔ Bold berdasarkan kriteria *worst offenders* kuantitatif (node_diff, contour mismatch, prioritas fungsional). Daftar didokumentasikan di artefak audit `docs/audit/poc-glyph-list-{date}.md`. | REQ-H03 | AC-P01 | TASK-0.2 | 1-2   |           |      |
 | TASK-1.2 | Interpolasi subset ke Medium (500) menggunakan `poc_interpolation.py` — TANPA `ttfautohint` (hinting hanya di Stage 2, Spec §8.5; perbandingan visual adil pada level rendering yang sama: kedua font belum di-*hint*) | REQ-I01 | AC-P02 | TASK-1.1 | -     |           |      |
-| TASK-1.3 | Hasilkan Specimen Sheet HTML untuk hasil interpolasi Medium     | REQ-S02 | AC-P06 | TASK-1.2 | 1     |           |      |
-| TASK-1.X | **VERIFY**: Laporan `validate_interpolation.py` menunjukkan >=90% lulus *visual rubric*. | -       | AC-P03 | -        | -     |           |      |
+| TASK-1.3 | Hasilkan Specimen Sheet HTML untuk hasil interpolasi Medium. Lakukan *visual diff review* sekaligus kalibrasi inheren threshold 15.0° untuk mendeteksi *tangent-angle* (hasil dicatat di rubric dan laporan E0). | REQ-S02 | AC-P06 | TASK-1.2 | 1     |           |      |
+| TASK-1.X | **VERIFY**: Gate ganda PoC — (1) Script: Laporan `validate_interpolation.py` menunjukkan `pass_rate >= 90%` dan `fail_count = 0`. (2) Manusia: ≥90% glyph berstatus warning/fail serta sampel pass ditinjau oleh type designer dan dinilai mempertahankan nuansa *handwritten*. | -       | AC-P03 | -        | -     |           |      |
 | TASK-1.Y | **APPROVAL**: Wait for explicit user confirmation (PoC Lulus) to proceed to Phase 2. Jika GAGAL, ikuti salah satu dari 4 jalur keputusan FR-2.5: (1) Iterasi harmonisasi ulang pada subset PoC — maksimal 2 siklus tambahan, (2) Revisi cakupan V1 — batasi hanya Medium+SemiBold tanpa *stretch weight*, (3) Re-evaluasi keputusan tooling — pertimbangkan percepatan migrasi ke Workflow B (UFO/`fontmake`), (4) Penundaan/penghentian fitur — jika ketiga opsi di atas tidak layak. Keputusan akhir WAJIB didokumentasikan sebagai catatan pada PRD (revisi minor) atau ADR baru. | - | AC-P07 | - | - | | |
 
 ### Implementation Phase 2: Full Master Harmonization (Core Experience)
@@ -92,11 +95,11 @@ This plan outlines the step-by-step execution to implement Multi-Weight Font Var
 | Task     | Description                                                                                          | Ref ID  | AC Ref | Dep      | Files | Completed | Date |
 | -------- | ---------------------------------------------------------------------------------------------------- | ------- | ------ | -------- | ----- | --------- | ---- |
 | TASK-3.1 | Eksekusi `multi_weight_driver.py` untuk **Core Weights only** (Medium 500 + SemiBold 600) — tanpa flag `--enable-light`/`--enable-extrabold` (stretch HANYA di release upstream, E10); driver meng-inject metadata internal (os2_weight, fullname) sebelum menyimpan `.sfdir` | REQ-I01 | AC-I01 | TASK-2.Y | -     |           |      |
-| TASK-3.2 | Hasilkan Full Specimen Sheet (HTML) untuk seluruh **core weight** — termasuk informasi metrik: *stem width*, *x-height*, *cap height*, *advance width* per weight. QA visual pra-*hinting* via specimen sheet HTML + FontForge rendering preview (TTX/text-mode) — cukup untuk mendeteksi distorsi kontur & *discontinuity* sebelum hinting (Spec §8.5) | REQ-S02 | AC-S02, AC-S04 | TASK-3.1 | - | | |
+| TASK-3.2 | Hasilkan Full Specimen Sheet (HTML) untuk seluruh **core weight** — termasuk informasi metrik: *stem width*, *x-height*, *cap height*, *advance width* per weight. QA visual pra-*hinting* via specimen sheet HTML + FontForge rendering preview (TTX/text-mode) — cukup untuk mendeteksi distorsi kontur & *discontinuity* sebelum hinting (Spec §8.5). Reviewer: Designer A (Lead). Keputusan QA didokumentasikan di `tracking.json` dan lampiran ringkasan `docs/audit/phase3-visual-review-{date}.md`. | REQ-S02 | AC-S02, AC-S04 | TASK-3.1 | - | | |
 | TASK-3.3 | **Iterative fix loop** (core weights): *Glyph* gagal *visual review* → harmonisasi ulang (FR-5.3) → interpolasi ulang → validasi ulang. Ulangi hingga <=2% *minor artifact* dan 0 distorsi berat. | FR-5.3 | AC-I06 | TASK-3.2 | - | | |
 | TASK-3.4 | *Gate Check* cakupan V1: *Stretch weight* (Light, ExtraBold) **TIDAK diproduksi di fase ini** — Custom Build hanya membangun 4 core weight + output existing (Spec §4.6/§8.5, E10). Keputusan kelolosan *stretch weight* (*partial success*, GUD-004) dialihkan ke *release upstream pipeline*. Proyek **tidak dianggap gagal** jika stretch weight tidak rilis di V1. | REQ-I02 | - | TASK-3.3 | - | | |
-| TASK-3.X | **VERIFY**: `validate_interpolation.py` melaporkan <= 2% *minor artifact* (`warning`) dan 0 distorsi berat (`fail`) pada **core weights**. *Advance width* seluruh core weight identik (REQ-I03/I05). *Counter* tidak tertutup, *stem width* proporsional (REQ-I07/AC-I07). *Ligature* (`->`, `=>`, `!=`, dll.) berfungsi benar di semua core weight (AC-I05). Metadata internal (os2_weight, fullname) core weight ter-inject benar dan tidak bentrok dengan master. | - | AC-I05, AC-I06, AC-I07 | - | - | | |
-| TASK-3.Y | **APPROVAL**: Wait for explicit user confirmation (Final QA) to proceed to Phase 4                   | -       | -      | -        | -     |           |      |
+| TASK-3.X | **VERIFY**: `validate_interpolation.py` melaporkan <= 2% *minor artifact* (`warning`) dan 0 distorsi berat (`fail`) pada **core weights**. *(Catatan: Ambang Phase 3 ini lebih ketat dari PoC yang ≤10%)*. *Advance width* seluruh core weight identik (REQ-I03/I05). *Counter* tidak tertutup, *stem width* proporsional (REQ-I07/AC-I07). *Ligature* berfungsi benar (AC-I05). **Verifikasi Metadata Lapis 1**: one-liner FontForge memeriksa `.sfdir` (os2_weight, familyname, fullname unik per weight dan tidak identik master). | - | AC-I05, AC-I06, AC-I07 | - | - | | |
+| TASK-3.Y | **APPROVAL**: Wait for explicit user confirmation (Final QA) to proceed to Phase 4 — ringkasan keputusan gate visual review dilampirkan di `docs/audit/phase3-visual-review-{date}.md` (keputusan r2; reviewer: Designer A = otoritas final, Designer B untuk shared pool) | -       | -      | -        | -     |           |      |
 
 ### Implementation Phase 4: Pipeline Integration & Release (Polish)
 
@@ -105,11 +108,11 @@ This plan outlines the step-by-step execution to implement Multi-Weight Font Var
 | Task     | Description                                                                                          | Ref ID  | AC Ref | Dep      | Files | Completed | Date |
 | -------- | ---------------------------------------------------------------------------------------------------- | ------- | ------ | -------- | ----- | --------- | ---- |
 | TASK-4.1 | Modifikasi `Scripts/configure.py` tambah `--form-enable-multi-weight` (boolean, default `false`) — mapping ke flag driver `--multi-weight` via pola `FORM_KEY_TO_OPTION`/`OPTION_TO_DRIVER_FLAG` (Spec §4.9). Catatan: `configure.py` TIDAK dilindungi CON-001 (dikelola Custom Build Spec; minor update cross-spec — PRD §8.1, audit C5) | REQ-B02 | AC-B01 | TASK-3.Y | 1     |           |      |
-| TASK-4.2 | Modifikasi `Dockerfile` (Stage 1 RUN conditional block) — kontrak RUN chain Spec §4.9: `detect_incompatibility.py` → `validate_harmonization.py --strict` → `multi_weight_driver.py` (TANPA flag stretch) → `custom_build_driver.py` dengan `FONTS=build/sources`; mode `false` → `FONTS=Sources` → output byte-identical (AC-B03) | REQ-B02 | AC-B02 | TASK-4.1 | 1     |           |      |
-| TASK-4.3 | Update `.github/workflows/custom-build.yml` — parameter boolean `enable_multi_weight` (default `false`); stretch weight TIDAK dibangun di Custom Build (E10); tanpa step baru — murni *flag forwarding* ke `configure.py` | REQ-B02 | AC-B01 | TASK-4.1 | 1     |           |      |
-| TASK-4.4 | Modifikasi `Scripts/packaging.sh` — daftar weight per mode: Custom Build → `Regular, Medium, SemiBold, Bold, Italic, BoldItalic` (stretch TIDAK pernah disertakan, E10); mode `false` → `Regular, Bold, Italic, BoldItalic, FantasqueSans` (kompatibilitas mundur penuh); release upstream → + `Light`/`ExtraBold` hanya jika lolos visual review (FR-6.3). Archive release 3 format terpisah: TTF .zip, OTF .zip, WOFF2 .zip (REQ-D03, AC-D01) | REQ-B05, REQ-D03 | AC-B06, AC-D01 | TASK-4.2 | 1 | | |
+| TASK-4.2 | Modifikasi `Dockerfile` (Stage 1 RUN conditional block) — kontrak RUN chain Spec §4.9: `detect_incompatibility.py` → `validate_harmonization.py --strict` → **RUN `pytest tests/` (fail-fast test driver)** → `multi_weight_driver.py` (TANPA flag stretch) → `custom_build_driver.py` dengan `FONTS=build/sources`; mode `false` → `FONTS=Sources` → output byte-identical (AC-B03) | REQ-B02 | AC-B02 | TASK-4.1 | 1     |           |      |
+| TASK-4.3 | Update `.github/workflows/custom-build.yml` — parameter boolean `enable_multi_weight` (default `false`); stretch weight TIDAK dibangun di Custom Build (E10); set `timeout-minutes: 360` (batas maksimum platform, CON-007). *Catatan: Tanpa step workflow baru, murni perluasan RUN chain Dockerfile & flag forwarding ke `configure.py`. Step Create GitHub Release existing tidak diubah.* | REQ-B02 | AC-B01 | TASK-4.1 | 1     |           |      |
+| TASK-4.4 | Modifikasi `Scripts/packaging.sh` — tambahkan *mode switch* (e.g. `RELEASE_MODE`). Perilaku Custom Build: tetap 1 archive (`.zip` + `.tar.gz`) untuk daftar weight core. Perilaku rilis upstream: archive dipecah ke 3 format terpisah (TTF .zip, OTF .zip, WOFF2 .zip) dengan penamaan `FantasqueSansMono-{version}-{Format}.zip` (REQ-D03, AC-D01) dan menyertakan weight + stretch (jika lolos, FR-6.3). | REQ-B05, REQ-D03 | AC-B06, AC-D01 | TASK-4.2 | 1 | | |
 | TASK-4.5 | Update dokumentasi (`README.md` — termasuk *section* "Faux Italic Limitations" dengan tabel kompatibilitas platform + contoh CSS `@font-face`, `Specimen/`) | REQ-D04 | AC-S03, AC-D04, AC-D05 | TASK-4.4 | 2 | | |
-| TASK-4.X | **VERIFY**: Eksekusi lokal *Custom Build pipeline* menggunakan mode docker (`enable_multi_weight=true` dan `false`) sukses dan deterministik (AC-B03). Build log menampilkan progres per tahap sesuai GUD-003 (AC-B05). Total durasi build ≤ 240 menit (SM-T3/REQ-B04). WOFF2 ≤ 500 KB (AC-D03). WOFF2 kompatibel dengan `@font-face` CSS (AC-D02). Font terinstal dengan benar di Windows/macOS/Linux (AC-I02) dan muncul dengan nama benar di *font picker* (AC-I03). **Hinting**: weight baru di-`ttfautohint` di Stage 2 dengan hasil konsisten untuk semua core weight — terlepas dari opsi `UseHinted` (REQ-I04, FR-4.3, Spec §8.5). | - | AC-B03, AC-B05, AC-I02, AC-I03, AC-D02, AC-D03 | - | - | | |
+| TASK-4.X | **VERIFY**: Eksekusi lokal *Custom Build pipeline* menggunakan mode docker (`enable_multi_weight=true` dan `false`) sukses dan deterministik (AC-B03). Build log menampilkan pesan progres aktual: `"Detecting incompatibilities..."`, `"Harmonizing..."`, `"Interpolating Medium (500)..."`, `"Generating {Weight}..."`, `"ttfautohint"`, `"packaging: ..."` (GUD-003, AC-B05). **Verifikasi Metadata Lapis 2**: Eksekusi `ttx -t name -t OS/2` dan `fc-scan` (Linux) pada TTF final membuktikan metadata weight & nama benar. WOFF2 ≤ 500 KB dan kompatibel `@font-face` CSS. **Hinting**: konsisten untuk semua core weight di Stage 2. | - | AC-B03, AC-B05, AC-I02, AC-I03, AC-D02, AC-D03 | - | - | | |
 | TASK-4.Y | **APPROVAL**: Wait for explicit user confirmation to finalize implementation                         | -       | -      | -        | -     |           |      |
 
 ### Implementation Phase 5: Buffer — Iteration & Stabilization (Optional)
@@ -123,9 +126,9 @@ This plan outlines the step-by-step execution to implement Multi-Weight Font Var
 | TASK-5.1 | Harmonisasi ulang *glyph* bermasalah (dari backlog TASK-3.3)                 | FR-5.3 | AC-I06 | TASK-3.4 | 1-2   |           |      |
 | TASK-5.2 | Interpolasi ulang + validasi ulang untuk *glyph* yang direvisi               | REQ-I01 | AC-I06 | TASK-5.1 | -     |           |      |
 | TASK-5.3 | Stabilisasi dan optimasi build pipeline (jika diperlukan)                    | REQ-B04 | AC-B04 | TASK-4.X | 1-2   |           |      |
-| TASK-5.4 | Produksi *stretch weights* (Light 300, ExtraBold 800) di **release upstream pipeline** via `multi_weight_driver.py --enable-light --enable-extrabold` — hanya setelah core weights lolos *visual review* (Spec §4.6, E10). *Gate check* kelolosan: *stretch weight* gagal *visual review* dikeluarkan dari V1 → V2; proyek tidak dianggap gagal (GUD-004). | REQ-I02 | - | TASK-3.Y | - | | |
+| TASK-5.4 | Produksi *stretch weights* (Light 300, ExtraBold 800) di **release upstream pipeline** (eksekusi manual/terisolasi oleh maintainer di luar CI) via `multi_weight_driver.py --enable-light --enable-extrabold`. **Penentuan factor stretch:** ditetapkan secara eksperimental oleh Designer A + maintainer, hasilnya dicatat di `docs/audit/stretch-factor-decision-{date}.md`. Sub-checklist *release readiness*: Keputusan visual review per stretch weight (lolos V1 / gagal V2) + dicatat di `tracking.json`. | REQ-I02 | - | TASK-3.Y | - | | |
 | TASK-5.X | **VERIFY**: Seluruh *glyph* lolos validasi akhir; pipeline stabil dan ≤ 240 menit; *stretch weight* yang lolos memenuhi *visual rubric* dan yang gagal dikeluarkan dari V1 (GUD-004). | -       | -      | -        | -     |           |      |
-| TASK-5.Y | **FINAL APPROVAL**: Konfirmasi eksplisit bahwa implementasi selesai dan siap rilis. | -       | -      | -        | -     |           |      |
+| TASK-5.Y | **FINAL APPROVAL**: Konfirmasi eksplisit bahwa implementasi selesai dan siap rilis — ringkasan keputusan gate stretch (lolos V1 / gagal V2) direkap di `docs/audit/phase3-visual-review-{date}.md` (keputusan r2). | -       | -      | -        | -     |           |      |
 
 ## 3. Alternatives
 
@@ -158,12 +161,16 @@ This plan outlines the step-by-step execution to implement Multi-Weight Font Var
 - **FILE-016**: `tests/test_multi_weight_driver.py` [NEW]
 - **FILE-017**: `docs/audit/phase0-experiments-{date}.md` [NEW]
 - **FILE-018**: `docs/audit/parallel-harmonization-simulation-{date}.md` [NEW]
+- **FILE-019**: `docs/audit/poc-glyph-list-{date}.md` [NEW]
+- **FILE-020**: `docs/audit/stretch-factor-decision-{date}.md` [NEW]
+- **FILE-021**: `docs/audit/phase3-visual-review-{date}.md` [NEW]
+- **FILE-022**: `tests/fixtures/multi_weight/*.sfdir` [NEW] — fixture dummy input sintetis (deliverable TASK-0.10, konten dikunci)
 
 ## 6. Testing
 
 - **TEST-001**: Idempotency & Determinism Test — Memastikan pipeline menghasilkan byte-identical output pada mode non-multi-weight (`enable_multi_weight=false`).
 - **TEST-002**: Automated Validation Scripts — `validate_harmonization.py`, `validate_interpolation.py` dengan laporan JSON terstruktur.
-- **TEST-003**: Unit Tests (Spec §6.1, §6.3) — `pytest` untuk `test_detect_incompatibility.py`, `test_validate_harmonization.py`, `test_multi_weight_driver.py`.
+- **TEST-003**: Unit Tests (Spec §6.1, §6.3) — `pytest` untuk `test_detect_incompatibility.py`, `test_validate_harmonization.py`, `test_multi_weight_driver.py` (11 test case; `pytest.importorskip("fontforge")` agar gate host runner tidak crash — eksekusi nyata via RUN `pytest` di Stage 1, TASK-4.2; fixture `tests/fixtures/multi_weight/`, TASK-0.10).
 - **TEST-004**: Visual Quality Review — Menggunakan Specimen Sheet HTML dan Visual Quality Rubric (E0.4).
 - **TEST-005**: Integration Test — End-to-End Custom Build workflow (`enable_multi_weight=true` dan `false`) via Docker lokal.
 - **TEST-006**: Hinting Verification — Seluruh weight baru di-*hint* di Stage 2 (`ttfautohint`) terlepas dari opsi `UseHinted` (REQ-I04, FR-4.3) dan hasil hinting konsisten antar weight.
@@ -171,7 +178,7 @@ This plan outlines the step-by-step execution to implement Multi-Weight Font Var
 ## 7. Risks & Assumptions
 
 - **RISK-001**: Harmonization memakan waktu sangat lama (bottle-neck) akibat proses manual yang masif.
-- **RISK-002**: Stretch weights (Light, ExtraBold) mungkin tidak memenuhi standar *Visual Quality* karena ekstrapolasi FontForge. Risiko hanya relevan untuk *release upstream pipeline* (Custom Build tidak memproduksi stretch weight — E10); dimitigasi via *gate check* kelolosan: gagal → keluar dari V1 → V2 (*partial success*, GUD-004).
+- **RISK-002**: Stretch weights (Light, ExtraBold) mungkin tidak memenuhi standar *Visual Quality* karena ekstrapolasi FontForge. Risiko hanya relevan untuk *release upstream pipeline* (definisi: eksekusi manual/terisolasi oleh upstream maintainer di luar CI — lihat TASK-5.4; Custom Build tidak memproduksi stretch weight — E10); dimitigasi via *gate check* kelolosan: gagal → keluar dari V1 → V2 (*partial success*, GUD-004).
 - **ASSUMPTION-001**: `Scripts/features.py` dipastikan deterministik dan idempotent, sehingga dapat dipanggil multiple times tanpa mengubah hasil (divalidasi oleh E0.1).
 
 ## 8. Related Specifications / Further Reading
@@ -190,6 +197,7 @@ This plan outlines the step-by-step execution to implement Multi-Weight Font Var
 
 | Version | Date       | Changes                                                                                          |
 | ------- | ---------- | ------------------------------------------------------------------------------------------------ |
+| 1.7     | 2026-08-01 | Sinkronisasi laporan klarifikasi r2: catatan `tangent-angle` (TASK-0.2/0.3), definisi operasional warning/fail, perluasan `tracking.json`, `pytest.importorskip` & konten fixture (TASK-0.10), relasi eksperimen E0.2, kriteria worst-offender PoC (TASK-1.1), gate ganda PoC (TASK-1.X), verifikasi metadata dua lapis (TASK-3.X/4.X), RUN pytest di Stage 1 (TASK-4.2), `timeout-minutes: 360` (TASK-4.3), daftar pesan log (TASK-4.X), penetapan factor & definisi release upstream (TASK-5.4), 3 file artefak audit baru; finalisasi gap-fill: keputusan path rubric kanonik `docs/audit/` (TASK-0.5), lampiran ringkasan gate review di TASK-3.Y/5.Y, FILE-022 fixture, koordinasi amendemen Spec/PRD (Introduction), TEST-003 disinkronkan. |
 | 1.6     | 2026-07-31 | Sinkronisasi laporan klarifikasi: Phase 3 hanya core weights (stretch → release upstream, E10), hapus TASK-3.2 `ttfautohint` manual (hinting hanya Stage 2, Spec §8.5), renumber TASK-3.x, gate check TASK-3.4 disesuaikan, flag `--enable-light`/`--enable-extrabold`, injeksi metadata driver (TASK-0.7/3.1), kontrak RUN chain Dockerfile & daftar weight packaging per mode (TASK-4.2/4.4), verifikasi hinting Stage 2 di TASK-4.X, tambah TASK-5.4 produksi stretch release upstream, RISK-002 & TEST-006 diperbarui. |
 | 1.5     | 2026-07-31 | Observasi minor: tambah verifikasi ligature (AC-I05) ke TASK-3.X, metrik specimen (AC-S04) ke TASK-3.3, archive 3 format (AC-D01) ke TASK-4.4, instalasi font + nama (AC-I02/I03) ke TASK-4.X, perbaiki dependency TASK-2.3 & 2.4 agar konkuren dengan harmonisasi. |
 | 1.4     | 2026-07-31 | Konsistensi audit: tambah Buffer Phase 5, unit test tasks, shared pool strategy, visual spot-check, iterative fix loop, perbaikan traceability REQ-ID, pindahkan multi_weight_driver.py ke Phase 0, perkaya TASK-4.X verification, tambah git branch TASK-0.0, perbarui TASK-1.Y dengan 4 jalur keputusan FR-2.5, tambah file unit test & experiment docs, perbarui Testing section. |

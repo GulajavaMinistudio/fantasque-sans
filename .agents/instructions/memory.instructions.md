@@ -19,6 +19,7 @@
 > - 2026-07-30 (Plan-Refactor Compaction): Checkpoint A "First CI Run Failures" compacted (subsumed by Checkpoint B). Promoted: DE #8 (no-op retry fix), 3 KB patterns (Doc Sync Scope Enumeration, Plan-as-Record after Execution, Code Review Remediation Triplet). Retained: Checkpoint B (Build SUCCESS) + new Checkpoint C (Plan-Refactor Execution — 16 tasks, 3 phases, all complete).
 > - 2026-07-31 (Spec Multi-Weight Compaction): Sessions 2026-07-30 (Code Phase Debugging) + 2026-07-30 (Plan-Refactor Execution) compacted after Spec v1.3 verification (feature Custom Build fully closed in KB). Promoted: 5 KB patterns (ADR Triple-Gate Filtering, Manual Atomic Commit per Iteration, PoC Failure Path Pattern, Self-Review Diminishing Returns, Glossary-After-Doc Propagation) + DE #9 (container-only tool in host runner workflow step). Retained: 2026-07-31 (PRD v1.1), 2026-07-31 (Spec Audit v1.1), NEW 2026-07-31 (Spec v1.3).
 > - 2026-07-31 (Plan v1.6 Sync Compaction): 2 checkpoints compacted (2026-07-31 PRD v1.1, 2026-07-31 Spec Audit v1.1) — keduanya usang: PRD & Spec kini v1.3, temuan audit sudah terintegrasi & tercakup di checkpoint Spec v1.3 + KB. Promoted: 2 KB patterns (Plan-Clarification Sync Pattern, markdownlint-disable Convention for Plan/Audit Docs). Retained: 2026-07-31 (Spec v1.3) + NEW 2026-07-31 (Plan v1.6).
+> - 2026-08-01 (Compaction): Session 2026-07-31 (Spec v1.3 verification) compacted — knowledge inti sudah ter-promote di kompaksi 2026-07-31 (DE #9, metric spec v1.3, flag forwarding pattern). Promoted baru: 2 KB patterns (External Edit Detection via mtime, Spec Final Verification Multi-Criteria). Retained: 2026-07-31 (Plan v1.6) + 2026-08-01 (Plan v1.7).
 > Updated during Compaction Mode (Workflow 4). Do NOT delete entries here.
 
 ### Architecture & Patterns
@@ -58,6 +59,8 @@
 - **Glossary-After-Doc Propagation**: Ketika istilah glosarium dibuat SETELAH dokumen utama selesai, jalankan scan `_Avoid_` terhadap dokumen di sesi yang sama dan perbaiki semua pelanggaran — mencegah temuan audit downstream. [Source: Session 2026-07-31 PRD, 6 fix terminologi]
 - **Plan-Clarification Sync Pattern**: Setelah plan diperbarui berdasarkan laporan klarifikasi, tandai SETIAP item resolusi di laporan dengan ✅ + baris referensi lokasi implementasi ("Plan v1.x: Implemented — TASK-y.z") + header status di atas dokumen. Menutup loop traceability dua arah: laporan → task di plan, dan plan → laporan. Item yang tidak memerlukan aksi ditandai "✅ (N/A)" dengan alasan. [Source: Session 2026-07-31, plan v1.6 sync]
 - **markdownlint-disable Convention for Plan/Audit Docs**: Dokumen plan (`plan/*.md`) dan laporan audit (`docs/audit/*.md`) dengan tabel task lebar / paragraf panjang memakai `<!-- markdownlint-disable -->` (setelah frontmatter/judul) — konvensi repo yang dipakai seluruh dokumen sejenis. Jangan memaksakan MD013/MD060 pada dokumen-dokumen ini; targetnya `markdownlint` exit 0 dengan directive. [Source: Session 2026-07-31, verifikasi konvensi repo]
+- **External Edit Detection via mtime**: Saat bekerja pada dokumen yang mungkin diedit pihak lain (tools, maintainer, sesi paralel), cek mtime file untuk mendeteksi perubahan eksternal dan verifikasi ulang isinya sebelum mengklaim/melanjutkan — mencegah salah klaim kepemilikan konten dan melewatkan konten baru. [Source: Session 2026-07-31, Spec v1.3 verification — tambahan eksternal mtime 17:53]
+- **Spec Final Verification Multi-Criteria**: Finalisasi spec diverifikasi dengan kombinasi kriteria: markdownlint 0 issues, keseimbangan code fence (62/62), cakupan traceability 100%, pemeriksaan link referensi (9/9), dan verifikasi faktual terhadap source code aktual (bukan dari memori). [Source: Session 2026-07-31, Spec v1.3 verification pass]
 
 ### Dead-Ends (Do NOT Repeat)
 
@@ -77,7 +80,7 @@
 
 <!-- Stable metrics that serve as reference points (test counts, coverage, performance baselines). -->
 - **Test Suite (configure.py)**: 62/62 pytest unit tests passing, 0.20s execution time. [Source: Session 2026-07-29 Phase 1; re-verified 2026-07-30 plan-refactor]
-- **Knowledge Base Size**: 9 Dead-Ends + 35 Architecture & Patterns. [Source: Session 2026-07-31, post plan v1.6 compaction]
+- **Knowledge Base Size**: 9 Dead-Ends + 37 Architecture & Patterns. [Source: Session 2026-07-31, post plan v1.6 compaction; +2 promoted 2026-08-01 compaction]
 - **Plan-Refactor Execution (2026-07-30)**: 16 tasks across 3 phases, all completed in single session; 13/13 acceptance criteria met; pytest 62/62 PASS; CON-001 preserved. [Source: Session 2026-07-30, plan-refactor-code-review v1.0]
 - **End-to-End Build**: 8 iteration cycles to first successful CI run (issues #1–#8). [Source: Session 2026-07-30, first end-to-end run 30520458083]
 - **GitHub Actions Actions Versions**: `actions/checkout@v7` + `actions/setup-python@v6` + `actions/upload-artifact@v4` (Node.js 24 LTS). [Source: Session 2026-07-30]
@@ -86,47 +89,6 @@
 - **Spec Multi-Weight Variants (v1.3)**: 1147 lines, markdownlint 0 issues, 62 balanced code fences, traceability 100% vs PRD v1.3 (FR-1..7 / GH-001..006 / SM-T1..4 / E0.1..4 all covered). [Source: Session 2026-07-31, spec verification pass]
 
 ---
-
-## 📝 Session Checkpoint: 2026-07-31 (Spec Multi-Weight Variants — v1.1 → v1.2 → v1.3 Verification & Fixes)
-
-- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
-- **Previous Phase:** Spec v1.1 audit-approved (2026-07-31, traceability audit) — sesi ini melakukan re-verification & hardening
-- **Current SDLC Phase:** Phase Spec — re-verification pass (3 sub-ronde) + cross-check PRD penuh; spec kini v1.3 ✅
-- **Active Artifacts:**
-  - `spec/spec-multi-weight-variants.md` — Status: ✅ Finalized (v1.3, 1147 baris) — terverifikasi vs PRD v1.3
-  - `docs/prd-20260731-1000-multi-weight-variants.md` — Status: ✅ Finalized (v1.3, upstream)
-  - `docs/adr/0002-multi-stage-docker-deferred-engine-port.md` — Status: ✅ Dirujuk (Stage 1 = satu-satunya konteks FontForge)
-- **Achieved Milestones:**
-  - **F-5 (kritis) diperbaiki**: §4.9 ditulis ulang — script multi-weight HANYA dieksekusi di Stage 1 Docker (FontForge tidak ada di host runner MAUPUN image Stage 2; diverifikasi di `custom-build.yml` + `Dockerfile`). Kontrak baru: flag forwarding (input workflow → `configure.py --form-enable-multi-weight` → flag `--multi-weight` di `BUILD_ARGS` → RUN chain kondisional `grep -q` di Dockerfile). Mode `false` → `FONTS=Sources` → byte-identical dengan Custom Build existing (AC-B03).
-  - **REQ-B06 diperjelas**: assembly terjadi di dalam Stage 1 (pre-compilation) via `multi_weight_driver.py`; mode single-weight melewati assembly.
-  - **§6.4 test cases**: test 1 diselaraskan dengan AC-B03 (output lengkap, bukan "hanya Regular + Bold"); test 6 baru `test_flag_forwarding`.
-  - **§2 Definitions +3 istilah** (Build Source Assembly, Interpolation Validation Report, Harmonization Tracking File); §7 Always Do terhubung ke `tracking.json` (§4.12).
-  - **§8.5 resolusi baru**: "Konteks eksekusi integrasi multi-weight (koreksi v1.2)" + catatan log "Harmonizing..." (GUD-003/GH-004 AC#5) + intro "Spec v1.1 dan v1.2".
-  - **Baca ulang PRD v1.3 penuh (396 baris)**: FR-1..7, GH-001..006, SM-T1..4, E0.1..4, §8.1/§8.3, §9.2, §10.1..6 — semua klaim spec terverifikasi; charset `{}[]()<>;:.,!#$%^&*` sesuai GH-002 AC#2; 2 micro-fix (M-4: AC-P01 + space/period/comma/zero; M-5: catatan log §4.9) → spec v1.3.
-  - **Tambahan eksternal terdeteksi & diverifikasi** (mtime 17:53, bukan dari sesi ini): §4.12 Harmonization Tracking File Contract, VAL-008b, "Koreksi GH-005 AC#2" — semuanya konsisten dengan PRD (GH-005 AC#4, GH-001 AC#2).
-  - **Audit link §12**: 9/9 file rujukan ada (termasuk `spec-custom-build-workflow.md` v1.6).
-  - Validasi final: markdownlint 0 issues, 62 fences seimbang, tidak ada teks lama tersisa ("Workflow Step Tambahan", "output hanya Regular + Bold").
-- **Decisions Made:**
-  - **Opsi A (disetujui user)**: perbaiki SEMUA temuan (F-5 + M-1..M-3), lalu M-4 + M-5 di pass segar → v1.2 → v1.3.
-  - **Mekanisme integrasi**: flag forwarding via `BUILD_ARGS` (bukan step host runner, bukan modifikasi driver). Ekstensi `configure.py` diperbolehkan (TIDAK dilindungi CON-001); Custom Build Spec perlu minor update (PRD §8.1, audit C5) — dikoordinasikan di fase plan.
-  - **Kontrak log**: "Harmonizing..." ditampilkan saat harmonized sources dimuat (harmonisasi itu sendiri manual — FR-1.3).
-- **Updated Files:**
-  - `spec/spec-multi-weight-variants.md` — v1.1 → v1.2 (F-5, REQ-B06, §6.4, §2, §7, §8.5) → v1.3 (AC-P01, catatan log §4.9); 1147 baris
-- **Dead-Ends (Do NOT Repeat):**
-  - **Attempted**: Contoh step workflow yang memanggil `fontforge` langsung di host runner (§4.9 v1.1). **Reason**: FontForge hanya ada di image Stage 1 saat `docker build`; host runner & Stage 2 tidak memuatnya. **Solution**: RUN kondisional Stage 1 via flag forwarding `BUILD_ARGS`. [PROMOTED to DE #9]
-  - Batch edit gagal atomik (anchor `└──` §4.3) — sudah tercakup KB DE #3 (stale anchors); tidak ada DE baru.
-- **Next Action / Pending:**
-  - **PRIORITAS #1 (user):** Commit: `git add spec/spec-multi-weight-variants.md .agents/instructions/memory.instructions.md && git commit -m "docs(spec+memory): spec multi-weight v1.3 (Stage 1 integration contract) + checkpoint 2026-07-31"` → `git push`.
-  - **PRIORITAS #2 (user, next session):** Sesi chat baru → `/sdlc-clarify-reqs` dengan @spec/spec-multi-weight-variants.md (v1.3) + @docs/prd-20260731-1000-multi-weight-variants.md (v1.3).
-  - **PRIORITAS #3 (fase plan):** Koordinasikan Custom Build Spec minor update (`configure.py --form-enable-multi-weight`, Dockerfile Stage 1 RUN, input `custom-build.yml`) — cross-spec, PRD §8.1 / audit C5.
-- **Verification Snapshot:**
-  - markdownlint: 0 issues (spec v1.3)
-  - Code fences: 62 seimbang
-  - Traceability PRD: 100% cakupan (FR/GH/SM/E0/klarifikasi E10)
-  - Link §12: 9/9 file ada
-  - Fakta Dockerfile/configure.py/custom-build.yml diverifikasi ulang dari source (RUN chain baris 60–62, pola `--form-*`, `build_driver_arg_string`)
-
-<!-- checkpoint-tail: Spec Multi-Weight v1.3 finalized setelah 3-pass re-verification: F-5 Stage 1 integration contract (flag forwarding via BUILD_ARGS), REQ-B06 clarification, §6.4 tests, +2 micro-fixes; 100% alignment PRD v1.3. Next: sesi baru → /sdlc-clarify-reqs. -->
 
 ## 📝 Session Checkpoint: 2026-07-31 (Implementation Plan Multi-Weight Variants — v1.6 Sync + Clarification Marking)
 
@@ -159,3 +121,40 @@
   - Dependency graph plan valid bottom-up (renumber TASK-3.x tanpa dangling dep)
 
 <!-- checkpoint-tail: Plan multi-weight v1.6 disinkronkan dengan laporan klarifikasi (Phase 3 core-only, stretch→release upstream E10, ttfautohint Stage 2 saja, flag --enable-light/--enable-extrabold, injeksi metadata, TASK-5.4 baru); laporan klarifikasi ditandai ✅ + mapping task; handoff prompt siap. Next: sesi baru → /sdlc-clarify-reqs → plan v1.7. -->
+
+---
+
+## 📝 Session Checkpoint: 2026-08-01 (Plan v1.7 Finalisasi — Gap-Fill Laporan Klarifikasi r2 + Status Sync)
+
+- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
+- **Previous Phase:** Phase Plan — plan v1.6 (2026-07-31); laporan klarifikasi r2 sudah ada (22:39) tapi BELUM tercatat di memory (checkpoint terakhir 21:44)
+- **Current SDLC Phase:** Phase Plan (Implementation Planning) — plan v1.7 FINAL (gap-fill selesai), menunggu commit + audit konsistensi
+- **Active Artifacts:**
+  - `plan/plan-feature-multi-weight-variants-v1.3.md` — Status: ✅ v1.7 final (12/12 resolusi r2; **belum di-commit** — working copy `M`)
+  - `docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-07-31-r2.md` — Status: ✅ Finalized (baru tercatat di memory sesi ini; 12 resolusi menunggu implementasi → sudah diimplementasikan di v1.7)
+  - `docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-07-31.md` — Status: ✅ Finalized (r1, implemented di v1.6)
+  - `spec/spec-multi-weight-variants.md` — Status: ⏳ v1.3 BUTUH amendemen r2 §4 (REQ-I02, REQ-H06, §4.6, §4.11, §4.12, §6.2 — path rubric kanonik, §6.3, §6.5, GUD-003/AC-B05, §8.5) via `/sdlc-define-specs`
+  - `docs/prd-20260731-1000-multi-weight-variants.md` — Status: ⏳ v1.3 BUTUH amendemen (GH-004 AC#5 daftar pesan log, catatan interpretasi FR-2.4) via `/sdlc-draft-prd`
+  - `CONTEXT.md` — Status: ✅ istilah "Release Upstream Pipeline" sudah ditambahkan (baris 60–62, sesi r2)
+- **Achieved Milestones:**
+  - **Bootstrap memory + verifikasi status**: plan ternyata SUDAH v1.7 di working copy (mtime 2026-08-01 15:03, belum di-commit) — sesi sebelumnya sudah mengimplementasikan mayoritas resolusi r2; memori 21:44 belum mencakup r2 (22:39) & plan v1.7 (15:03 berikutnya)
+  - **Prompt handoff `/sdlc-clarify-reqs` disusun** (untuk sesi klarifikasi pasca-v1.7): 7 file lampiran, 4 area fokus (A: delta verification 12 resolusi r2, B: keputusan path rubric yang ditunda, C: re-check 8 area prioritas lama, D: traceability frontmatter/changelog + CON-001)
+  - **Gap-fill v1.7 (8 edit surgical, tidak membatalkan pekerjaan sesi sebelumnya)**: (1) Introduction + koordinasi cross-document amendemen Spec/PRD, (2) TASK-0.5 keputusan path rubric kanonik, (3) TASK-3.Y lampiran ringkasan gate review, (4) TASK-5.Y rekap gate stretch, (5) RISK-002 referensi definisi release upstream, (6) FILE-022 `tests/fixtures/multi_weight/`, (7) TEST-003 sinkronisasi (11 test, importorskip, RUN pytest Stage 1), (8) changelog 1.7 final
+  - **Verifikasi final**: markdownlint exit 0; 12/12 resolusi r2 terimplementasi di v1.7 (traceability lengkap); klaim CONTEXT.md terverifikasi; dependency graph bottom-up tetap valid
+- **Decisions Made:**
+  - **Path kanonik visual-quality-rubric = `docs/audit/visual-quality-rubric.md`** (keputusan yang ditunda r2 ke plan v1.7; konsisten dengan seluruh artefak QA di `docs/audit/`; Spec §6.2 E0.4 diamendemen mengikuti — dicatat di plan Introduction + TASK-0.5)
+  - Koordinasi amendemen Spec/PRD dicatat di plan (bukan task baru) — dijadwalkan via `/sdlc-define-specs` & `/sdlc-draft-prd`
+- **Updated Files:**
+  - `plan/plan-feature-multi-weight-variants-v1.3.md` — v1.6 → v1.7 final: 8 edit gap-fill (+31/−23 vs HEAD; total file 204 baris; **belum di-commit**)
+- **Dead-Ends (Do NOT Repeat):** Tidak ada DE baru (8 edit memakai anchor segar readSeek — menghindari pola DE #3 stale anchors)
+- **Next Action / Pending:**
+  - **PRIORITAS #1 (user):** Commit: `git add plan/plan-feature-multi-weight-variants-v1.3.md && git commit -m "docs(plan): plan multi-weight v1.7 sync laporan klarifikasi r2 (12 resolusi) + gap-fill"` → `git push`
+  - **PRIORITAS #2 (next session):** `/sdlc-audit-consistency` — audit PRD ↔ Spec ↔ Plan v1.7; **verifikasi status amendemen Spec/PRD hasil r2** (belum dilakukan — gap traceability potensial)
+  - **PRIORITAS #3:** `/sdlc-clarify-reqs` (r3) — prompt handoff sudah disusun di sesi ini (lampirkan plan v1.7 + r2 + r1 + spec + PRD + audit konsistensi + CONTEXT.md) → plan v1.8 via `/sdlc-plan-tasks`
+  - **PRIORITAS #4:** `/sdlc-write-code` setelah klarifikasi bersih
+- **Verification Snapshot:**
+  - markdownlint: plan v1.7 = 0 error (exit 0)
+  - Traceability: 12/12 resolusi r2 → task plan (TASK-0.2/0.3/0.5/0.10/0.11/0.X/1.1/1.3/1.X/3.X/3.Y/4.2/4.3/4.4/4.X/5.4/5.Y + RISK-002 + FILE-019..022 + TEST-003)
+  - Git: plan `M` (belum di-commit); commit terakhir `5821a31` (plan v1.6 + laporan r1/r2 + CONTEXT.md)
+
+<!-- checkpoint-tail: Plan multi-weight v1.7 difinalisasi (gap-fill 8 edit: keputusan path rubric kanonik docs/audit/, koordinasi amendemen Spec/PRD, RISK-002, FILE-022 fixture, TEST-003); 12/12 resolusi r2 terimplementasi; markdownlint 0; BELUM di-commit. Next: commit → /sdlc-audit-consistency (cek amendemen Spec/PRD) → /sdlc-clarify-reqs r3. -->
