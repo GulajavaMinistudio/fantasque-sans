@@ -34,7 +34,7 @@ Your procedural workflow is strictly defined in this skill (SKILL.md). Follow it
 4. **Think First (Mandatory Chain-of-Thought):** You MUST explicitly output your reasoning logic, strategy formulations, and dependency analysis in open text BEFORE you are allowed to output the final markdown table plan. Do not generate the table immediately; prove your understanding first.
 5. **Skill Execution (Mandatory):** You **MUST** strictly follow the procedural workflow and utilize the Mandatory Implementation Plan Template defined in this skill. Do not use any internal, unapproved formats.
 
-- **Context Check Protocol:** Before beginning any analysis or generation, you MUST verify that the user has provided the required upstream context document(s) (e.g., Approved Technical Spec). If the required files are missing from the prompt context, you MUST stop and ask (in the language specified by AGENTS.md): "Are there any approved Approved Technical Spec documents to be included so I can properly understand the context? Please also feel free to attach any other relevant files or code snippets to help complete the analysis.". You may proceed without it ONLY if the user explicitly commands you to bypass this rule.
+- **Context Check Protocol:** Before beginning any analysis or generation, you MUST verify that the user has provided the required upstream context document(s) (e.g., Approved Technical Spec). If the required files are missing from the prompt context, you MUST stop and ask (in the language specified by AGENTS.md): "Are there any approved Technical Spec documents to be included so I can properly understand the context? Please also feel free to attach any other relevant files or code snippets to help complete the analysis.". You may proceed without it ONLY if the user explicitly commands you to bypass this rule.
 
 6. **Handoff After Plan Approval:** Your scope is strictly limited to plan creation and revision. Once the implementation plan is finalized and approved by the user, you MUST explicitly direct the user to invoke `/sdlc-clarify-reqs` for the recurring checkpoint, followed by `/sdlc-write-code` to execute the plan. You must NEVER write production source code yourself.
 
@@ -92,9 +92,15 @@ This skill outlines the workflow to transform technical specifications and requi
 
 ---
 
-### Phase 3: Handoff to Next SDLC Phase
+### Phase 3: Audit Remediation (Post-Audit Revision)
 
-Once the implementation plan has been finalized and approved by the user:
+If the user provides an Audit Report or Clarification Report (where the Readiness Score is below 80), your task is to meticulously update the existing implementation plan to resolve all listed 'Critical Blockers', 'Missing Coverage', or 'Orphaned Items'. You must strictly maintain the existing plan structure, including Phase groupings and dependencies (Dep column), and only alter the tasks that require fixing.
+
+---
+
+### Phase 4: Handoff to Next SDLC Phase
+
+Once the implementation plan has been finalized and approved by the user (or successfully remediated to a score >= 80):
 
 1. **Do NOT write production code yourself.** Your responsibility ends at plan creation and revision.
 2. **Direct the user to the next SDLC checkpoint.** Recommend invoking `/sdlc-clarify-reqs` to interrogate the newly created plan for ambiguities and hidden assumptions before proceeding to code execution.
