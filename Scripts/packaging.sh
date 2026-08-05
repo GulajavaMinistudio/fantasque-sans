@@ -73,21 +73,39 @@ USE_HINTED=$(jq -r '.resolved_options.UseHinted' "${INPUT_MANIFEST}")
 echo "packaging: UseHinted=${USE_HINTED}"
 
 # ---------------------------------------------------------------------------
-# 2. Optional ttfautohint pass (Spec section 1.2: Stage 2 is the only
-#    stage allowed to invoke ttfautohint). Mutates TTFs in place.
+# 2. ttfautohint pass (Spec section 1.2: Stage 2 is the only stage allowed
+#    to invoke ttfautohint). Mutates TTFs in place.
+#    NEW_WEIGHTS override (REQ-I04, r3 K9 + r4 R1): decided PURELY from the
+#    filename pattern — files whose basename matches Medium|SemiBold|Light|
+#    ExtraBold are ALWAYS hinted, regardless of UseHinted. Existing weights
+#    (Regular, Bold, Italic, BoldItalic, FantasqueSans) follow UseHinted.
 # ---------------------------------------------------------------------------
-if [ "${USE_HINTED}" = "true" ]; then
-    echo "packaging: running ttfautohint on every TTF"
-    shopt -s nullglob
-    for ttf in "${TTF_DIR}"/*.ttf; do
-        tmp="${ttf}.tmp"
-        ttfautohint "${ttf}" "${tmp}"
-        mv "${tmp}" "${ttf}"
-    done
-    shopt -u nullglob
-else
-    echo "packaging: skipping ttfautohint (unhinted build)"
-fi
+echo "packaging: UseHinted=${USE_HINTED}"
+shopt -s nullglob
+hinted_count=0
+for ttf in "${TTF_DIR}"/*.ttf; do
+    base=$(basename "${ttf}")
+    case "${base}" in
+        *Medium*|*SemiBold*|*Light*|*ExtraBold*)
+            # New weight — always hinted (REQ-I04 override).
+            tmp="${ttf}.tmp"
+            ttfautohint "${ttf}" "${tmp}"
+            mv "${tmp}" "${ttf}"
+            hinted_count=$((hinted_count + 1))
+            echo "packaging: ttfautohint ${base} (new weight — always hinted)"
+            ;;
+        *)
+            if [ "${USE_HINTED}" = "true" ]; then
+                tmp="${ttf}.tmp"
+                ttfautohint "${ttf}" "${tmp}"
+                mv "${tmp}" "${ttf}"
+                hinted_count=$((hinted_count + 1))
+            fi
+            ;;
+    esac
+done
+shopt -u nullglob
+echo "packaging: hinted ${hinted_count} TTF(s)"
 
 # ---------------------------------------------------------------------------
 # 3. WOFF and WOFF2 compression (Spec REQ-005)
@@ -151,22 +169,53 @@ echo "${UPDATED_MANIFEST}" > "${OUTPUT_DIR}/manifest.json"
 echo "${UPDATED_MANIFEST}" > "${APP_DIR}/manifest.json"
 
 # ---------------------------------------------------------------------------
-# 6. Assemble archives (Spec REQ-006)
+# 6. Assemble archives (Spec REQ-006 + §4.10).
+#    The ONLY explicit mode is RELEASE_MODE=1 (env var explicitly invoked
+#    by the upstream maintainer; CI Custom Build NEVER sets it — E10).
+#    The ENABLE_MULTI_WEIGHT branch does NOT exist (r4 R1): the workflow
+#    invokes packaging via `docker run` WITHOUT -e, so RELEASE_MODE is never
+#    set in CI — Custom Build behavior stays zip-all existing (Medium/
+#    SemiBold/FantasqueSans auto-included when produced; AC-B02 without an
+#    explicit weight list).
 # ---------------------------------------------------------------------------
-echo "packaging: assembling archives"
 cp "${APP_DIR}/LICENSE.txt" "${OUTPUT_DIR}/LICENSE.txt"
 cp "${APP_DIR}/README.md" "${OUTPUT_DIR}/README.md"
 
-cd "${APP_DIR}"
+# ---------------------------------------------------------------------------
+# 6a. Surface multi-weight build reports (r5 H3, r6 Q-02): JSON validation
+#     reports + coverage.xml copied to output/reports/ for artifact upload.
+#     Guard — only if files exist (build-reports is empty in single-weight
+#     mode).
+# ---------------------------------------------------------------------------
+mkdir -p "${OUTPUT_DIR}/reports"
+cp -n /app/build-reports/* "${OUTPUT_DIR}/reports/" 2>/dev/null || true
 
-# zip: include TTF/ OTF/ Webfonts/ LICENSE.txt README.md manifest.json
-zip -r "${OUTPUT_DIR}/${PACKAGE_BASENAME}.zip" \
-    TTF OTF Webfonts LICENSE.txt README.md manifest.json \
-    >/dev/null
-
-# tar.gz: same set
-tar czf "${OUTPUT_DIR}/${PACKAGE_BASENAME}.tar.gz" \
-    TTF OTF Webfonts LICENSE.txt README.md manifest.json
+if [ "${RELEASE_MODE:-}" = "1" ]; then
+    # Release upstream (public): one archive per format named
+    # FantasqueSansMono-${VERSION}-{TTF|OTF|WOFF2}.zip. VERSION is an
+    # explicit env var (a release decision, not parsed from documents/font
+    # tables) — required, else _die with an instructive message (r4 R2).
+    if [ -z "${VERSION:-}" ]; then
+        echo "packaging: RELEASE_MODE=1 requires VERSION (docker run -e RELEASE_MODE=1 -e VERSION=...)" >&2
+        exit 1
+    fi
+    cd "${APP_DIR}"
+    zip -r "${OUTPUT_DIR}/FantasqueSansMono-${VERSION}-TTF.zip" TTF >/dev/null
+    zip -r "${OUTPUT_DIR}/FantasqueSansMono-${VERSION}-OTF.zip" OTF >/dev/null
+    # WOFF2 archive: the generated .woff2 files live in TTF_DIR (produced
+    # by woff2_compress in step 3).
+    ( cd "${TTF_DIR}" && zip -q -r "${OUTPUT_DIR}/FantasqueSansMono-${VERSION}-WOFF2.zip" ./*.woff2 )
+    echo "packaging: release archives written (VERSION=${VERSION})"
+else
+    # Custom Build (fork owner): single zip-all archive (backward
+    # compatibility — r4 R1).
+    cd "${APP_DIR}"
+    zip -r "${OUTPUT_DIR}/${PACKAGE_BASENAME}.zip" \
+        TTF OTF Webfonts LICENSE.txt README.md manifest.json \
+        >/dev/null
+    tar czf "${OUTPUT_DIR}/${PACKAGE_BASENAME}.tar.gz" \
+        TTF OTF Webfonts LICENSE.txt README.md manifest.json
+fi
 
 echo "packaging: done"
 ls -la "${OUTPUT_DIR}"

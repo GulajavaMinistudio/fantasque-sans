@@ -24,21 +24,28 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # FontForge from the default Ubuntu 26.04 (resolute) repos. The team PPA
 # ``ppa:fontforge/fontforge`` does NOT support ``resolute`` (404) so we
-# use the distro package. The fontforge binary ships Python 3 bindings
-# embedded; ``-lang=py -script`` invokes that interpreter directly, so
-# no separate ``python3-fontforge`` package is required.
+# use the distro package.
+# ``python3-fontforge`` (apt) installs the SYSTEM FontForge Python module:
+# the bindings embedded in the FontForge binary are NOT visible to the
+# system ``python3`` that runs pytest, so without this package the four
+# FontForge-dependent test files would always be importorskip-skipped
+# (clarification r5 B1).
 # ``ca-certificates`` is required for ``apt-get update`` over HTTPS.
 # ``python3-pip`` is required because ``python3-future`` was removed
 # from Ubuntu 26.04 main repos; we install ``future`` from PyPI instead
 # (legacy ``from past.builtins import xrange`` in fontbuilder.py needs it).
+# pytest/jsonschema/pytest-cov are installed UNCONDITIONALLY (r3 K2,
+# r5 MO-1, r6 Q-02) — the multi-weight RUN chain runs the unit suite with
+# coverage inside Stage 1.
 # ``make`` is kept around for the legacy ``Makefile`` smoke path.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
         fontforge \
+        python3-fontforge \
         python3-pip \
         make \
-    && pip3 install --break-system-packages --no-cache-dir future \
+    && pip3 install --break-system-packages --no-cache-dir future pytest jsonschema pytest-cov \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /build
 
@@ -51,15 +58,77 @@ COPY . /build
 # Resolved build args forwarded by ``Scripts/configure.py`` (host runner).
 # Default is empty so a no-flag dispatch produces the ``Normal`` variant
 # (Spec AC-001). The driver parses this as a list of space-separated
-# flags (``--line-height``, ``--no-loop-k``, ``--no-calt``).
+# flags (``--line-height``, ``--no-loop-k``, ``--no-calt``) — the
+# build-level ``--multi-weight`` flag is stripped before the driver
+# invocation (see the final RUN below).
 ARG BUILD_ARGS=""
 
-# Compile the resolved Variant across all ``.sfdir`` weights into
-# ``/build/{TTF,OTF,Webfonts}``. No hinting, no WOFF/WOFF2 here -- those
-# are Stage 2 responsibilities per Spec §1.2.
-RUN fontforge --quiet -lang=py -script \
+# Base report directory for the multi-weight RUN chain (JSON reports +
+# coverage.xml), surfaced to Stage 2 via ``COPY --from=builder-fontforge``
+# (clarification r5 H3, r6 Q-02).
+RUN mkdir -p build/reports
+
+# Multi-weight branch (active iff BUILD_ARGS contains ``--multi-weight``).
+# Contract: Spec §4.9 + plan TASK-4.2 (i)-(v). Order per r6 Q-02:
+#   (v) existence guard for harmonized sources — FIRST (r4 R5)
+#   (i) detect_incompatibility.py — informative/audit baseline (r6 Q-16)
+#   (ii) validate_harmonization.py --strict for BOTH master pairs (r3 K4)
+#   (iii) pytest --cov — BEFORE interpolation (r6 Q-02)
+#   (iv) multi_weight_driver.py — core weights + build/sources/ assembly
+#   (v) fail-fast loop validate_interpolation.py --threshold ${T_FINAL}
+#       --fail-fast per core weight (GUD-002, r3 K8)
+# T_FINAL is sourced from docs/audit/phase0-experiments-{date}.md +
+# docs/audit/visual-quality-rubric.md (r5 B2); ``15.0`` below is the
+# PRE-CALIBRATION placeholder — replace with the calibrated value once
+# the PoC two-pass protocol lands (plan TASK-4.2 / NOTE-4.2).
+RUN if echo "$BUILD_ARGS" | grep -q -- "--multi-weight"; then \
+        echo "::notice::multi-weight build: checking harmonized sources..." \
+        && python3 -c "import fontforge" \
+        && { test -d Sources/Harmonized/Regular && test -d Sources/Harmonized/Bold \
+             && test -d Sources/Harmonized/Italic && test -d Sources/Harmonized/BoldItalic; } \
+        || { echo "::error::multi-weight build requires harmonized sources (Sources/Harmonized/{Regular,Bold,Italic,BoldItalic}); sync upstream or run harmonization first" >&2; exit 1; } \
+        && echo "::notice::multi-weight build: Detecting incompatibilities..." \
+        && fontforge --quiet -lang=py -script Scripts/detect_incompatibility.py \
+               Sources/Harmonized/Regular Sources/Harmonized/Bold \
+               --output build/incompatibility_report.json \
+        && echo "::notice::multi-weight build: Harmonizing (validating masters, --strict, both pairs)..." \
+        && fontforge --quiet -lang=py -script Scripts/validate_harmonization.py \
+               Sources/Harmonized/Regular Sources/Harmonized/Bold \
+               --strict --output build/harmonization_report-rb.json \
+        && fontforge --quiet -lang=py -script Scripts/validate_harmonization.py \
+               Sources/Harmonized/Italic Sources/Harmonized/BoldItalic \
+               --strict --output build/harmonization_report-ib.json \
+        && echo "::notice::multi-weight build: running unit tests with coverage..." \
+        && pytest tests/ -v --cov=Scripts --cov-report=term-missing \
+               --cov-report=xml:build/reports/coverage.xml \
+        && echo "::notice::multi-weight build: Interpolating core weights (Medium 500, SemiBold 600)..." \
+        && fontforge --quiet -lang=py -script Scripts/multi_weight_driver.py \
+               --sources Sources --output Sources/Harmonized/Interpolated \
+        && echo "::notice::multi-weight build: Validating interpolated weights (fail-fast)..." \
+        && T_FINAL=15.0 \
+        && fontforge --quiet -lang=py -script Scripts/validate_interpolation.py \
+               --interpolated Sources/Harmonized/Interpolated/Medium \
+               --masters Sources/Harmonized --threshold "${T_FINAL}" --fail-fast \
+               --output build/interpolation-medium.json \
+        && fontforge --quiet -lang=py -script Scripts/validate_interpolation.py \
+               --interpolated Sources/Harmonized/Interpolated/SemiBold \
+               --masters Sources/Harmonized --threshold "${T_FINAL}" --fail-fast \
+               --output build/interpolation-semibold.json \
+        && echo "::notice::multi-weight build: assembled build/sources/ (7 .sfdir)"; \
+    fi
+
+# Compile the resolved Variant across all ``.sfdir`` weights. Multi-weight
+# mode feeds the assembled ``build/sources/`` (4 harmonized masters +
+# Medium + SemiBold + FantasqueSans); normal mode keeps the legacy
+# ``Sources/`` root — byte-identical output (AC-B03). ``--multi-weight``
+# is STRIPPED from ``$BUILD_ARGS`` before the driver invocation —
+# ``parse_args()`` _die's on unknown flags (clarification r3 K1).
+RUN FONTS=Sources; \
+    if echo "$BUILD_ARGS" | grep -q -- "--multi-weight"; then FONTS=build/sources; fi; \
+    DRIVER_ARGS=$(printf '%s' "$BUILD_ARGS" | sed 's/--multi-weight//g'); \
+    fontforge --quiet -lang=py -script \
         Scripts/custom_build_driver.py \
-        Sources /build $BUILD_ARGS
+        "$FONTS" /build $DRIVER_ARGS
 
 
 # -----------------------------------------------------------------------------
@@ -97,6 +166,12 @@ WORKDIR /app
 COPY --from=builder-fontforge /build/OTF /app/OTF
 COPY --from=builder-fontforge /build/TTF /app/TTF
 COPY --from=builder-fontforge /build/Webfonts /app/Webfonts
+
+# Copy the multi-weight build reports (JSON validation reports +
+# coverage.xml) so Stage 2 can surface them to ``output/reports/``
+# (clarification r5 H3, r6 Q-02). Present in both modes (empty in
+# single-weight mode).
+COPY --from=builder-fontforge /build/build /app/build-reports
 
 # Copy the repository root so packaging tooling (Phase 3 workflow steps)
 # can reach ``LICENSE.txt``, ``README.md``, and the manifest mount point.

@@ -4,7 +4,7 @@
 Fantasque Sans Mono Custom Build Configuration Wrapper.
 
 Validates ``config.json`` against ``config.schema.json`` (JSON Schema
-Draft-07), resolves the four boolean build options with strict precedence
+Draft-07), resolves the five boolean build options with strict precedence
 (``workflow_dispatch`` form input > ``config.json`` > defaults), emits a
 Stage 1 driver argument string, and (optionally) writes a build manifest
 conforming to the contract in Technical Specification v1.5 section 4.6.
@@ -35,6 +35,7 @@ DEFAULTS = {
     "NoLoopK": False,
     "NoCalt": False,
     "UseHinted": True,
+    "EnableMultiWeight": False,
 }
 
 # Maps CLI form flag key (snake_case, matches workflow_dispatch input) to
@@ -44,6 +45,7 @@ FORM_KEY_TO_OPTION = {
     "no_loop_k": "NoLoopK",
     "no_calt": "NoCalt",
     "use_hinted": "UseHinted",
+    "enable_multi_weight": "EnableMultiWeight",
 }
 
 # Maps option name (PascalCase) to Stage 1 driver CLI flag.
@@ -55,6 +57,16 @@ OPTION_TO_DRIVER_FLAG = {
     "LargeLineHeight": "--line-height",
     "NoLoopK": "--no-loop-k",
     "NoCalt": "--no-calt",
+}
+
+# Build-level flags forwarded into the Stage 1 RUN chain (Spec §4.9,
+# plan resolution D / v1.13). These are NOT driver flags: the Dockerfile
+# RUN chain strips ``--multi-weight`` from ``$BUILD_ARGS`` before invoking
+# ``custom_build_driver.py`` (which ``_die``s on unknown flags). Kept in a
+# separate constant so ``OPTION_TO_DRIVER_FLAG`` remains the single source
+# of truth for flags the legacy driver understands.
+BUILD_LEVEL_FLAGS = {
+    "EnableMultiWeight": "--multi-weight",
 }
 
 # Manifest top-level constants (Spec section 4.6).
@@ -253,10 +265,20 @@ def build_driver_arg_string(resolved):
 
     Empty string is a valid result — the Docker ``BUILD_ARGS`` ARG defaults
     to ``""`` and the driver handles the no-flags case.
+
+    Build-level flags (BUILD_LEVEL_FLAGS, e.g. ``--multi-weight``) are
+    appended AFTER the driver flags: they are consumed by the Stage 1 RUN
+    chain (and stripped before the legacy driver invocation), not by the
+    driver itself.
     """
     flags = [
         flag
         for option_name, flag in OPTION_TO_DRIVER_FLAG.items()
+        if resolved.get(option_name)
+    ]
+    flags += [
+        flag
+        for option_name, flag in BUILD_LEVEL_FLAGS.items()
         if resolved.get(option_name)
     ]
     return " ".join(flags)
@@ -382,6 +404,12 @@ def build_arg_parser():
         help="workflow_dispatch form input: use_hinted (true|false)",
     )
     parser.add_argument(
+        "--form-enable-multi-weight",
+        type=_parse_bool,
+        default=None,
+        help="workflow_dispatch form input: enable_multi_weight (true|false)",
+    )
+    parser.add_argument(
         "--output-args-file",
         type=Path,
         default=None,
@@ -428,6 +456,7 @@ def main(argv=None):
         "no_loop_k": args.form_no_loop_k,
         "no_calt": args.form_no_calt,
         "use_hinted": args.form_use_hinted,
+        "enable_multi_weight": args.form_enable_multi_weight,
     }
 
     # 3. Resolve and aggregate.

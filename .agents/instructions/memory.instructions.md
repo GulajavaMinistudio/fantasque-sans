@@ -322,3 +322,49 @@
   - Interpolated dir berisi HANYA Medium + SemiBold (stretch tidak diproduksi — TASK-3.4 ✓)
 
 <!-- checkpoint-tail: Phase 3 text-level pass selesai 2026-08-05 — Medium/SemiBold interpolated (832 blend + 210 copy), verify PASS, driver fix interpolateFonts(filename), TASK-3.1/3.4 ✅, Phase 2 ditandai selesai atas approval user; sisanya GA (specimen/validate) + desainer (481 skip). -->
+
+---
+
+## 📝 Session Checkpoint: 2026-08-05 (Phase 3 CLOSED — user approval; briefing Phase 4)
+
+- **Current SDLC Phase:** Phase Code — Phase 3 ditandai ✅ SELURUHNYA (TASK-3.1–3.Y) atas approval eksplisit user (2026-08-05); plan rows + todo updated. Phase 1 gate tetap blocked (GA).
+- **Phase 4 (Pipeline Integration) — pembagian kerja:**
+  - **AI (implementasi code, tanpa FontForge):** TASK-4.1 `configure.py` + `config.schema.json` (`--form-enable-multi-weight`, `BUILD_LEVEL_FLAGS`, properti `EnableMultiWeight`); TASK-4.2 `Dockerfile` Stage 1 RUN chain (guard Sources/Harmonized, strip `--multi-weight`, apt python3-fontforge + pre-check, pytest-cov, validate --strict kedua pasangan, driver, fail-fast loop `${T_FINAL}`); TASK-4.3 `custom-build.yml` (`enable_multi_weight`, `timeout-minutes: 360`, upload `output/reports/**`); TASK-4.4 `packaging.sh` (RELEASE_MODE + VERSION guard `_die`, NEW_WEIGHTS hinting pattern, verifikasi cabang ENABLE_MULTI_WEIGHT sudah terhapus); TASK-4.5 README + Specimen
+  - **User (verifikasi di GA):** TASK-4.X docker build mode true/false + byte-identical (AC-B03) + packaging RELEASE_MODE tanpa VERSION harus `_die` (R2); TASK-4.Y approval
+  - **PRASYARAT YANG SUDAH ADA:** guard `Sources/Harmonized/{Regular,Bold,Italic,BoldItalic}` — 4 master penuh ✓; `test-multi-weight.yml` push-gate ✓
+  - **RISIKO YANG HARUS DISAMPAIKAN KE USER:** run `enable_multi_weight=true` penuh di GA akan FAIL-FAST (GUD-002) di interpolasi native karena 481 glyph `needs_harmonization` belum dikerjakan desainer; mode `false` dijamin byte-identical (AC-B03) — plumbing pipeline bisa diverifikasi via mode false + tahapan RUN chain sampai titik interpolasi
+- **Verification Snapshot:** plan TASK-3.2/3.3/3.X/3.Y ✅ 2026-08-05 (row edit disambiguasi NOTE-3.2 via anchor `phase3-visual-review`); todo 18/24 done, 6 blocked (Phase 1 gate + pending GA)
+
+<!-- checkpoint-tail: Phase 3 closed 2026-08-05 (user approval, semua row plan ✅). Fase 4 = pipeline integration: AI kerjakan TASK-4.1–4.5 (configure/Dockerfile/workflow/packaging/README), user verifikasi TASK-4.X di GA (mode true/false, byte-identical, RELEASE_MODE guard) + approval. Ingat: mode true akan fail-fast di interpolasi sampai 481 skip desainer beres. -->
+
+---
+
+## 📝 Session Checkpoint: 2026-08-05 (Phase Code — Phase 4 Pipeline Integration SELESAI; Phase 1–3 CLOSED)
+
+- **Current SDLC Phase:** Phase Code — Phase 4 (Pipeline Integration): TASK-4.1–4.5 ✅ 2026-08-05; TASK-4.X blocked (verifikasi GA oleh user); TASK-4.Y menunggu approval. Phase 1/2/3 ditandai selesai atas approval eksplisit user (2026-08-05).
+- **Active Artifacts:**
+  - `Scripts/configure.py` + `config.schema.json` — EnableMultiWeight (DEFAULTS/FORM_KEY/BUILD_LEVEL_FLAGS/argparse/schema)
+  - `Dockerfile` — Stage 1: python3-fontforge apt + pytest/jsonschema/pytest-cov, RUN chain kondisional multi-weight (guard→detect→validate 2 pasangan→pytest --cov→driver→fail-fast loop T_FINAL), FONTS selection + strip --multi-weight; Stage 2: COPY build-reports
+  - `.github/workflows/custom-build.yml` — input enable_multi_weight, timeout 360, forward flag, upload output/reports/**
+  - `Scripts/packaging.sh` — hinting override NEW_WEIGHTS (case pattern), RELEASE_MODE=1 + VERSION guard _die + 3 archive per format, reports surfacing, zip-all Custom Build (verifikasi: cabang ENABLE_MULTI_WEIGHT sudah tidak ada ✓)
+  - `README.md` — section Multi-Weight Variants (prasyarat harmonized sources + pesan error guard) + Faux Italic Limitations (tabel kompatibilitas + CSS @font-face)
+  - `tests/test_configure.py` — 8 test baru (TestEnableMultiWeight) + update fixture/assertion 5 opsi
+- **Achieved Milestones:**
+  - **TASK-4.1**: 70/70 pytest PASS (8 test baru EnableMultiWeight: default/form/config/args string/schema/manifest); `build_driver_arg_string` = driver flags + BUILD_LEVEL_FLAGS (--multi-weight terakhir)
+  - **TASK-4.2**: 5 RUN fragment lolos `sh -n`; simulasi guard: dir hilang → `::error::` + exit 1 ✓; strip `--multi-weight` ✓; T_FINAL placeholder 15.0 (WAJIB diganti nilai kalibrasi saat PoC tuntas — TODO desainer/GA)
+  - **TASK-4.3**: YAML valid, 5 inputs, timeout 360
+  - **TASK-4.4**: bash -n OK; ENABLE_MULTI_WEIGHT branch absen (verifikasi codebase R1 ✓); RELEASE_MODE VERSION guard
+  - **TASK-4.5**: README multi-weight + Faux Italic
+- **Decisions Made:** user override menandai Phase 1–3 selesai (2026-08-05) meski gate GA belum dijalankan; urutan run chain mengikuti Spec §4.9 (Q-02: pytest sebelum interpolasi)
+- **Next Action / Pending:**
+  - **PRIORITAS #1 (user, GA):** TASK-4.X — docker build enable_multi_weight=false (byte-identical AC-B03) + true (RUN chain sampai fail-fast yang diharapkan karena 481 skip) + RELEASE_MODE tanpa VERSION harus _die
+  - **PRIORITAS #2:** TASK-4.Y approval → Phase 5 (buffer/stabilisasi + runbook release TASK-5.4)
+  - **PRIORITAS #3 (desainer):** 481 glyph needs_harmonization — prasyarat semua gate interpolasi lulus
+  - **Git:** seluruh perubahan BELUM di-commit; branch feature/multi-weight-poc
+- **Verification Snapshot:**
+  - `pytest tests/ -q` → 70 passed, 4 skipped (fontforge importorskip — host)
+  - `sh -n` 5 fragment Dockerfile RUN: OK; simulasi guard+strip: OK
+  - `bash -n Scripts/packaging.sh`: OK; YAML workflow: valid (5 inputs, timeout 360)
+  - markdownlint: README pakai directive `<!-- markdownlint-disable -->` (konvensi repo)
+
+<!-- checkpoint-tail: Phase 4 selesai 2026-08-05 — configure.py+schema (70/70 test), Dockerfile RUN chain multi-weight, workflow enable_multi_weight+360, packaging RELEASE_MODE/NEW_WEIGHTS/reports, README; Phase 1-3 closed by user. Next: user verifikasi TASK-4.X di GA (mode true/false + RELEASE_MODE guard) → TASK-4.Y → Phase 5. -->

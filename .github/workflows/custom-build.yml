@@ -12,9 +12,9 @@
 name: Custom Build
 
 # ---------------------------------------------------------------------------
-# Trigger: manual dispatch from the Actions tab. Four boolean inputs
+# Trigger: manual dispatch from the Actions tab. Five boolean inputs
 # (Spec section 4.3) -- default values match the built-in defaults
-# (false, false, false, true).
+# (false, false, false, true, false).
 # ---------------------------------------------------------------------------
 "on":
   workflow_dispatch:
@@ -39,6 +39,11 @@ name: Custom Build
         type: boolean
         required: false
         default: true
+      enable_multi_weight:
+        description: "Enable multi-weight interpolation (Medium 500, SemiBold 600) from harmonized masters"
+        type: boolean
+        required: false
+        default: false
 
 # ---------------------------------------------------------------------------
 # SEC-001 (Spec): explicit least-privilege. CON-002 (Spec): default
@@ -57,7 +62,7 @@ jobs:
   build:
     name: Build custom font
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 360  # CON-007: maximum platform limit (multi-weight builds are long)
 
     steps:
       # -----------------------------------------------------------------------
@@ -119,6 +124,7 @@ jobs:
             --form-no-loop-k "${{ inputs.no_loop_k }}" \
             --form-no-calt "${{ inputs.no_calt }}" \
             --form-use-hinted "${{ inputs.use_hinted }}" \
+            --form-enable-multi-weight "${{ inputs.enable_multi_weight }}" \
             --output-args-file build-args.txt \
             --generate-manifest manifest.json
           BUILD_ARGS_VAL=$(cat build-args.txt)
@@ -170,6 +176,7 @@ jobs:
             output/manifest.json
             output/LICENSE.txt
             output/README.md
+            output/reports/**
           if-no-files-found: error
           retention-days: 90
 

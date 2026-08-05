@@ -61,6 +61,7 @@ def empty_form():
         "no_loop_k": None,
         "no_calt": None,
         "use_hinted": None,
+        "enable_multi_weight": None,
     }
 
 
@@ -74,13 +75,14 @@ class TestSchemaFile:
     def test_schema_validates_as_draft_07(self, config_schema):
         jsonschema.Draft7Validator.check_schema(config_schema)
 
-    def test_schema_has_four_boolean_properties(self, config_schema):
+    def test_schema_has_five_boolean_properties(self, config_schema):
         props = config_schema["properties"]
         assert set(props.keys()) == {
             "LargeLineHeight",
             "NoLoopK",
             "NoCalt",
             "UseHinted",
+            "EnableMultiWeight",
         }
         for name, spec in props.items():
             assert spec["type"] == "boolean", f"{name} must be boolean"
@@ -181,6 +183,7 @@ class TestResolveOptions:
             "NoLoopK": False,
             "NoCalt": False,
             "UseHinted": True,
+            "EnableMultiWeight": False,
         }
         assert all(s == "defaults" for s in sources.values())
 
@@ -257,12 +260,14 @@ class TestResolveOptions:
             "NoLoopK": True,
             "NoCalt": True,
             "UseHinted": True,
+            "EnableMultiWeight": False,
         }
         assert sources == {
             "LargeLineHeight": "form_override",
             "NoLoopK": "config.json",
             "NoCalt": "form",
             "UseHinted": "defaults",
+            "EnableMultiWeight": "defaults",
         }
 
 
@@ -371,14 +376,15 @@ class TestLogOptionSources:
             "NoLoopK": "config.json",
             "NoCalt": "defaults",
             "UseHinted": "form_override",
+            "EnableMultiWeight": "defaults",
         }
         with caplog.at_level(logging.INFO, logger="configure"):
             configure.log_option_sources(sources)
         info_lines = [
             r.getMessage() for r in caplog.records if r.levelno == logging.INFO
         ]
-        # One log line per option (4 total).
-        assert len(info_lines) == 4
+        # One log line per option (5 total).
+        assert len(info_lines) == 5
 
 
 # ===========================================================================
@@ -424,6 +430,88 @@ class TestBuildDriverArgString:
         out = configure.build_driver_arg_string(resolved)
         # Order is determined by OPTION_TO_DRIVER_FLAG insertion order.
         assert out == "--line-height --no-loop-k"
+
+
+# ===========================================================================
+# EnableMultiWeight (TASK-4.1, Spec §4.9 / plan v1.13 resolution D)
+# ===========================================================================
+
+class TestEnableMultiWeight:
+    def test_default_is_false(self, empty_form):
+        resolved, sources = configure.resolve_options({}, empty_form)
+        assert resolved["EnableMultiWeight"] is False
+        assert sources["EnableMultiWeight"] == "defaults"
+
+    def test_form_true_resolves(self, empty_form):
+        form = dict(empty_form)
+        form["enable_multi_weight"] = True
+        resolved, sources = configure.resolve_options({}, form)
+        assert resolved["EnableMultiWeight"] is True
+        assert sources["EnableMultiWeight"] == "form"
+
+    def test_config_json_true_resolves(self, empty_form):
+        resolved, sources = configure.resolve_options(
+            {"EnableMultiWeight": True}, empty_form
+        )
+        assert resolved["EnableMultiWeight"] is True
+        assert sources["EnableMultiWeight"] == "config.json"
+
+    def test_flag_appears_in_driver_arg_string(self):
+        resolved = {
+            "LargeLineHeight": False,
+            "NoLoopK": False,
+            "NoCalt": False,
+            "UseHinted": True,
+            "EnableMultiWeight": True,
+        }
+        out = configure.build_driver_arg_string(resolved)
+        assert "--multi-weight" in out
+
+    def test_flag_absent_when_disabled(self):
+        resolved = {
+            "LargeLineHeight": False,
+            "NoLoopK": False,
+            "NoCalt": False,
+            "UseHinted": True,
+            "EnableMultiWeight": False,
+        }
+        assert configure.build_driver_arg_string(resolved) == ""
+
+    def test_driver_flags_and_build_level_flag_combined(self):
+        resolved = {
+            "LargeLineHeight": True,
+            "NoLoopK": False,
+            "NoCalt": False,
+            "UseHinted": True,
+            "EnableMultiWeight": True,
+        }
+        out = configure.build_driver_arg_string(resolved)
+        # Driver flags first (OPTION_TO_DRIVER_FLAG), build-level flag last.
+        assert out == "--line-height --multi-weight"
+
+    def test_schema_declares_boolean_property(self, config_schema):
+        prop = config_schema["properties"]["EnableMultiWeight"]
+        assert prop["type"] == "boolean"
+        assert prop["default"] is False
+
+    def test_manifest_records_resolved_option(
+        self, tmp_path, manifest_schema
+    ):
+        resolved = {
+            "LargeLineHeight": False,
+            "NoLoopK": False,
+            "NoCalt": False,
+            "UseHinted": True,
+            "EnableMultiWeight": True,
+        }
+        sources = {k: "defaults" for k in resolved}
+        out = tmp_path / "manifest.json"
+        configure.generate_manifest(resolved, sources, "defaults", out)
+        with out.open("r", encoding="utf-8") as f:
+            data = json.load(f)
+        assert data["resolved_options"]["EnableMultiWeight"] is True
+        # Manifest must still validate against the §4.6 schema.
+        jsonschema.validate(data, manifest_schema)
 
 
 # ===========================================================================

@@ -22,6 +22,11 @@
       "type": "boolean",
       "description": "Runs ttfautohint on generated TTF fonts for screen rendering optimization.",
       "default": true
+    },
+    "EnableMultiWeight": {
+      "type": "boolean",
+      "description": "Enables multi-weight interpolation (Medium 500, SemiBold 600) from harmonized masters before the legacy variant pipeline. Recorded in the manifest as audit information only — packaging does not consume it (Spec §4.10, r4 R1).",
+      "default": false
     }
   },
   "additionalProperties": true

@@ -73,10 +73,75 @@ Need a Variant of Fantasque Sans Mono that is not in the official releases?
 The Custom Build workflow lets you compile a personalized variant directly
 from GitHub Actions — no local toolchain required. Fork the repo, open the
 Actions tab, click **Run workflow** on the *Custom Build* workflow, adjust
-the four boolean inputs, and download the result as a zip/tar.gz archive
+the five boolean inputs (including `enable_multi_weight` — see the
+Multi-Weight section below), and download the result as a zip/tar.gz archive
 and a tagged GitHub Release. Store your preferences in a `config.json` at
 your fork's root for reproducible builds. See
 [`docs/CUSTOM-BUILD.md`](docs/CUSTOM-BUILD.md) for the full guide.
+
+Multi-Weight Variants
+---------------------
+
+Custom Build supports interpolated **Medium (500)** and **SemiBold (600)**
+weights, generated from harmonized Regular/Bold/Italic/BoldItalic masters via
+FontForge linear interpolation. To enable them, set the `enable_multi_weight`
+workflow input to `true` (or `"EnableMultiWeight": true` in your fork's
+`config.json`).
+
+**Prerequisite — harmonized sources.** The multi-weight pipeline requires the
+four harmonized master directories to exist in the repository:
+
+    Sources/Harmonized/Regular
+    Sources/Harmonized/Bold
+    Sources/Harmonized/Italic
+    Sources/Harmonized/BoldItalic
+
+These are the output of the upstream harmonization work (a manual type-design
+process). Fork owners who have not synced them will get a clear error at the
+start of the build:
+
+    multi-weight build requires harmonized sources
+    (Sources/Harmonized/{Regular,Bold,Italic,BoldItalic});
+    sync upstream or run harmonization first
+
+Without the harmonized sources, keep `enable_multi_weight` at `false` — the
+build then produces the exact same output as before (byte-identical).
+
+New weights are always auto-hinted (`ttfautohint`) regardless of the
+`use_hinted` option; existing weights keep following `use_hinted`.
+
+### Faux Italic Limitations
+
+The new weights (Medium, SemiBold) do not ship italic instances — no
+Italic Medium / SemiBold fonts are generated. Applications that request an
+italic style for these weights synthesize a *faux italic* (oblique
+transform) instead:
+
+| Platform / App | Faux italic support for Medium/SemiBold |
+|---|---|
+| Web browsers (Chrome, Firefox, Safari, Edge) | ✅ Yes — `font-style: italic` synthesizes an oblique |
+| LibreOffice | ✅ Yes — automatic oblique synthesis |
+| Microsoft Office | ⚠️ Partial — synthesis depends on version and theme |
+| Adobe apps (Illustrator, InDesign) | ⚠️ Partial — manually switch to the real Italic weight |
+| Terminal emulators (Windows Terminal, iTerm2, GNOME Terminal) | ❌ No synthesis — italic request falls back to regular |
+
+If faux italic is not acceptable, use the existing Italic/BoldItalic fonts
+for emphasized text, or declare the synthetic style explicitly in CSS:
+
+```css
+@font-face {
+  font-family: "Fantasque Sans Mono";
+  src: url("FantasqueSansMono-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: normal;
+}
+@font-face {
+  font-family: "Fantasque Sans Mono";
+  src: url("FantasqueSansMono-Medium.ttf") format("truetype");
+  font-weight: 500;
+  font-style: italic; /* the browser synthesizes the oblique */
+}
+```
 
 Installation
 ------------
