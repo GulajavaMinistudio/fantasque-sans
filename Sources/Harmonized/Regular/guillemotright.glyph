@@ -5,8 +5,6 @@ VWidth: 6
 Flags: W
 LayerCount: 2
 Fore
-SplineSet
-EndSplineSet
 Refer: 157 171 S -0.999967 -0.008174 0.008174 -0.999967 997 1024 2
 Validated: 1
 EndChar

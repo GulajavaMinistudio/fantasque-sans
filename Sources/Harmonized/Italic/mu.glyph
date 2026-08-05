@@ -36,7 +36,7 @@ SplineSet
 867 234 867 229 867 225 c 0
 867 178 903 136 934 107 c 1
 881.5 48.5 l 1
-864 29 846.5 9.5 829 -10 c 1
+829 -10 l 1
 EndSplineSet
 Validated: 1
 EndChar

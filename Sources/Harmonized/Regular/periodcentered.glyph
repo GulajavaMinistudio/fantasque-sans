@@ -7,8 +7,6 @@ HStem: 387 269<481 732>
 VStem: 481 251<387 656>
 LayerCount: 2
 Fore
-SplineSet
-EndSplineSet
 Refer: 53 46 S 1 0 0 1 84 387 2
 Validated: 1
 EndChar

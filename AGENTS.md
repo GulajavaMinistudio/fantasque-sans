@@ -186,7 +186,7 @@ To prevent infinite loops during the Draft ➔ Audit ➔ Update cycle, all clari
 
 - **Active Memory Path:** `.agents/instructions/memory.instructions.md`
 - **Managed by:** `memory-manager` skill
-- **Last Recorded:** 2026-08-01
+- **Last Recorded:** 2026-08-05
 
 ## Agents Specific Guidelines
 

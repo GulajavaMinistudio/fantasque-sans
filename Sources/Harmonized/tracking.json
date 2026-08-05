@@ -4,57 +4,15 @@
     {
       "name": "AE",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A",
-      "notes": "Regular<->Bold: contour count mismatch (4 vs 2)",
+      "assigned_to": "Designer A; Designer B",
+      "notes": "Regular<->Bold: contour count mismatch (4 vs 2); Italic<->BoldItalic: equalize failed (A6 < B10)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
       "name": "AEacute",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A",
-      "notes": "Regular<->Bold: contour count mismatch (5 vs 3)",
-      "date_flagged": "2026-08-05T00:00:00Z"
-    },
-    {
-      "name": "Aacute",
-      "status": "needs_harmonization",
       "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3); Italic<->BoldItalic: contour count mismatch (3 vs 3)",
-      "date_flagged": "2026-08-05T00:00:00Z"
-    },
-    {
-      "name": "Abreve",
-      "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3); Italic<->BoldItalic: contour count mismatch (3 vs 3)",
-      "date_flagged": "2026-08-05T00:00:00Z"
-    },
-    {
-      "name": "Adieresis",
-      "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (4 vs 4); Italic<->BoldItalic: contour count mismatch (4 vs 4)",
-      "date_flagged": "2026-08-05T00:00:00Z"
-    },
-    {
-      "name": "Agrave",
-      "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3); Italic<->BoldItalic: contour count mismatch (3 vs 3)",
-      "date_flagged": "2026-08-05T00:00:00Z"
-    },
-    {
-      "name": "Alphatonos",
-      "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3); Italic<->BoldItalic: contour count mismatch (3 vs 3)",
-      "date_flagged": "2026-08-05T00:00:00Z"
-    },
-    {
-      "name": "Amacron",
-      "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3); Italic<->BoldItalic: contour count mismatch (3 vs 3)",
+      "notes": "Regular<->Bold: contour count mismatch (5 vs 3); Italic<->BoldItalic: equalize failed (A6 < B10)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -83,27 +41,6 @@
       "status": "needs_harmonization",
       "assigned_to": "Designer A; Designer B",
       "notes": "Regular<->Bold: equalize failed (A21 < B22); Italic<->BoldItalic: equalize failed (B25 < A26)",
-      "date_flagged": "2026-08-05T00:00:00Z"
-    },
-    {
-      "name": "Edieresis",
-      "status": "needs_harmonization",
-      "assigned_to": "Designer A",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3)",
-      "date_flagged": "2026-08-05T00:00:00Z"
-    },
-    {
-      "name": "Idieresis",
-      "status": "needs_harmonization",
-      "assigned_to": "Designer A",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3)",
-      "date_flagged": "2026-08-05T00:00:00Z"
-    },
-    {
-      "name": "Iotadieresis",
-      "status": "needs_harmonization",
-      "assigned_to": "Designer A",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -151,8 +88,8 @@
     {
       "name": "Odieresis",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (4 vs 4); Italic<->BoldItalic: equalize failed (B22 < A32)",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: equalize failed (B22 < A32)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -200,8 +137,8 @@
     {
       "name": "Oslashacute",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (4 vs 4); Italic<->BoldItalic: contour count mismatch (4 vs 4)",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: equalize failed (B19 < A20)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -226,31 +163,17 @@
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
+      "name": "Psi",
+      "status": "needs_harmonization",
+      "assigned_to": "Designer A",
+      "notes": "Regular<->Bold: equalize failed (B55 < A59)",
+      "date_flagged": "2026-08-05T00:00:00Z"
+    },
+    {
       "name": "Q",
       "status": "needs_harmonization",
       "assigned_to": "Designer B",
       "notes": "Italic<->BoldItalic: equalize failed (A19 < B20)",
-      "date_flagged": "2026-08-05T00:00:00Z"
-    },
-    {
-      "name": "Racute",
-      "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3); Italic<->BoldItalic: contour count mismatch (3 vs 3)",
-      "date_flagged": "2026-08-05T00:00:00Z"
-    },
-    {
-      "name": "Rcaron",
-      "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3); Italic<->BoldItalic: contour count mismatch (3 vs 3)",
-      "date_flagged": "2026-08-05T00:00:00Z"
-    },
-    {
-      "name": "Rcommaaccent",
-      "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3); Italic<->BoldItalic: contour count mismatch (3 vs 3)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -270,15 +193,8 @@
     {
       "name": "Thorn",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A",
-      "notes": "Regular<->Bold: equalize failed (A17 < B18)",
-      "date_flagged": "2026-08-05T00:00:00Z"
-    },
-    {
-      "name": "Udieresis",
-      "status": "needs_harmonization",
-      "assigned_to": "Designer A",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3)",
+      "assigned_to": "Designer A; Designer B",
+      "notes": "Regular<->Bold: equalize failed (A17 < B18); Italic<->BoldItalic: equalize failed (A28 < B32)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -291,8 +207,8 @@
     {
       "name": "Upsilondieresis",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3); Italic<->BoldItalic: equalize failed (B25 < A30)",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: equalize failed (B25 < A30)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -317,13 +233,6 @@
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
-      "name": "Ydieresis",
-      "status": "needs_harmonization",
-      "assigned_to": "Designer A",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3)",
-      "date_flagged": "2026-08-05T00:00:00Z"
-    },
-    {
       "name": "a",
       "status": "needs_harmonization",
       "assigned_to": "Designer B",
@@ -340,8 +249,8 @@
     {
       "name": "abreve",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3); Italic<->BoldItalic: contour count mismatch (3 vs 5)",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: contour count mismatch (3 vs 5)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -354,22 +263,22 @@
     {
       "name": "adieresis",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (4 vs 4); Italic<->BoldItalic: contour count mismatch (4 vs 6)",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: contour count mismatch (4 vs 6)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
       "name": "ae",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: equalize failed (A10 < B11); Italic<->BoldItalic: contour count mismatch (3 vs 3)",
+      "assigned_to": "Designer A",
+      "notes": "Regular<->Bold: equalize failed (A10 < B11)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
       "name": "aeacute",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: equalize failed (A10 < B11); Italic<->BoldItalic: contour count mismatch (4 vs 4)",
+      "assigned_to": "Designer A",
+      "notes": "Regular<->Bold: equalize failed (A10 < B11)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -706,6 +615,13 @@
       "status": "needs_harmonization",
       "assigned_to": "Designer A",
       "notes": "Regular<->Bold: contour count mismatch (4 vs 2)",
+      "date_flagged": "2026-08-05T00:00:00Z"
+    },
+    {
+      "name": "afii10066.serbian",
+      "status": "needs_harmonization",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: equalize failed (A33 < B49)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -1054,8 +970,8 @@
     {
       "name": "afii10194",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A",
-      "notes": "Regular<->Bold: contour count mismatch (4 vs 2)",
+      "assigned_to": "Designer A; Designer B",
+      "notes": "Regular<->Bold: contour count mismatch (4 vs 2); Italic<->BoldItalic: equalize failed (A38 < B42)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -1087,24 +1003,31 @@
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
+      "name": "alpha",
+      "status": "needs_harmonization",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: equalize failed (A36 < B40)",
+      "date_flagged": "2026-08-05T00:00:00Z"
+    },
+    {
       "name": "alphatonos",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3); Italic<->BoldItalic: contour count mismatch (3 vs 3)",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: equalize failed (A36 < B40)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
       "name": "amacron",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3); Italic<->BoldItalic: contour count mismatch (3 vs 5)",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: contour count mismatch (3 vs 5)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
       "name": "ampersand_ampersand.liga",
       "status": "needs_harmonization",
       "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (5 vs 5); Italic<->BoldItalic: equalize failed (A16 < B17)",
+      "notes": "Regular<->Bold: equalize failed (A13 < B17); Italic<->BoldItalic: equalize failed (A16 < B17)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -1117,8 +1040,15 @@
     {
       "name": "aringacute",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (5 vs 5); Italic<->BoldItalic: contour count mismatch (5 vs 7)",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: contour count mismatch (5 vs 7)",
+      "date_flagged": "2026-08-05T00:00:00Z"
+    },
+    {
+      "name": "arrowboth",
+      "status": "needs_harmonization",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: equalize failed (A49 < B56)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -1153,14 +1083,14 @@
       "name": "bar_bar_bar_greater.liga",
       "status": "needs_harmonization",
       "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (4 vs 4); Italic<->BoldItalic: contour count mismatch (4 vs 4)",
+      "notes": "Regular<->Bold: equalize failed (A14 < B15); Italic<->BoldItalic: equalize failed (B10 < A14)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
       "name": "bar_bar_greater.liga",
       "status": "needs_harmonization",
       "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3); Italic<->BoldItalic: contour count mismatch (3 vs 3)",
+      "notes": "Regular<->Bold: equalize failed (B10 < A20); Italic<->BoldItalic: equalize failed (B10 < A14)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -1234,24 +1164,10 @@
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
-      "name": "dieresis",
-      "status": "needs_harmonization",
-      "assigned_to": "Designer A",
-      "notes": "Regular<->Bold: contour count mismatch (2 vs 2)",
-      "date_flagged": "2026-08-05T00:00:00Z"
-    },
-    {
-      "name": "dieresistonos",
-      "status": "needs_harmonization",
-      "assigned_to": "Designer A",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3)",
-      "date_flagged": "2026-08-05T00:00:00Z"
-    },
-    {
       "name": "divide",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3); Italic<->BoldItalic: contour count mismatch (3 vs 3)",
+      "assigned_to": "Designer A",
+      "notes": "Regular<->Bold: equalize failed (A17 < B27)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -1306,15 +1222,15 @@
     {
       "name": "edieresis",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (4 vs 4); Italic<->BoldItalic: contour count mismatch (4 vs 6)",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: contour count mismatch (4 vs 6)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
       "name": "edotaccent",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3); Italic<->BoldItalic: contour count mismatch (3 vs 5)",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: contour count mismatch (3 vs 5)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -1327,8 +1243,8 @@
     {
       "name": "emacron",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3); Italic<->BoldItalic: contour count mismatch (3 vs 5)",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: contour count mismatch (3 vs 5)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -1360,10 +1276,10 @@
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
-      "name": "exclamdbl",
+      "name": "exclam_equal_equal.liga",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (4 vs 4); Italic<->BoldItalic: contour count mismatch (4 vs 4)",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: equalize failed (A95 < B105)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -1377,14 +1293,14 @@
       "name": "g",
       "status": "needs_harmonization",
       "assigned_to": "Designer B",
-      "notes": "Italic<->BoldItalic: contour count mismatch (5 vs 5)",
+      "notes": "Italic<->BoldItalic: equalize failed (B16 < A44)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
       "name": "gbreve",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (7 vs 7); Italic<->BoldItalic: contour count mismatch (6 vs 6)",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: equalize failed (B16 < A44)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -1404,15 +1320,22 @@
     {
       "name": "gcommaaccent",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (7 vs 7); Italic<->BoldItalic: contour count mismatch (6 vs 6)",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: equalize failed (B16 < A44)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
       "name": "gdotaccent",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (7 vs 7); Italic<->BoldItalic: contour count mismatch (6 vs 6)",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: equalize failed (B16 < A44)",
+      "date_flagged": "2026-08-05T00:00:00Z"
+    },
+    {
+      "name": "greater_hyphen_greater.liga",
+      "status": "needs_harmonization",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: equalize failed (A44 < B57)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -1434,6 +1357,13 @@
       "status": "needs_harmonization",
       "assigned_to": "Designer A; Designer B",
       "notes": "Regular<->Bold: contour count mismatch (1 vs 0); Italic<->BoldItalic: contour count mismatch (1 vs 0)",
+      "date_flagged": "2026-08-05T00:00:00Z"
+    },
+    {
+      "name": "hyphen_less.liga",
+      "status": "needs_harmonization",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: equalize failed (A24 < B44)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -1467,8 +1397,8 @@
     {
       "name": "idieresis",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3); Italic<->BoldItalic: contour count mismatch (4 vs 3)",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: contour count mismatch (4 vs 3)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -1490,13 +1420,6 @@
       "status": "needs_harmonization",
       "assigned_to": "Designer B",
       "notes": "Italic<->BoldItalic: contour count mismatch (3 vs 2)",
-      "date_flagged": "2026-08-05T00:00:00Z"
-    },
-    {
-      "name": "iotadieresis",
-      "status": "needs_harmonization",
-      "assigned_to": "Designer A",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -1530,29 +1453,57 @@
     {
       "name": "kcommaaccent",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3); Italic<->BoldItalic: contour count mismatch (2 vs 4)",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: contour count mismatch (2 vs 4)",
+      "date_flagged": "2026-08-05T00:00:00Z"
+    },
+    {
+      "name": "l",
+      "status": "needs_harmonization",
+      "assigned_to": "Designer A",
+      "notes": "Regular<->Bold: equalize failed (A32 < B37)",
+      "date_flagged": "2026-08-05T00:00:00Z"
+    },
+    {
+      "name": "lacute",
+      "status": "needs_harmonization",
+      "assigned_to": "Designer A",
+      "notes": "Regular<->Bold: equalize failed (A32 < B37)",
+      "date_flagged": "2026-08-05T00:00:00Z"
+    },
+    {
+      "name": "lcommaaccent",
+      "status": "needs_harmonization",
+      "assigned_to": "Designer A",
+      "notes": "Regular<->Bold: equalize failed (A32 < B37)",
+      "date_flagged": "2026-08-05T00:00:00Z"
+    },
+    {
+      "name": "ldot",
+      "status": "needs_harmonization",
+      "assigned_to": "Designer A",
+      "notes": "Regular<->Bold: equalize failed (A32 < B37)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
       "name": "less_bar_bar.liga",
       "status": "needs_harmonization",
       "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3); Italic<->BoldItalic: contour count mismatch (3 vs 3)",
-      "date_flagged": "2026-08-05T00:00:00Z"
-    },
-    {
-      "name": "less_bar_bar_bar.liga",
-      "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (4 vs 4); Italic<->BoldItalic: contour count mismatch (4 vs 4)",
+      "notes": "Regular<->Bold: equalize failed (A10 < B18); Italic<->BoldItalic: equalize failed (A10 < B18)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
       "name": "less_bar_greater.liga",
       "status": "needs_harmonization",
       "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3); Italic<->BoldItalic: contour count mismatch (3 vs 3)",
+      "notes": "Regular<->Bold: equalize failed (B16 < A21); Italic<->BoldItalic: equalize failed (B16 < A21)",
+      "date_flagged": "2026-08-05T00:00:00Z"
+    },
+    {
+      "name": "less_equal_greater.liga",
+      "status": "needs_harmonization",
+      "assigned_to": "Designer A",
+      "notes": "Regular<->Bold: equalize failed (A45 < B57)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -1642,22 +1593,22 @@
     {
       "name": "ocircumflex",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3); Italic<->BoldItalic: contour count mismatch (3 vs 5)",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: contour count mismatch (3 vs 5)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
       "name": "odieresis",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (4 vs 4); Italic<->BoldItalic: contour count mismatch (4 vs 6)",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: contour count mismatch (4 vs 6)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
       "name": "oe",
       "status": "needs_harmonization",
       "assigned_to": "Designer B",
-      "notes": "Italic<->BoldItalic: equalize failed (B13 < A14)",
+      "notes": "Italic<->BoldItalic: equalize failed (B50 < A54)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -1682,6 +1633,13 @@
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
+      "name": "omega1",
+      "status": "needs_harmonization",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: equalize failed (A42 < B46)",
+      "date_flagged": "2026-08-05T00:00:00Z"
+    },
+    {
       "name": "omicron",
       "status": "needs_harmonization",
       "assigned_to": "Designer B",
@@ -1700,13 +1658,6 @@
       "status": "needs_harmonization",
       "assigned_to": "Designer B",
       "notes": "Italic<->BoldItalic: contour count mismatch (4 vs 5)",
-      "date_flagged": "2026-08-05T00:00:00Z"
-    },
-    {
-      "name": "ordmasculine",
-      "status": "needs_harmonization",
-      "assigned_to": "Designer B",
-      "notes": "Italic<->BoldItalic: contour count mismatch (3 vs 3)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -1747,8 +1698,8 @@
     {
       "name": "phi1",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: equalize failed (A25 < B36); Italic<->BoldItalic: contour count mismatch (3 vs 3)",
+      "assigned_to": "Designer A",
+      "notes": "Regular<->Bold: equalize failed (A25 < B36)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -1899,13 +1850,6 @@
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
-      "name": "twodotenleader",
-      "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (2 vs 2); Italic<->BoldItalic: contour count mismatch (2 vs 2)",
-      "date_flagged": "2026-08-05T00:00:00Z"
-    },
-    {
       "name": "u",
       "status": "needs_harmonization",
       "assigned_to": "Designer B",
@@ -1936,8 +1880,8 @@
     {
       "name": "udieresis",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3); Italic<->BoldItalic: contour count mismatch (3 vs 4)",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: contour count mismatch (3 vs 4)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -1992,8 +1936,8 @@
     {
       "name": "uni01D2",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3); Italic<->BoldItalic: contour count mismatch (3 vs 5)",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: contour count mismatch (3 vs 5)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -2004,101 +1948,59 @@
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
-      "name": "uni01D5",
-      "status": "needs_harmonization",
-      "assigned_to": "Designer A",
-      "notes": "Regular<->Bold: contour count mismatch (4 vs 4)",
-      "date_flagged": "2026-08-05T00:00:00Z"
-    },
-    {
       "name": "uni01D6",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (4 vs 4); Italic<->BoldItalic: contour count mismatch (4 vs 5)",
-      "date_flagged": "2026-08-05T00:00:00Z"
-    },
-    {
-      "name": "uni01D7",
-      "status": "needs_harmonization",
-      "assigned_to": "Designer A",
-      "notes": "Regular<->Bold: contour count mismatch (4 vs 4)",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: contour count mismatch (4 vs 5)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
       "name": "uni01D8",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (4 vs 4); Italic<->BoldItalic: contour count mismatch (4 vs 5)",
-      "date_flagged": "2026-08-05T00:00:00Z"
-    },
-    {
-      "name": "uni01D9",
-      "status": "needs_harmonization",
-      "assigned_to": "Designer A",
-      "notes": "Regular<->Bold: contour count mismatch (4 vs 4)",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: contour count mismatch (4 vs 5)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
       "name": "uni01DA",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (4 vs 4); Italic<->BoldItalic: contour count mismatch (4 vs 5)",
-      "date_flagged": "2026-08-05T00:00:00Z"
-    },
-    {
-      "name": "uni01DB",
-      "status": "needs_harmonization",
-      "assigned_to": "Designer A",
-      "notes": "Regular<->Bold: contour count mismatch (4 vs 4)",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: contour count mismatch (4 vs 5)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
       "name": "uni01DC",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (4 vs 4); Italic<->BoldItalic: contour count mismatch (4 vs 5)",
-      "date_flagged": "2026-08-05T00:00:00Z"
-    },
-    {
-      "name": "uni01DE",
-      "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (5 vs 5); Italic<->BoldItalic: contour count mismatch (5 vs 5)",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: contour count mismatch (4 vs 5)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
       "name": "uni01DF",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (5 vs 5); Italic<->BoldItalic: contour count mismatch (5 vs 7)",
-      "date_flagged": "2026-08-05T00:00:00Z"
-    },
-    {
-      "name": "uni01E0",
-      "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (4 vs 4); Italic<->BoldItalic: contour count mismatch (4 vs 4)",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: contour count mismatch (5 vs 7)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
       "name": "uni01E1",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (4 vs 4); Italic<->BoldItalic: contour count mismatch (4 vs 6)",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: contour count mismatch (4 vs 6)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
       "name": "uni01E2",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A",
-      "notes": "Regular<->Bold: contour count mismatch (5 vs 3)",
+      "assigned_to": "Designer A; Designer B",
+      "notes": "Regular<->Bold: contour count mismatch (5 vs 3); Italic<->BoldItalic: equalize failed (A6 < B10)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
       "name": "uni01E3",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: equalize failed (A10 < B11); Italic<->BoldItalic: contour count mismatch (4 vs 4)",
+      "assigned_to": "Designer A",
+      "notes": "Regular<->Bold: equalize failed (A10 < B11)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -2112,7 +2014,7 @@
       "name": "uni01F5",
       "status": "needs_harmonization",
       "assigned_to": "Designer B",
-      "notes": "Italic<->BoldItalic: contour count mismatch (6 vs 6)",
+      "notes": "Italic<->BoldItalic: equalize failed (B16 < A44)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -2125,36 +2027,29 @@
     {
       "name": "uni0200",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (4 vs 4); Italic<->BoldItalic: contour count mismatch (4 vs 4)",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: equalize failed (A9 < B13)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
       "name": "uni0201",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (4 vs 4); Italic<->BoldItalic: contour count mismatch (4 vs 6)",
-      "date_flagged": "2026-08-05T00:00:00Z"
-    },
-    {
-      "name": "uni0202",
-      "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3); Italic<->BoldItalic: contour count mismatch (3 vs 3)",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: contour count mismatch (4 vs 6)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
       "name": "uni0203",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3); Italic<->BoldItalic: contour count mismatch (3 vs 5)",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: contour count mismatch (3 vs 5)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
       "name": "uni0204",
       "status": "needs_harmonization",
       "assigned_to": "Designer B",
-      "notes": "Italic<->BoldItalic: contour count mismatch (3 vs 3)",
+      "notes": "Italic<->BoldItalic: equalize failed (A9 < B13)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -2175,7 +2070,7 @@
       "name": "uni0208",
       "status": "needs_harmonization",
       "assigned_to": "Designer B",
-      "notes": "Italic<->BoldItalic: contour count mismatch (3 vs 3)",
+      "notes": "Italic<->BoldItalic: equalize failed (A9 < B13)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -2196,7 +2091,7 @@
       "name": "uni020C",
       "status": "needs_harmonization",
       "assigned_to": "Designer B",
-      "notes": "Italic<->BoldItalic: contour count mismatch (4 vs 4)",
+      "notes": "Italic<->BoldItalic: equalize failed (A9 < B13)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -2223,8 +2118,8 @@
     {
       "name": "uni0210",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (4 vs 4); Italic<->BoldItalic: contour count mismatch (4 vs 4)",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: equalize failed (A9 < B13)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -2232,13 +2127,6 @@
       "status": "needs_harmonization",
       "assigned_to": "Designer B",
       "notes": "Italic<->BoldItalic: contour count mismatch (3 vs 4)",
-      "date_flagged": "2026-08-05T00:00:00Z"
-    },
-    {
-      "name": "uni0212",
-      "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3); Italic<->BoldItalic: contour count mismatch (3 vs 3)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -2252,7 +2140,7 @@
       "name": "uni0214",
       "status": "needs_harmonization",
       "assigned_to": "Designer B",
-      "notes": "Italic<->BoldItalic: contour count mismatch (3 vs 3)",
+      "notes": "Italic<->BoldItalic: equalize failed (A9 < B13)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -2284,17 +2172,10 @@
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
-      "name": "uni0226",
-      "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3); Italic<->BoldItalic: contour count mismatch (3 vs 3)",
-      "date_flagged": "2026-08-05T00:00:00Z"
-    },
-    {
       "name": "uni0227",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3); Italic<->BoldItalic: contour count mismatch (3 vs 5)",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: contour count mismatch (3 vs 5)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -2307,15 +2188,15 @@
     {
       "name": "uni022A",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (5 vs 5); Italic<->BoldItalic: equalize failed (B22 < A32)",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: equalize failed (B22 < A32)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
       "name": "uni022B",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (5 vs 5); Italic<->BoldItalic: contour count mismatch (5 vs 7)",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: contour count mismatch (5 vs 7)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -2389,13 +2270,6 @@
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
-      "name": "uni03D4",
-      "status": "needs_harmonization",
-      "assigned_to": "Designer A",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3)",
-      "date_flagged": "2026-08-05T00:00:00Z"
-    },
-    {
       "name": "uni040D",
       "status": "needs_harmonization",
       "assigned_to": "Designer A",
@@ -2426,15 +2300,15 @@
     {
       "name": "uni048A",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A",
-      "notes": "Regular<->Bold: contour count mismatch (4 vs 2)",
+      "assigned_to": "Designer A; Designer B",
+      "notes": "Regular<->Bold: contour count mismatch (4 vs 2); Italic<->BoldItalic: equalize failed (A40 < B44)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
       "name": "uni048B",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A",
-      "notes": "Regular<->Bold: contour count mismatch (4 vs 2)",
+      "assigned_to": "Designer A; Designer B",
+      "notes": "Regular<->Bold: contour count mismatch (4 vs 2); Italic<->BoldItalic: equalize failed (A55 < B62)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -2692,8 +2566,8 @@
     {
       "name": "uni04B2",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A",
-      "notes": "Regular<->Bold: contour count mismatch (2 vs 1)",
+      "assigned_to": "Designer A; Designer B",
+      "notes": "Regular<->Bold: contour count mismatch (2 vs 1); Italic<->BoldItalic: equalize failed (B38 < A42)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -2902,8 +2776,8 @@
     {
       "name": "uni04D0",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (8 vs 3); Italic<->BoldItalic: contour count mismatch (3 vs 3)",
+      "assigned_to": "Designer A",
+      "notes": "Regular<->Bold: contour count mismatch (8 vs 3)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -2916,8 +2790,8 @@
     {
       "name": "uni04D2",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (10 vs 4); Italic<->BoldItalic: contour count mismatch (4 vs 4)",
+      "assigned_to": "Designer A",
+      "notes": "Regular<->Bold: contour count mismatch (10 vs 4)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -2972,8 +2846,8 @@
     {
       "name": "uni04DB",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (12 vs 4); Italic<->BoldItalic: contour count mismatch (4 vs 4)",
+      "assigned_to": "Designer A",
+      "notes": "Regular<->Bold: contour count mismatch (12 vs 4)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -3078,7 +2952,7 @@
       "name": "uni04EB",
       "status": "needs_harmonization",
       "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (22 vs 5); Italic<->BoldItalic: contour count mismatch (5 vs 5)",
+      "notes": "Regular<->Bold: contour count mismatch (22 vs 5); Italic<->BoldItalic: equalize failed (A19 < B20)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -3168,15 +3042,15 @@
     {
       "name": "uni04F8",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (16 vs 5); Italic<->BoldItalic: contour count mismatch (5 vs 5)",
+      "assigned_to": "Designer A",
+      "notes": "Regular<->Bold: contour count mismatch (16 vs 5)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
       "name": "uni04F9",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (16 vs 5); Italic<->BoldItalic: contour count mismatch (5 vs 5)",
+      "assigned_to": "Designer A",
+      "notes": "Regular<->Bold: contour count mismatch (16 vs 5)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
@@ -3264,13 +3138,6 @@
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {
-      "name": "upsilondieresis",
-      "status": "needs_harmonization",
-      "assigned_to": "Designer A",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3)",
-      "date_flagged": "2026-08-05T00:00:00Z"
-    },
-    {
       "name": "uring",
       "status": "needs_harmonization",
       "assigned_to": "Designer A; Designer B",
@@ -3336,8 +3203,8 @@
     {
       "name": "ydieresis",
       "status": "needs_harmonization",
-      "assigned_to": "Designer A; Designer B",
-      "notes": "Regular<->Bold: contour count mismatch (3 vs 3); Italic<->BoldItalic: contour count mismatch (3 vs 4)",
+      "assigned_to": "Designer B",
+      "notes": "Italic<->BoldItalic: contour count mismatch (3 vs 4)",
       "date_flagged": "2026-08-05T00:00:00Z"
     },
     {

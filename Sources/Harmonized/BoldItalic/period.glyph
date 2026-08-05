@@ -9,10 +9,10 @@ LayerCount: 2
 Fore
 SplineSet
 330 313 m 1
- 435 313 540 313 645 313 c 1
- 625 209 604 104 584 0 c 1
- 479 0 374 0 269 0 c 1
- 289 104 310 209 330 313 c 1
+435 313 540 313 645 313 c 1
+584 0 l 1
+269 0 l 1
+330 313 l 1
 EndSplineSet
 Validated: 1
 EndChar

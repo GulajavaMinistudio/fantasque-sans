@@ -8,6 +8,17 @@ VStem: 146 279<1184 1424> 566 282<1184 1421>
 AnchorPoint: "above_accent" 483 1108 mark 0
 LayerCount: 2
 Fore
-Refer: 329 776 N 1 0 0 1 0 0 2
+SplineSet
+146 1424 m 1
+425 1424 l 1
+425 1184 l 1
+146 1184 l 1
+146 1424 l 1
+566 1424 m 1
+848 1421 l 1
+848 1183 l 1
+566 1184 l 1
+566 1424 l 1
+EndSplineSet
 Validated: 1
 EndChar

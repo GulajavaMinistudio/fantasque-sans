@@ -8,10 +8,10 @@ LayerCount: 2
 Fore
 SplineSet
 660 1820 m 1
-660 -505 l 1
-400 -505 l 1
-400 1820 l 1
-660 1820 l 1
+ 660 -505 l 1
+ 400 -505 l 1
+ 400 1820 l 1
+ 660 1820 l 1
 EndSplineSet
 Validated: 1
 EndChar

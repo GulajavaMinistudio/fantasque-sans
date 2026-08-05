@@ -7,7 +7,17 @@ HStem: 0 313<136 451 616 931>
 VStem: 136 315<0 313> 616 315<0 313>
 LayerCount: 2
 Fore
-Refer: 53 46 N 1 0 0 1 272 0 2
-Refer: 53 46 S 1 0 0 1 -208 0 2
+SplineSet
+136 313 m 1
+451 313 l 1
+451 0 l 1
+136 0 l 1
+136 313 l 1
+616 313 m 1
+931 313 l 1
+931 0 l 1
+616 0 l 1
+616 313 l 1
+EndSplineSet
 Validated: 1
 EndChar

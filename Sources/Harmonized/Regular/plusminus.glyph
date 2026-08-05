@@ -35,7 +35,7 @@ SplineSet
 319 659 260 662 82 672 c 1
 82 747 l 1
 82 784.5 l 1
-82 797 82 809.5 82 822 c 1
+82 822 l 1
 EndSplineSet
 Validated: 1
 EndChar

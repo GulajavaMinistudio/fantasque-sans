@@ -8,8 +8,16 @@ VStem: 189 251<0 269> 669 251<0 269>
 LayerCount: 2
 Fore
 SplineSet
+189 269 m 1
+440 269 l 1
+440 0 l 1
+189 0 l 1
+189 269 l 1
+669 269 m 1
+920 269 l 1
+920 0 l 1
+669 0 l 1
+669 269 l 1
 EndSplineSet
-Refer: 53 46 S 1 0 0 1 -208 0 2
-Refer: 53 46 N 1 0 0 1 272 0 2
 Validated: 1
 EndChar

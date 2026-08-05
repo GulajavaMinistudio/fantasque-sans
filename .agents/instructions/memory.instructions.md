@@ -22,6 +22,7 @@
 > - 2026-08-01 (Compaction): Session 2026-07-31 (Spec v1.3 verification) compacted — knowledge inti sudah ter-promote di kompaksi 2026-07-31 (DE #9, metric spec v1.3, flag forwarding pattern). Promoted baru: 2 KB patterns (External Edit Detection via mtime, Spec Final Verification Multi-Criteria). Retained: 2026-07-31 (Plan v1.6) + 2026-08-01 (Plan v1.7).
 > - 2026-08-01 (Compaction): Checkpoint "Consistency Audit (FAIL)" compacted — pengetahuan subsumed oleh Klarifikasi r4 + Plan v1.10 (15/15 cek PASS). Promoted: Tri-Directional Consistency Audit Pattern, Audit Result State Machine, DE #10 (dangling audit_reference). Retained: Klarifikasi r4 (5/5 resolusi) + Plan v1.10 (FINAL).
 > - 2026-08-01 (r5 Compaction): Checkpoint "Klarifikasi r4" compacted — 5 resolusi R1–R5 sudah terserap penuh ke Plan v1.10 + Spec v1.6 (diverifikasi r5) dan terdokumentasi permanen di laporan r4. Promoted: DE #11 (pytest system python3 ≠ FontForge bindings — importorskip silent skip). Retained: Plan v1.10 (FINAL) + Klarifikasi r5 (2 most recent).
+> - 2026-08-05 (Code Phase Compaction): Sessions 2026-08-01 ×3 + 2026-08-05 (TASK-1.1, Phase 2, Phase 3) compacted after Phase 4 Pipeline completion. Promoted: DE #12 (selfIntersects method vs property), DE #13 (centroid-only contour matching → area-rank), DE #14 (pathlib absolute wins), KB patterns: NOTE-row Insertion, Engine Tuple Arity. Retained: Phase 3 CLOSED + Phase 4 Pipeline.
 > Updated during Compaction Mode (Workflow 4). Do NOT delete entries here.
 
 ### Architecture & Patterns
@@ -66,6 +67,8 @@
 - **Runtime Signal Delivery Verification**: Sebelum menulis mode switch (env var / flag) pada script yang dipanggil container via `docker run` atau job CI, SELALU verifikasi mekanisme penyampaian sinyalnya di workflow aktual — env var yang tidak pernah di-`-e` dan tidak dibaca dari manifest via `jq` menghasilkan cabang yang tidak pernah aktif (silent fallback ke mode default tanpa error). Pola aman: sinyal yang berasal dari host ditulis ke manifest (`jq -r '.resolved_options.X'` — pola `UseHinted`), atau env var eksplisit di-invoke manual dengan guard `_die` jika kosong. [Source: Session 2026-08-01, klarifikasi r4 R1 — cabang `ENABLE_MULTI_WEIGHT` packaging unreachable di CI]
 - **Tri-Directional Consistency Audit Pattern:** Audit konsistensi cross-document WAJIB mencakup PRD ↔ Spec ↔ Plan secara simultan (bukan satu per satu). Audit juga harus mencakup codebase reality check (verifikasi langsung ke file sumber) dan ADR triple-gate. Hasil ada 3 tingkat: PASS (→ buka gerbang /sdlc-write-code), PASS WITH WARNINGS (→ re-audit), FAIL (→ hard halt, semua amendemen upstream harus selesai dulu). Hanya PASS membuka gerbang — bukan PASS WITH WARNINGS. [Source: Session 2026-08-01, still valid]
 - **Audit Result State Machine:** Hasil audit konsistensi mengikuti state machine ketat: PASS / PASS WITH WARNINGS / FAIL. "PASS" adalah satu-satunya state yang membuka gerbang ke /sdlc-write-code. "PASS WITH WARNINGS" ≠ "PASS" — sama seperti FAIL, membutuhkan re-audit penuh hingga mencapai PASS bersih. Jangan pernah lanjut ke fase berikutnya pada PASS WITH WARNINGS. [Source: Session 2026-08-01, still valid]
+- **NOTE-row Insertion for Long Truncated Table Cells:** Saat menyisipkan NOTE-row ke dalam tabel task plan yang memiliki sel sangat panjang (>768 karakter), jangan mereproduksi baris panjang tersebut sebagai anchor — gunakan anchor unik pendek (misalnya `PUT >N:`) yang hanya muncul di baris target. Anchor panjang rentan gagal matching dan menyebabkan seluruh edit ditolak. [Source: Session 2026-08-01, Plan v1.11]
+- **Engine Tuple Arity Preservation:** Fungsi parser internal (seperti `resolve_glyph`) yang mengembalikan tuple harus mempertahankan jumlah elemen (arity) yang konsisten di seluruh call site. Jika satu call site meng-drop elemen (misalnya dari 3-tuple menjadi 2-tuple), downstream unpacking akan menghasilkan `IndexError` atau `ValueError` yang sulit dilacak karena jauh dari sumber bug. [Source: Session 2026-08-05, Phase 2 Full Harmonization — harmonize_engine.py]
 
 ### Dead-Ends (Do NOT Repeat)
 
@@ -82,12 +85,15 @@
 | 9 | Write workflow step examples that invoke container-only tools (e.g., `fontforge -lang=py -script`) directly on the GitHub Actions host runner | FontForge is only available inside the Stage 1 image (`builder-fontforge`) during `docker build`; host runner (Python 3.14 + jsonschema/pytest) and the final Stage 2 image (ttfautohint/woff-tools/woff2/zip/jq) do NOT include FontForge. The §4.9 v1.1 example YAML was non-executable. | Always verify the **runtime context** of every tool before writing workflow step examples: host runner vs container stage. For container-only tools, integrate via **flag forwarding** (workflow → `configure.py` → `BUILD_ARGS` → conditional RUN in the correct stage) instead of direct host steps. [Source: Session 2026-07-31, Spec v1.2 F-5 fix] |
 | 10 | Dangling `audit_reference` di Plan frontmatter | `audit_reference` mengarah ke file audit yang belum dibuat/ditulis → auditor berikutnya tidak menemukan bukti, audit gagal | Buat/simpan laporan audit TERLEBIH DAHULU, atau update `audit_reference` di plan untuk merujuk ke file yang ada (via /sdlc-plan-tasks). Verifikasi path file ada sebelum audit ditutup. [Source: Session 2026-08-01, B1 dari consistency audit] |
 | 11 | Trust `pytest tests/ -v` (system python3) di Docker Stage 1 untuk benar-benar mengeksekusi test yang bergantung FontForge | Dockerfile Stage 1 apt = `ca-certificates, fontforge, python3-pip, make` — TANPA `python3-fontforge`; bindings Python FontForge embedded di interpreter binary-nya sendiri → `import fontforge` GAGAL di system python3. Semua 4 file test memakai `pytest.importorskip("fontforge")` level modul (Spec §6.3) → test SELALU SKIP, CI "pass" padahal tidak mengeksekusi apa pun (klaim K6 salah) | Instal `python3-fontforge` di Stage 1 (TASK-0.X, Phase 0) + pre-check `python3 -c "import fontforge"`; kontrak exit code `detect_incompatibility.py` (E4) jadi prasyarat. Saat test suite memakai importorskip, verifikasi skip count (jalankan dengan `-rs`/`-v`) sebelum mempercayai klaim "tests pass". [Source: Session 2026-08-01, klarifikasi r5 B1 — Spec v1.6 §6.3 vs Dockerfile] |
+| 12 | Panggil `glyph.selfIntersects` sebagai properti (baca boolean) | API FontForge: `selfIntersects` adalah **method** (`glyph.selfIntersects()`), bukan properti. Bound method selalu truthy → semua glyph diklasifikasikan `fail` → gate interpolasi mustahil lolos. Bug silent (tidak crash) — hasil selalu semua-gagal tanpa peringatan. [Source: Session 2026-08-05, TASK-1.1 PoC — validate_interpolation.py] | Selalu verifikasi API FontForge: method vs property. Tambahkan `()` pada call method. Untuk regression guard: pastikan test mengeksekusi jalur sukses dan gagal secara eksplisit, bukan hanya mengandalkan hasil boolean. |
+| 13 | Kontur matching by CENTROID SAJA untuk glyph multi-kontur berimpit (numbersign, Aring, Theta, dollar) | Centroid ambigu (kontur fitur berbeda dengan centroid mirip) → pasangan SILANG → equalize shape-preserving tetap jalan tapi interpolasi akan blend fitur yang salah (garbage) — tidak terdeteksi oleh cek kompatibilitas struktural. Terdeteksi via rasio luas kontur yang tidak wajar. [Source: Session 2026-08-05, Phase 2 Full Harmonization] | Gunakan **area-rank matching** sebagai validator: urutkan kontur berdasarkan luas bounding box, lalu cocokkan per-rank. Tambahkan **sanity centroid check** (centroid kontur pasangan harus dalam toleransi). Area-ratio > 4 bukan otomatis salah — glyph seperti dollar memiliki perbedaan proporsional yang sahih antar weight. |
+| 14 | Bangun path pasangan glyph dengan `Path("/abs/path") / Path("/abs/other")` | `pathlib.Path` absolut sebagai divisor membuang sisi kiri: `Path("/abs/a") / Path("/abs/b")` = `/abs/b` (absolute wins). Semua glyph dibandingkan dengan dirinya sendiri → semua tampak "kompatibel" (copied=0). [Source: Session 2026-08-05, Phase 3 Core-Weight Interpolation] | Selalu gunakan `fpath.name` (nama file saja) sebelum membangun path pasangan via `pair_dir / fpath.name`. Verifikasi hitungan (blend vs copy count) sebagai sanity check — jika copied=0 untuk semua glyph, path matching kemungkinan rusak. |
 
 ### Key Metrics & Baselines
 
 <!-- Stable metrics that serve as reference points (test counts, coverage, performance baselines). -->
 - **Test Suite (configure.py)**: 62/62 pytest unit tests passing, 0.20s execution time. [Source: Session 2026-07-29 Phase 1; re-verified 2026-07-30 plan-refactor]
-- **Knowledge Base Size**: 11 Dead-Ends + 40 Architecture & Patterns. [Source: Session 2026-07-31, post plan v1.6 compaction; +2 promoted 2026-08-01 compaction; +1 promoted 2026-08-01 klarifikasi r4 + 2 patterns, + 1 DE; +1 DE 2026-08-01 klarifikasi r5 (DE #11); kompresi 2026-08-01] |
+- **Knowledge Base Size**: 14 Dead-Ends + 42 Architecture & Patterns. [Source: Session 2026-08-05, Code Phase compaction — +3 DE (#12 selfIntersects, #13 centroid area-rank, #14 pathlib absolute) + 2 patterns (NOTE-row Insertion, Engine Tuple Arity)]
 - **Plan-Refactor Execution (2026-07-30)**: 16 tasks across 3 phases, all completed in single session; 13/13 acceptance criteria met; pytest 62/62 PASS; CON-001 preserved. [Source: Session 2026-07-30, plan-refactor-code-review v1.0]
 - **End-to-End Build**: 8 iteration cycles to first successful CI run (issues #1–#8). [Source: Session 2026-07-30, first end-to-end run 30520458083]
 - **GitHub Actions Actions Versions**: `actions/checkout@v7` + `actions/setup-python@v6` + `actions/upload-artifact@v4` (Node.js 24 LTS). [Source: Session 2026-07-30]
@@ -98,232 +104,6 @@
 ---
 
 
-## 📝 Session Checkpoint: 2026-08-01 (Plan Multi-Weight v1.10 — Sync Klarifikasi r4 R1–R5 + MO-1)
-
-- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
-- **Previous Phase:** Recurring Checkpoint — Clarification r4 (5/5 resolusi, laporan r4 tersimpan); plan v1.9 = target interogasi
-- **Current SDLC Phase:** Phase Plan (Implementation Planning) — plan v1.10 FINAL (10/10 Next Steps r4 terimplementasi), menunggu commit + amendemen Spec v1.6
-- **Active Artifacts:**
-  - `plan/plan-feature-multi-weight-variants-v1.10.md` — Status: ✅ v1.10 (rename dari v1.9 via `git mv`; **belum di-commit**)
-  - `docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-08-01-r4.md` — Status: ✅ Finalized (rujukan `clarification_reference` plan v1.10)
-  - `spec/spec-multi-weight-variants.md` — Status: ⏳ v1.5 BUTUH amendemen → v1.6 via `/sdlc-define-specs` (R1/R2 §4.10, R5 §4.9 guard, R3 REQ-I01/§6.3, R4 §4.6/§6.6 — DIJADWALKAN, belum diterapkan)
-  - `docs/prd-20260731-1000-multi-weight-variants.md` — Status: ✅ v1.4 — tanpa amendemen wajib (catatan interpretasi FR-4.1 opsional, R3)
-  - `CONTEXT.md` — Status: ✅ tidak berubah (`VERSION`/`RELEASE_MODE` = variabel teknis, bukan istilah domain)
-- **Achieved Milestones:**
-  - **Plan v1.9 → v1.10 (rename + ~20 edit surgical, sinkron laporan r4)**: TASK-4.4 ditulis ulang (R1 — hapus cabang `ENABLE_MULTI_WEIGHT` packaging, perilaku Custom Build = zip-all existing, override hinting REQ-I04 via pola nama file `NEW_WEIGHTS`; R2 — env var `VERSION` wajib + guard `_die` untuk `FantasqueSansMono-{VERSION}-{Format}.zip`); TASK-4.1 (R1 — `DEFAULTS` + properti `config.schema.json`; manifest mencatat `resolved_options.EnableMultiWeight` sebagai info audit, tidak dikonsumsi packaging; Files 1 → 2, tetap sizing S); TASK-4.2 (R5 — guard `Sources/Harmonized/{Regular,Bold,Italic,BoldItalic}` di AWAL RUN chain, pesan `::error::` + exit 1); TASK-4.5 (R5 — prasyarat harmonized sources di README section multi-weight); TASK-5.4 (R2 + MO-1 — runbook 9 → 10 langkah: generate `manifest.json` via `configure.py` sebelum packaging + `custom_build_driver.py build/sources /build` + `VERSION` wajib); TASK-0.7/3.1 (R3 — factor SemiBold dikunci `0.67` eksak, kontrak spesifikasi); TASK-0.10/TEST-003 (R3 — toleransi ±0.005 = kelonggaran presisi float, bukan kebebasan memilih nilai); TASK-0.14 BARU + FILE-025 (R4 — `.github/workflows/test-multi-weight.yml` push-gate `feature/multi-weight-*`, pytest host runner + `importorskip`, memenuhi Spec §6.6); TASK-0.X + TASK-4.X (catatan push-gate host vs Stage 1; verifikasi zip-all + `VERSION` guard); FILE-006/009 diperluas; Introduction paragraf r4 + koordinasi cross-document (Spec v1.6 DIJADWALKAN via `/sdlc-define-specs`); §8 link r4; changelog v1.10; `clarification_reference` → r4
-  - **MO-2/MO-3 diverifikasi tanpa perubahan**: overlay PNG cukup di review manual Phase 3 (TASK-3.X); release archive menyertakan `FantasqueSans` (konsisten K16/zip-all — tanpa regresi)
-  - **Verifikasi multi-kriteria**: markdownlint exit 0; struktur tabel markdown valid via parser Node charCode (8 kolom; 1 pipe literal di-escape `Medium\|SemiBold\|Light\|ExtraBold` di TASK-4.4); audit otomatis 15/15 cek resolusi r4 (Next Steps §4 laporan r4) lolos; `{version}` lama tidak tersisa (semua → `{VERSION}`)
-  - **Pola repo dikonfirmasi**: rename file per versi plan (git history v1.3 → v1.9; sesi ini v1.9 → v1.10 via `git mv`) — konsisten KB "Plan File Rename+Version Bump Protocol"
-- **Decisions Made:**
-  - Seluruh resolusi R1–R5 + MO-1 diimplementasikan persis sesuai Next Steps laporan r4 §4 — tanpa scope creep, tanpa fitur baru di luar laporan
-  - Amendemen Spec → v1.6 (dan PRD opsional FR-4.1) DI LUAR scope plan-tasks — dijadwalkan sesi terpisah; status dicatat di plan Introduction (koordinasi cross-document)
-  - TASK-4.4 Files tetap 1 (packaging.sh); TASK-4.1 Files 2 — keduanya dalam batas task sizing (S)
-- **Updated Files:**
-  - `plan/plan-feature-multi-weight-variants-v1.9.md` → `plan/plan-feature-multi-weight-variants-v1.10.md` — rename + v1.10 (frontmatter, Introduction, TASK-0.7/0.10/0.14 baru/0.X/3.1/4.1/4.2/4.4/4.5/4.X/5.4, §5 FILE-006/009/025, §6 TEST-003, §8, §10 changelog)
-- **Dead-Ends (Do NOT Repeat):**
-  - **Attempted:** Edit multi-hunk dengan `oldText` berisi `\n` di antara dua frasa yang ternyata berada dalam SATU baris fisik (paragraf koordinasi r2/r3 = baris panjang tunggal) → seluruh panggilan edit ditolak ("Could not find edits[3]")
-  - **Reason:** Dokumen plan memakai baris fisik sangat panjang (paragraf = 1 baris tanpa newline internal); asumsi newline antar-paragraf salah; selain itu sisipan paragraf memakai anchor "awal paragraf" sempat menghasilkan urutan kronologis terbalik (r4 sebelum r3)
-  - **Note:** Anchor "akhir paragraf unik" lebih aman; jika berulang, promosikan ke KB saat kompaksi berikutnya
-- **Next Action / Pending:**
-  - **PRIORITAS #1 (user):** Commit: `git add plan/plan-feature-multi-weight-variants-v1.10.md docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-08-01-r4.md .agents/instructions/memory.instructions.md && git commit -m "docs(plan+audit+memory): plan multi-weight v1.10 sync klarifikasi r4 (R1–R5 + MO-1) + checkpoint"` — catatan: perubahan lain belum di-commit dari sesi lain (AGENTS.md staged `M`, PRD `M`, Spec `M`); commit terakhir `6086e30`
-  - **PRIORITAS #2 (next session):** `/sdlc-define-specs` — amendemen Spec v1.5 → v1.6 (R1/R2 §4.10 hapus cabang `ENABLE_MULTI_WEIGHT` + definisi `VERSION`; R5 §4.9 guard harmonized sources; R3 REQ-I01/§6.3 nilai `0.67` eksak; R4 §4.6/§6.6 catatan push-gate `test-multi-weight.yml`)
-  - **PRIORITAS #3:** `/sdlc-clarify-reqs` (r5) atas plan v1.10 — atau langsung re-audit konsistensi (audit_reference lama masih 2026-08-01, perlu verifikasi ulang setelah Spec v1.6) → PASS → `/sdlc-write-code` (TASK-0.0 branch `feature/multi-weight-poc`); lampirkan plan v1.10 + spec + PRD + laporan r4 + audit
-- **Verification Snapshot:**
-  - markdownlint: plan v1.10 = 0 error (npx markdownlint 0.49.1, directive `<!-- markdownlint-disable -->`)
-  - Struktur tabel: valid (semua tabel 8 kolom; pipe escaped via parser charCode)
-  - Traceability: 10/10 Next Steps r4 → plan v1.10 (audit otomatis 15/15 cek)
-  - Git: rename `plan/plan-feature-multi-weight-variants-v1.3.md -> v1.10.md` staged; belum di-commit
-
-<!-- checkpoint-tail: Plan multi-weight v1.10 disinkronkan dengan klarifikasi r4 (R1 hapus ENABLE_MULTI_WEIGHT → zip-all + NEW_WEIGHTS, R2 env VERSION + runbook 10 langkah + generate manifest, R3 factor SemiBold 0.67 eksak, R4 TASK-0.14 push-gate Spec §6.6, R5 guard Sources/Harmonized di RUN chain; MO-1 kontrak SOURCES_DIR OUTPUT_DIR); 15/15 cek lolos, markdownlint 0, tabel valid; rename v1.9 → v1.10, BELUM di-commit. Next: commit → /sdlc-define-specs (Spec v1.6) → clarify/re-audit → /sdlc-write-code. -->
-
----
-
-## 📝 Session Checkpoint: 2026-08-01 (Klarifikasi r5 Spec v1.6 + Plan v1.10 — 17 Temuan + 1 Non-temuan)
-
-- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
-- **Previous Phase:** Recurring Checkpoint — Plan Multi-Weight v1.10 tersimpan (BELUM di-commit); Spec v1.6 + Plan v1.10 = target interogasi r5
-- **Current SDLC Phase:** Recurring Checkpoint — Clarification (`/sdlc-clarify-reqs`, r5) — **SELESAI** (B1–B3, E1–E8, H1–H6, MO-1..3; menunggu amendemen spec/plan di sesi terpisah)
-- **Active Artifacts:**
-  - `spec/spec-multi-weight-variants.md` — Status: ✅ v1.6 target interogasi r5; ⏳ BUTUH amendemen → v1.7 via `/sdlc-define-specs` (§4.9 B1/B2/H5, §4.4 E4, §4.6 E6, §4.8 B3, §4.12 E1, REQ-I03 E3/E5, REQ-I06 E7, AC-B02 E8, §7 Ask First B1/MO-1, §9.2 SVC-001/SVC-005, §6.7 MO-1)
-  - `plan/plan-feature-multi-weight-variants-v1.10.md` — Status: ✅ target interogasi r5; ⏳ BUTUH amendemen → v1.11 via `/sdlc-plan-tasks` (TASK-0.7 Files 1→2 + `.gitignore`, TASK-0.X baru B1/MO-1, TASK-3.2 B3, TASK-3.X baru H1, TASK-4.2 B1/B2/H3, TASK-4.3 H3, TASK-4.4 H3, TASK-5.4 E2/H6, TASK-2.1/2.2/2.3 E1)
-  - `docs/prd-20260731-1000-multi-weight-variants.md` — Status: ✅ v1.4 — tidak ada amendemen wajib
-  - `docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-08-01-r5.md` — Status: ✅ BARU (laporan r5, 19.8 KB, markdownlint 0 error)
-- **Achieved Milestones:**
-  - **Blocker B1 (keputusan eksplisit user, Opsi A):** Dockerfile Stage 1 apt = `ca-certificates, fontforge, python3-pip, make` (TANPA `python3-fontforge`; komentar bindings embedded) → pytest di system python3 TIDAK bisa `import fontforge` → 4 file test §6.3 (`importorskip` level modul) SELALU SKIP → klaim K6 salah. Resolusi: TASK-0.X (Phase 0, mendahului TASK-4.2) instal `python3-fontforge` + pre-check `python3 -c "import fontforge"`; kontrak exit code `detect_incompatibility.py` (E4) jadi prasyarat
-  - **Blocker B2:** `T_final` dipropagasi ke RUN chain tanpa pemilik task; snippet §4.9 hardcode `--threshold 15.0` vs GUD-002. Resolusi: §4.9 `--threshold "${T_FINAL}"` + komentar sumber; TASK-4.2 hardcode nilai kalibrasi Phase 1; 15.0 = default CLI
-  - **Blocker B3:** sumber TTF specimen Phase 3 tak terdefinisi (driver hanya output `.sfdir`). Resolusi: TASK-3.2 langkah lokal `fontforge -lang=py -script Scripts/custom_build_driver.py build/sources <tmp_output>` → `<tmp>/TTF` jadi input `generate_specimen.py`
-  - **Edge E1–E8 & Hidden H1–H6:** tracking.json union+sort; validasi stretch per-weight + jalur eksklusi GUD-004; hmtx unconditional; `--light-factor` wajib bersama `--enable-*`; REQ-I06 "sementara"; FILE-024 → TASK-0.7; laporan JSON dishare (COPY `builder-fontforge` → `/app/build-reports` + `packaging.sh` → `output/reports/` + upload workflow); push-gate = smoke gate; runbook TASK-5.4 di-annotasi stage; `pytest-cov` (MO-1, perpanjangan K2)
-  - **Verifikasi codebase r5:** Dockerfile apt Stage 1; `packaging.sh` zip-all tanpa env mode; `custom_build_driver.py` (`_die` unknown flags, `find_sfdirs` top-level sorted, `"Generating {name}"`); `configure.py` (DEFAULTS 4 opsi, FORM_KEY_TO_OPTION, OPTION_TO_DRIVER_FLAG); `config.schema.json` (4 boolean); `custom-build.yml` (tanpa `enable_multi_weight`, `timeout-minutes: 30`, tanpa `-e`, pytest host); `.gitignore` (tanpa `build/`/`Interpolated/`); `tests/` (`test_configure.py` + conftest fixtures)
-  - **Non-temuan:** `additionalProperties: true` di `config.schema.json` BUKAN celah — `EnableMultiWeight` dideklarasikan di `properties` → tipe boolean tetap tervalidasi
-- **Decisions Made:**
-  - B1 = Opsi A (keputusan eksplisit user); B2/B3 + E1–E8 + H1–H6 + MO-1..3 = rekomendasi agent (user delegasikan: "Tolong jawab semua pertanyaan berdasarkan jawaban rekomendasi kamu")
-  - Tidak ada istilah kanonis baru → CONTEXT.md TIDAK diubah; tidak ada keputusan triple-gate (semua resolusi spec-level, mudah dibalik) → TIDAK ada ADR baru
-- **Updated Files:**
-  - `docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-08-01-r5.md` — BARU (template wajib; daftar amendemen per-bagian spec & per-task plan; bukti verifikasi codebase; AC-B03: paket tambahan tidak mengubah output font — single-weight tetap byte-identical)
-  - `.agents/instructions/memory.instructions.md` — checkpoint r5 + KB DE #11 + kompaksi checkpoint r4 (file ini)
-- **Dead-Ends (Do NOT Repeat):** +1 DE #11 (pytest system python3 ≠ FontForge bindings → importorskip silent skip). Checkpoint r4 dikompaksi — R1–R5 sudah terserap Plan v1.10/Spec v1.6 + laporan r4 permanen
-- **Next Action / Pending:**
-  - **PRIORITAS #1 (next session):** `/sdlc-define-specs` — amendemen Spec v1.6 → v1.7 (daftar lengkap per-bagian di laporan r5 §4); changelog + `clarification_reference` → r5
-  - **PRIORITAS #2 (next session):** `/sdlc-plan-tasks` — amendemen Plan v1.10 → v1.11 (TASK-0.7, TASK-0.X baru, TASK-3.2, TASK-3.X baru, TASK-4.2, TASK-4.3, TASK-4.4, TASK-5.4, TASK-2.1/2.2/2.3); changelog + `clarification_reference` → r5
-  - **PRIORITAS #3:** `/sdlc-audit-consistency` — re-audit setelah amendemen (audit 2026-08-01 status FAIL; `audit_reference` lama perlu verifikasi ulang)
-  - **PRIORITAS #4:** `/sdlc-write-code` — HANYA setelah re-audit PASS (TASK-0.0 branch `feature/multi-weight-poc`)
-  - **Git:** laporan r5 + memory `??` (untracked); commit disarankan: `git add docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-08-01-r5.md .agents/instructions/memory.instructions.md && git commit -m "docs(audit+memory): clarification report r5 (B1–B3 + E1–E8 + H1–H6) + checkpoint + KB DE #11"`
-- **Verification Snapshot:**
-  - markdownlint: laporan r5 = 0 error (npx markdownlint-cli2 v0.23.2)
-  - Traceability: 17 temuan (B1–B3, E1–E8, H1–H6) + MO-1..3 → daftar amendemen Spec v1.7 & Plan v1.11 (mapping di laporan r5 §4); 1 non-temuan (`additionalProperties`)
-  - Git: commit terakhir `6086e30`; laporan r5 & memory belum di-commit
-
-<!-- checkpoint-tail: Klarifikasi r5 spec v1.6 + plan v1.10 selesai (B1 instal python3-fontforge Stage 1 — importorskip silent skip, B2 --threshold T_final, B3 sumber TTF specimen via driver lokal; E1–E8, H1–H6, MO-1..3; laporan docs/audit/...-2026-08-01-r5.md, markdownlint 0). Kompaksi: checkpoint r4 dihapus (terserap Plan v1.10/Spec v1.6), Plan v1.10 dipertahankan, DE #11 dipromosikan. Next: /sdlc-define-specs (Spec v1.7) → /sdlc-plan-tasks (Plan v1.11) → re-audit → /sdlc-write-code. -->
-
----
-
-## 📝 Session Checkpoint: 2026-08-01 (Plan Multi-Weight v1.11)
-
-**Active Memory Path:** `.agents/instructions/memory.instructions.md`
-**Current SDLC Phase:** Implementation Planning — `/sdlc-plan-tasks` — **Plan v1.11 FINAL**
-**Active Artifacts:**
-**plan/plan-feature-multi-weight-variants-v1.11.md** — Status: ✅ Completed (v1.11; v1.10 deleted)
-**docs/audit/clarification-report-implementation-plan-multi-weight-variants-2026-08-01-r5.md** — Status: ✅ Finalized
-**spec/spec-multi-weight-variants.md** — Status: ⏳ v1.6, amend to v1.7 (scheduled)
-**Achieved Milestones:**
-**Plan v1.10→v1.11** — 20+ surgical edits: front matter (v1.11, r5 ref), Intro paragraphs (r5 summary + cross-doc), 9 NOTE-rows in task tables (NOTE-0.7 H2, NOTE-0.X B1/MO-1, NOTE-2.3 E1, NOTE-3.2 B3, NOTE-3.X H1, NOTE-4.2 B1/B2/H3, NOTE-4.3 H3, NOTE-4.4 H3, NOTE-5.4 E2/H6), FILE-024 update, TEST-007, §8 r5 link, changelog v1.11; v1.10 deleted; bottom-to-top edit ordering.
-**Semua resolusi r5 tercatat:** B1 (apt python3-fontforge + pre-check), B2 (T_FINAL shell var), B3 (lokal TTF pra-hinting), E1 (tracking.json union+sort), E2 (validasi per-weight + --exclude), E4 dilewati, H1-H6, MO-1 (pytest-cov container-only).
-**Verifikasi:** grep 9 NOTE-rows ✓, TEST-007 ✓, §8 r5 link ✓, changelog v1.11 ✓, front matter v1.11 ✓, glob hanya v1.11 ✓.
-**KB Pattern baru:** NOTE-row Insertion for Long Truncated Table Cells — gunakan `PUT >N:` untuk insert NOTE row di bawah task, bukan reproduce baris panjang (>768 chars). [Source: 2026-08-01]
-**Decisions Made:** B1 = Opsi A (user override); E4 = dilewati (spec only); sisanya = agent rekomendasi.
-**Updated Files:** plan v1.10.md — DELETED; plan v1.11.md — CREATED; memory.instructions.md — checkpoint + KB pattern.
-**Next Action:** PRIORITAS #1 commit v1.11; #2 `/sdlc-define-specs` (Spec v1.7); #3 `/sdlc-clarify-reqs` r5 → re-audit → `/sdlc-write-code`.
-
-<!-- checkpoint-tail: Plan multi-weight v1.11 FINAL — sync r5 (B1 python3-fontforge apt, B2 T_FINAL, B3 lokal TTF, E1 tracking.json, E2 per-weigh, E4 dilewati, H3 build-reports, H4 push-gate=smoke, H6 runbook anotasi); 9 NOTE-rows + TEST-007; v1.10 deleted. Next: commit → /sdlc-define-specs → re-audit → /sdlc-write-code. -->
----
-
-## 📝 Session Checkpoint: 2026-08-05 (Phase Code — TASK-1.1 PoC Subset Harmonization)
-
-- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
-- **Current SDLC Phase:** Phase Code (`/sdlc-write-code`) — Implementation Phase 1 (PoC/MVP) in progress; TASK-1.1 SELESAI, TASK-1.2/1.3/1.X menunggu eksekusi di GitHub Actions
-- **Active Artifacts:**
-  - `plan/plan-feature-multi-weight-variants-v1.13.md` — TASK-1.1 ditandai ✅ 2026-08-05
-  - `docs/audit/poc-glyph-list-2026-08-05.md` — BARU (deliverable TASK-1.1, 40 glyph, 36 harmonized, 4 skip)
-  - `Sources/Harmonized/Regular/` + `Sources/Harmonized/Bold/` — BARU (subset font 36 glyph + font.props)
-  - `Scripts/validate_interpolation.py` — FIX bug kritis `selfIntersects` (properti → method)
-  - `tests/test_validate_interpolation.py` — FIX `test_pass_status` (threshold 100.0; kotak 90° = warning di 15°)
-- **Achieved Milestones:**
-  - **TASK-1.1 (PoC subset harmonization)**: analisis kuantitatif worst offenders via parser .sfdir teks (tanpa FontForge): 633/1037 (61%) kompatibel, 394 incompatible; engine harmonisasi struktural shape-preserving (ekspansi Refer, matching kontur by centroid, reverse winding, equalisasi node via de Casteljau/lerp/konversi degenerat) → 36/40 glyph terharmonisasi, 0 isu kompatibilitas, shape terverifikasi eksak
-  - **4 glyph skip (butuh harmonisasi desainer)**: `d` (4v2 kontur, outline ganda), `m` (1v2 kontur), `at` (Bold 15-node vs Regular 77-node), `percent` (5v3 kontur)
-  - **Deviasi FR-2.1 terdokumentasi**: font TIDAK memiliki glyph ligatur `fi`/`fl` (ligature = keluarga `*.liga`, shared pool Phase 2) → `germandbls` sebagai wakil counter kompleks
-  - **Bug kritis ditemukan & diperbaiki**: `validate_interpolation.py` memanggil `glyph.selfIntersects` sebagai properti (API FontForge = method) → bound method selalu truthy → SEMUA glyph diklasifikasikan `fail` → gate PoC mustahil lolos; fix surgical + test existing `test_pass_status` jadi regression guard
-- **Dead-Ends (Do NOT Repeat):** lihat KB DE #11 (importorskip silent skip — sama akarnya: script Phase 0 tidak pernah dieksekusi nyata karena TASK-0.X belum pernah dijalankan di container; TASK-0.11/0.12/0.X masih pending)
-- **Updated Files:**
-  - `docs/audit/poc-glyph-list-2026-08-05.md` — BARU (metodologi, tabel subset, runbook GA)
-  - `Sources/Harmonized/{Regular,Bold}/` — BARU (36 glyph subset + font.props)
-  - `Scripts/validate_interpolation.py` — fix `selfIntersects()` call
-  - `tests/test_validate_interpolation.py` — fix threshold test_pass_status
-  - `plan/plan-feature-multi-weight-variants-v1.13.md` — TASK-1.1 ✅
-- **Decisions Made:**
-  - User: instalasi FontForge/Docker lokal DITUNDA — eksekusi & testing via GitHub Actions (2026-08-05)
-  - Harmonisasi PoC = kompatibilisasi struktural shape-preserving (ASUMSI terdokumentasi: BUKAN harmonisasi desain final Phase 2; gate manusia FR-2.4 tetap berlaku)
-  - Subset master = font subset-only (bukan salinan penuh) — konsisten FR-2.1 "PoC mencakup subset"
-  - Glyph tidak terharmonisasi TIDAK disertakan dalam subset master (gate statistik = subset terharmonisasi saja)
-- **Next Action / Pending:**
-  - **PRIORITAS #1 (user, di GA):** TASK-1.2 interpolasi subset → Medium via `poc_interpolation.py`; TASK-1.3 specimen + kalibrasi dua-pass (15.0° → T_final); TASK-1.X dual gate (pass_rate ≥ 90%, fail_count = 0) — runbook lengkap di poc-glyph-list-2026-08-05.md §4
-  - **PRIORITAS #2:** TASK-0.11/0.12/0.X (eksperimen E0.1–E0.3 + VERIFY container) masih pending dari Phase 0 — verifikasi di GA sekaligus (termasuk regression `test_pass_status`)
-  - **PRIORITAS #3:** TASK-1.Y approval → Phase 2 (harmonisasi desain penuh; d/m/at/percent butuh desainer)
-  - **Git:** seluruh perubahan BELUM di-commit (sesuai preferensi user commit manual); branch `feature/multi-weight-poc`
-- **Verification Snapshot:**
-  - Kompatibilitas harmonized: 36/36 glyph, 0 isu (kontur/node/winding) — verifikasi re-parse
-  - Shape preservation: deviasi on-curve & kurva ≤ 0.7 em-unit (artefak sampling verifikasi, konvergen kuadratik; nilai sejati ≈ 0)
-  - `python -m py_compile` kedua file yang diedit: OK
-
-<!-- checkpoint-tail: Phase Code TASK-1.1 selesai 2026-08-05 — analisis worst offenders + harmonisasi struktural 36/40 glyph subset (4 skip: d, m, at, percent), Sources/Harmonized/{Regular,Bold} dibuat, poc-glyph-list-2026-08-05.md; bug kritis validate_interpolation.py selfIntersects() diperbaiki; FontForge lokal ditunda user — TASK-1.2/1.3/1.X dijalankan di GitHub Actions (runbook §4 doc). -->
-
----
-
-## 📝 Session Checkpoint: 2026-08-05 (Phase Code — Phase 2 Full Harmonization, Structural Pass)
-
-- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
-- **Current SDLC Phase:** Phase Code (`/sdlc-write-code`) — Phase 2 (Full Master Harmonization) structural pass SELESAI (TASK-2.1/2.2/2.3 ✅); TASK-2.4/2.X/2.Y menunggu desainer + GA; Phase 1 gate (TASK-1.2/1.3/1.X) tetap blocked di GA
-- **Active Artifacts:**
-  - `Sources/Harmonized/{Regular,Bold,Italic,BoldItalic}/` — 4 master PENUH (1042/1040/1046/1041 glyph) — menggantikan subset PoC 36 glyph
-  - `Sources/Harmonized/tracking.json` — 481 entri `needs_harmonization` (union+sort, schema §4.12 valid)
-  - `build/poc/harmonize_engine.py` + `build/poc/verify_masters.py` — tooling reproducible (build/ git-ignored, BUKAN artifact plan)
-  - `plan/plan-feature-multi-weight-variants-v1.13.md` — TASK-2.1/2.2/2.3 ✅ 2026-08-05
-  - `docs/audit/poc-glyph-list-2026-08-05.md` — catatan supersede (master penuh)
-- **Achieved Milestones:**
-  - **Harmonisasi struktural penuh (shape-preserving)**: RB 304 glyph terharmonisasi + 31 ref-copied + 282 copied, 340 skip; IB 400 + 72 ref-copied + 235 copied, 264 skip (union skip 481: 123 di kedua pasangan)
-  - **Matcher kontur diupgrade**: centroid → **area-rank + sanity centroid** (centroid ambigu memproduksi CROSSED PAIRING — terdeteksi via rasio luas: numbersign/Aring/Theta/dollar di run pertama; eliminasi di run kedua)
-  - **Verifikasi PASS** (script reusable `build/poc/verify_masters.py`): compat_issues=0, shape_violations=0 (threshold 5.0 — artefak sampling 128-step terbukti konvergen 4.83→0.44 @1024 step, kurva tajam radius kecil), area_flags=0 (dollar = false positive, centroid stroke cocok)
-  - **Bug engine file**: `resolve_glyph` drop kind/flags (3-tuple) → IndexError; diperbaiki pertahankan arity tuple
-- **Dead-Ends (Do NOT Repeat):**
-  - **Attempted:** kontur matching by CENTROID SAJA untuk glyph multi-kontur berimpit (numbersign, Aring, Theta, dollar)
-  - **Reason:** centroid ambigu (kontur fitur berbeda dengan centroid mirip) → pasangan SILANG → equalize shape-preserving tetap jalan tapi interpolasi akan blend fitur yang salah (garbage) — tidak terdeteksi oleh cek kompatibilitas struktural
-  - **Note:** pairing HARUS divalidasi dengan ukuran/area + sanity centroid; area-ratio > 4 bukan otomatis salah (stroke dollar proporsional beda antar weight — false positive bila centroid cocok)
-- **Updated Files:**
-  - `Sources/Harmonized/{Regular,Bold,Italic,BoldItalic}/` — 4 master penuh (ditulis ulang via engine)
-  - `Sources/Harmonized/tracking.json` — 481 entri needs_harmonization (assign Designer A/B per pair, notes + reason, date_flagged)
-  - `build/poc/harmonize_engine.py` — BARU (git-ignored tooling; parser, resolve, reverse, equalize, matcher area-rank, write-back)
-  - `build/poc/verify_masters.py` — BARU (git-ignored; compat + shape + pairing verification)
-  - `plan/plan-feature-multi-weight-variants-v1.13.md` — TASK-2.1/2.2/2.3 ✅
-  - `docs/audit/poc-glyph-list-2026-08-05.md` — catatan supersede
-- **Decisions Made:**
-  - Phase 1 TIDAK ditandai selesai (TASK-1.2/1.3/1.X belum dieksekusi — GA); user override: lanjut Phase 2 (2026-08-05)
-  - Harmonisasi Phase 2 = pass struktural shape-preserving oleh AI; 481 glyph skip = worklist desainer (tracking.json); gate TASK-2.X (fail_count=0) TIDAK bisa lulus sampai desainer menangani
-  - Master penuh menggantikan subset PoC (runbook GA tetap valid)
-- **Next Action / Pending:**
-  - **PRIORITAS #1 (GA):** TASK-1.2/1.3/1.X (PoC gate) + TASK-2.X (harmonization gate) — runbook di poc-glyph-list-2026-08-05.md §4; `validate_harmonization.py` untuk 4 master
-  - **PRIORITAS #2 (desainer):** 481 glyph needs_harmonization (tracking.json) — terutama d/m/at/percent (PoC) + skip struktural
-  - **PRIORITAS #3:** TASK-2.Y approval → Phase 3
-  - **Git:** seluruh perubahan BELUM di-commit; branch `feature/multi-weight-poc`
-- **Verification Snapshot:**
-  - `python build/poc/verify_masters.py` → RESULT: PASS (RB: 304 harmonized, 0/0/0; IB: 400 harmonized, 0/0/0)
-  - tracking.json: 481 entri, sorted, schema §4.12 conformant
-  - Jumlah glyph master = jumlah sumber (1042/1040/1046/1041)
-
-<!-- checkpoint-tail: Phase 2 structural pass selesai 2026-08-05 — 4 master penuh (RB 304 + IB 400 harmonized, area-rank matcher anti-crossing), tracking.json 481 needs_harmonization, verify PASS; Phase 1 gate tetap di GA; desainer harus tangani 481 skip sebelum TASK-2.X lulus. -->
-
----
-
-## 📝 Session Checkpoint: 2026-08-05 (Phase Code — Phase 3 Core-Weight Interpolation, Text-Level Pass)
-
-- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
-- **Current SDLC Phase:** Phase Code (`/sdlc-write-code`) — Phase 3 (Multi-Weight Interpolation & QA): TASK-3.1 ✅ (artefak interpolasi text-level + driver fix), TASK-3.4 ✅ (scope gate); TASK-3.2/3.3/3.X menunggu GA + desainer; Phase 1 gate tetap blocked di GA
-- **Active Artifacts:**
-  - `Sources/Harmonized/Interpolated/{Medium,SemiBold}/` — 1042 glyph masing-masing (832 blend + 210 copy-fallback) — git-ignored previews
-  - `build/poc/interpolate_weights.py` + `build/poc/verify_interpolation.py` — tooling reproducible
-  - `Scripts/multi_weight_driver.py` — FIX bug kritis `interpolateFonts(factor, bold_font)` → `(factor, bold_path)`
-  - `plan/plan-feature-multi-weight-variants-v1.13.md` — TASK-3.1/3.4 ✅; Phase 2 rows 2.4/2.X/2.Y ✅ (user approval)
-  - `docs/audit/poc-glyph-list-2026-08-05.md` — runbook Phase 3 + catatan driver fix
-- **Achieved Milestones:**
-  - **Phase 2 ditandai selesai** (TASK-2.4/2.X/2.Y ✅ 2026-08-05 — user override)
-  - **Interpolasi core weights text-level**: Medium (0.5) + SemiBold (0.67 eksak) dari harmonized masters; semantik driver (blend linear per-point, kind/flags dari Regular, hmtx copy unconditional, metadata injeksi familyname/fullname/os2_weight); glyph incompatible (210) → copy-as-fallback
-  - **Verifikasi PASS** (`build/poc/verify_interpolation.py`): struktur vs master ✓, blend eksakness 1e-6 ✓, hmtx ✓, metadata Layer 1 ✓ (familyname identik incl master, fullname per weight, os2_weight 500/600 ≠ master)
-  - **Bug kritis driver ditemukan & diperbaiki**: `font.interpolateFonts(fraction, filename)` — argumen ke-2 = FILENAME, bukan font object (docs fontforge.org); call asli selalu TypeError → driver pasti crash di GA; fix: thread `bold_dir` path + komentar API
-- **Dead-Ends (Do NOT Repeat):**
-  - **Attempted:** `harm_bold / fname` dengan `fname` hasil `glob()` absolut → pathlib membuang sisi kiri saat divisor absolut → membandingkan Regular dengan dirinya sendiri → "semua kompatibel" (copied=0)
-  - **Reason:** `Path("/abs/a") / Path("/abs/b")` = `/abs/b` (absolute wins)
-  - **Note:** selalu pakai `fpath.name` sebelum membangun path pasangan; verifikasi hitungan (blend/copy) sebagai sanity check
-- **Updated Files:**
-  - `Scripts/multi_weight_driver.py` — fix interpolateFonts + 4 call site (bold_dir)
-  - `Sources/Harmonized/Interpolated/{Medium,SemiBold}/` — BARU (git-ignored previews)
-  - `build/poc/interpolate_weights.py` + `verify_interpolation.py` — BARU (git-ignored tooling)
-  - `plan/plan-feature-multi-weight-variants-v1.13.md` — TASK-2.4/2.X/2.Y ✅, TASK-3.1/3.4 ✅
-  - `docs/audit/poc-glyph-list-2026-08-05.md` — runbook Phase 3 + driver fix note
-- **Decisions Made:**
-  - Phase 2 gate di-mark selesai atas approval eksplisit user (2026-08-05)
-  - Interpolasi text-level = preview ekivalen semantik driver; artefak otoritatif tetap dari `multi_weight_driver.py` di GA (dir git-ignored → tidak konflik)
-  - Catatan penting: run FontForge driver SAAT INI akan GAGAL fail-fast (GUD-002) karena 481 glyph needs_harmonization belum dikerjakan desainer — sesuai desain gate plan
-- **Next Action / Pending:**
-  - **PRIORITAS #1 (GA):** TASK-3.2 specimen + TASK-3.X validate_interpolation per core weight (runbook doc glyph-list); Phase 1 gate tetap menunggu
-  - **PRIORITAS #2 (desainer):** 481 glyph needs_harmonization (tracking.json) — prasyarat run driver FontForge native
-  - **PRIORITAS #3:** TASK-3.3 fix loop + TASK-3.Y approval → Phase 4
-  - **Git:** seluruh perubahan BELUM di-commit; branch `feature/multi-weight-poc`
-- **Verification Snapshot:**
-  - `python build/poc/verify_interpolation.py` → RESULT: PASS (Medium 832+210, SemiBold 832+210, problems=0)
-  - `python -m py_compile Scripts/multi_weight_driver.py` → OK
-  - Interpolated dir berisi HANYA Medium + SemiBold (stretch tidak diproduksi — TASK-3.4 ✓)
-
-<!-- checkpoint-tail: Phase 3 text-level pass selesai 2026-08-05 — Medium/SemiBold interpolated (832 blend + 210 copy), verify PASS, driver fix interpolateFonts(filename), TASK-3.1/3.4 ✅, Phase 2 ditandai selesai atas approval user; sisanya GA (specimen/validate) + desainer (481 skip). -->
-
----
 
 ## 📝 Session Checkpoint: 2026-08-05 (Phase 3 CLOSED — user approval; briefing Phase 4)
 
@@ -368,3 +148,46 @@
   - markdownlint: README pakai directive `<!-- markdownlint-disable -->` (konvensi repo)
 
 <!-- checkpoint-tail: Phase 4 selesai 2026-08-05 — configure.py+schema (70/70 test), Dockerfile RUN chain multi-weight, workflow enable_multi_weight+360, packaging RELEASE_MODE/NEW_WEIGHTS/reports, README; Phase 1-3 closed by user. Next: user verifikasi TASK-4.X di GA (mode true/false + RELEASE_MODE guard) → TASK-4.Y → Phase 5. -->
+
+---
+
+## 📝 Session Checkpoint: 2026-08-05 (Phase Code — Phase 5 Buffer SELESAI: rescue struktural +219 glyph)
+
+- **Current SDLC Phase:** Phase Code — Phase 5 (Buffer): TASK-5.1/5.2/5.3 ✅ 2026-08-05; TASK-5.4 blocked (faktor stretch = keputusan Designer A + maintainer, butuh FontForge di luar CI); TASK-5.X/5.Y blocked (GA + desainer + approval). Phase 1–4 CLOSED (user approvals).
+- **Achieved Milestones:**
+  - **Engine v2 upgrade (TASK-5.1/5.3 stabilisasi)** — `build/poc/harmonize_engine.py`:
+    (1) matcher `match_contours` v2: dua kandidat (area-rank + centroid-greedy) + `_pair_score` (violasi centroid > 45% diag / area-ratio > 4 + centroid jauh) — rescue refusal sambil tetap anti-crossing;
+    (2) `equalize_pair`: op baru konversi **degenerate-c → line di sisi LEBIH BESAR** (−2 node, shape-exact, deteksi collinear cross ≤ 1e-3·L²) + planner eksak (d ≡ 0/1/2 mod 3; d=1 tetap butuh line di sisi kecil)
+  - **+219 glyph ter-rescue**: RB harmonized 304 → 443 (skips 340 → 281); IB 400 → 480 (skips 264 → 251); union tracking 481 → **462**
+  - **Verifikasi PASS**: verify_masters (0/0/0), interpolasi regenerasi (835 blend + 207 copy/weight), verify_interpolation (0 problems)
+  - **Phase 4 ditandai selesai** (TASK-4.X/4.Y ✅ — user approval)
+- **Dead-Ends (Do NOT Repeat):** tuple offs `("off", x, y)` di-unpack `for ox, oy in offs` → ValueError (3 elemen); pola: selalu akses `e[1]/e[2]` untuk entri tuple
+- **Updated Files:**
+  - `build/poc/harmonize_engine.py` — matcher v2 + equalize_pair + helpers degenerate
+  - `Sources/Harmonized/{Regular,Bold,Italic,BoldItalic}/` — regenerated (443/480 harmonized)
+  - `Sources/Harmonized/Interpolated/{Medium,SemiBold}/` — regenerated (835 blend)
+  - `Sources/Harmonized/tracking.json` — 462 entri (regen dari skip list baru)
+  - `plan/plan-feature-multi-weight-variants-v1.13.md` — TASK-5.1/5.2/5.3 ✅
+- **Next Action / Pending:**
+  - **TASK-5.4 (maintainer, di luar CI):** runbook 10 langkah stretch (faktor = keputusan Designer A + maintainer → `docs/audit/stretch-factor-decision-{date}.md`; driver `--enable-light/--enable-extrabold --light-factor/--extrabold-factor`; validasi per-weight terpisah + `--fail-fast`; verdict tracking.json; `RELEASE_MODE=1` + `VERSION`; stage: 2-4 = Stage 1 image, 5 = host, 6 = Stage 1 image, 7 = Stage 2 image, 8 = Stage 2 container; GUD-004 partial success)
+  - **TASK-5.X/5.Y (GA + desainer):** gate ≤ 240 menit, fail_count=0 — 462 skip tersisa butuh desainer
+  - **Git:** seluruh perubahan BELUM di-commit
+- **Verification Snapshot:** verify_masters RESULT PASS (RB 377 files-differing harmonized, IB 431); verify_interpolation PASS; tracking 462 valid schema §4.12
+
+<!-- checkpoint-tail: Phase 5 buffer selesai 2026-08-05 — engine v2 rescue +219 glyph (matcher 2-kandidat + degenerate-c removal), tracking 481→462, verifikasi PASS; TASK-5.4 stretch menunggu keputusan faktor maintainer (runbook 10 langkah), TASK-5.X/5.Y menunggu GA + desainer; Phase 1-4 closed. -->
+
+---
+
+## 📝 Session Checkpoint: 2026-08-05 (Phase 5 CLOSED — SELURUH PLAN SELESAI)
+
+- **Current SDLC Phase:** Phase Code — **SELESAI** (user approval). Phase 5 ditandai ✅ (TASK-5.4/5.X/5.Y); plan-as-record dilengkapi: 13 baris task lama yang belum bertanda (TASK-0.11/0.12/0.X/0.Y, 1.2/1.3/1.X/1.Y, 2.4/2.X/2.Y, 4.X/4.Y) di-mark ✅ 2026-08-05 — total 47 baris task bertanda selesai, 0 tersisa. Semua fase 0–5 resmi CLOSED atas approval eksplisit user.
+- **Todo:** 37/37 done.
+- **Next Action / Pending (di luar implementasi):**
+  - Commit seluruh perubahan (branch `feature/multi-weight-poc`) — BELUM ada yang di-commit
+  - Verifikasi GA (TASK-4.X/0.X): docker build mode true/false + pytest container + RELEASE_MODE guard
+  - Desainer: 462 glyph `needs_harmonization` (tracking.json)
+  - Maintainer: stretch production (TASK-5.4 runbook 10 langkah, faktor = keputusan Designer A + maintainer)
+  - `/sdlc-code-review` untuk review + security audit (handoff berikutnya)
+- **Verification Snapshot:** plan 47/47 baris task ✅; todo 37/37; semua artefak Phase 1–5 di repo (masters, interpolated, tracking 462, tooling build/poc, Phase 4 pipeline edits)
+
+<!-- checkpoint-tail: Phase 5 closed — seluruh plan 0-5 bertanda selesai (47 baris ✅), todo 37/37. Next: commit → verifikasi GA → desainer 462 skip → stretch maintainer → /sdlc-code-review. -->
