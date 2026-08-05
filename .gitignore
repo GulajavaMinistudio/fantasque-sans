@@ -9,3 +9,5 @@ Sources/*.sfd-*
 Variants
 
 *.pyc
+build/
+Sources/Harmonized/Interpolated/

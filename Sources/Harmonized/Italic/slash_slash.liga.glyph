@@ -1,0 +1,25 @@
+StartChar: slash_slash.liga
+Encoding: 57404 57404 984
+Width: 1060
+VWidth: 60
+Flags: W
+LayerCount: 2
+Fore
+SplineSet
+-954 -57 m 1
+-945 -44 -906 13 -880 55 c 1
+-740 280 -183 1175 -19 1461 c 1
+120 1380 l 1
+-86 1028 -639 141 -814 -141 c 1
+-884 -99 l 1
+-954 -57 l 1
+-94 -57 m 1
+-85 -44 -46 13 -20 55 c 1
+120 280 677 1175 841 1461 c 1
+980 1380 l 1
+774 1028 221 141 46 -141 c 1
+-24 -99 l 1
+-94 -57 l 1
+EndSplineSet
+Validated: 1
+EndChar

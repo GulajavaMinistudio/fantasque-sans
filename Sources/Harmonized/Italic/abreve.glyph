@@ -1,0 +1,13 @@
+StartChar: abreve
+Encoding: 259 259 208
+Width: 1060
+VWidth: 32
+Flags: W
+HStem: -8 152<263.542 494.389> 890 144<420.442 744.614> 1115 153<531.679 804.382>
+VStem: 66 152<187.28 570.631> 328 164<1309.95 1404> 716 150<78.0819 215.544>
+LayerCount: 2
+Fore
+Refer: 326 774 S 1 0 0 1 -66 -242 2
+Refer: 0 97 N 1 0 0 1 0 0 3
+Validated: 1
+EndChar

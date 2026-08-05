@@ -195,3 +195,87 @@
 **Next Action:** PRIORITAS #1 commit v1.11; #2 `/sdlc-define-specs` (Spec v1.7); #3 `/sdlc-clarify-reqs` r5 → re-audit → `/sdlc-write-code`.
 
 <!-- checkpoint-tail: Plan multi-weight v1.11 FINAL — sync r5 (B1 python3-fontforge apt, B2 T_FINAL, B3 lokal TTF, E1 tracking.json, E2 per-weigh, E4 dilewati, H3 build-reports, H4 push-gate=smoke, H6 runbook anotasi); 9 NOTE-rows + TEST-007; v1.10 deleted. Next: commit → /sdlc-define-specs → re-audit → /sdlc-write-code. -->
+---
+
+## 📝 Session Checkpoint: 2026-08-05 (Phase Code — TASK-1.1 PoC Subset Harmonization)
+
+- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
+- **Current SDLC Phase:** Phase Code (`/sdlc-write-code`) — Implementation Phase 1 (PoC/MVP) in progress; TASK-1.1 SELESAI, TASK-1.2/1.3/1.X menunggu eksekusi di GitHub Actions
+- **Active Artifacts:**
+  - `plan/plan-feature-multi-weight-variants-v1.13.md` — TASK-1.1 ditandai ✅ 2026-08-05
+  - `docs/audit/poc-glyph-list-2026-08-05.md` — BARU (deliverable TASK-1.1, 40 glyph, 36 harmonized, 4 skip)
+  - `Sources/Harmonized/Regular/` + `Sources/Harmonized/Bold/` — BARU (subset font 36 glyph + font.props)
+  - `Scripts/validate_interpolation.py` — FIX bug kritis `selfIntersects` (properti → method)
+  - `tests/test_validate_interpolation.py` — FIX `test_pass_status` (threshold 100.0; kotak 90° = warning di 15°)
+- **Achieved Milestones:**
+  - **TASK-1.1 (PoC subset harmonization)**: analisis kuantitatif worst offenders via parser .sfdir teks (tanpa FontForge): 633/1037 (61%) kompatibel, 394 incompatible; engine harmonisasi struktural shape-preserving (ekspansi Refer, matching kontur by centroid, reverse winding, equalisasi node via de Casteljau/lerp/konversi degenerat) → 36/40 glyph terharmonisasi, 0 isu kompatibilitas, shape terverifikasi eksak
+  - **4 glyph skip (butuh harmonisasi desainer)**: `d` (4v2 kontur, outline ganda), `m` (1v2 kontur), `at` (Bold 15-node vs Regular 77-node), `percent` (5v3 kontur)
+  - **Deviasi FR-2.1 terdokumentasi**: font TIDAK memiliki glyph ligatur `fi`/`fl` (ligature = keluarga `*.liga`, shared pool Phase 2) → `germandbls` sebagai wakil counter kompleks
+  - **Bug kritis ditemukan & diperbaiki**: `validate_interpolation.py` memanggil `glyph.selfIntersects` sebagai properti (API FontForge = method) → bound method selalu truthy → SEMUA glyph diklasifikasikan `fail` → gate PoC mustahil lolos; fix surgical + test existing `test_pass_status` jadi regression guard
+- **Dead-Ends (Do NOT Repeat):** lihat KB DE #11 (importorskip silent skip — sama akarnya: script Phase 0 tidak pernah dieksekusi nyata karena TASK-0.X belum pernah dijalankan di container; TASK-0.11/0.12/0.X masih pending)
+- **Updated Files:**
+  - `docs/audit/poc-glyph-list-2026-08-05.md` — BARU (metodologi, tabel subset, runbook GA)
+  - `Sources/Harmonized/{Regular,Bold}/` — BARU (36 glyph subset + font.props)
+  - `Scripts/validate_interpolation.py` — fix `selfIntersects()` call
+  - `tests/test_validate_interpolation.py` — fix threshold test_pass_status
+  - `plan/plan-feature-multi-weight-variants-v1.13.md` — TASK-1.1 ✅
+- **Decisions Made:**
+  - User: instalasi FontForge/Docker lokal DITUNDA — eksekusi & testing via GitHub Actions (2026-08-05)
+  - Harmonisasi PoC = kompatibilisasi struktural shape-preserving (ASUMSI terdokumentasi: BUKAN harmonisasi desain final Phase 2; gate manusia FR-2.4 tetap berlaku)
+  - Subset master = font subset-only (bukan salinan penuh) — konsisten FR-2.1 "PoC mencakup subset"
+  - Glyph tidak terharmonisasi TIDAK disertakan dalam subset master (gate statistik = subset terharmonisasi saja)
+- **Next Action / Pending:**
+  - **PRIORITAS #1 (user, di GA):** TASK-1.2 interpolasi subset → Medium via `poc_interpolation.py`; TASK-1.3 specimen + kalibrasi dua-pass (15.0° → T_final); TASK-1.X dual gate (pass_rate ≥ 90%, fail_count = 0) — runbook lengkap di poc-glyph-list-2026-08-05.md §4
+  - **PRIORITAS #2:** TASK-0.11/0.12/0.X (eksperimen E0.1–E0.3 + VERIFY container) masih pending dari Phase 0 — verifikasi di GA sekaligus (termasuk regression `test_pass_status`)
+  - **PRIORITAS #3:** TASK-1.Y approval → Phase 2 (harmonisasi desain penuh; d/m/at/percent butuh desainer)
+  - **Git:** seluruh perubahan BELUM di-commit (sesuai preferensi user commit manual); branch `feature/multi-weight-poc`
+- **Verification Snapshot:**
+  - Kompatibilitas harmonized: 36/36 glyph, 0 isu (kontur/node/winding) — verifikasi re-parse
+  - Shape preservation: deviasi on-curve & kurva ≤ 0.7 em-unit (artefak sampling verifikasi, konvergen kuadratik; nilai sejati ≈ 0)
+  - `python -m py_compile` kedua file yang diedit: OK
+
+<!-- checkpoint-tail: Phase Code TASK-1.1 selesai 2026-08-05 — analisis worst offenders + harmonisasi struktural 36/40 glyph subset (4 skip: d, m, at, percent), Sources/Harmonized/{Regular,Bold} dibuat, poc-glyph-list-2026-08-05.md; bug kritis validate_interpolation.py selfIntersects() diperbaiki; FontForge lokal ditunda user — TASK-1.2/1.3/1.X dijalankan di GitHub Actions (runbook §4 doc). -->
+
+---
+
+## 📝 Session Checkpoint: 2026-08-05 (Phase Code — Phase 2 Full Harmonization, Structural Pass)
+
+- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
+- **Current SDLC Phase:** Phase Code (`/sdlc-write-code`) — Phase 2 (Full Master Harmonization) structural pass SELESAI (TASK-2.1/2.2/2.3 ✅); TASK-2.4/2.X/2.Y menunggu desainer + GA; Phase 1 gate (TASK-1.2/1.3/1.X) tetap blocked di GA
+- **Active Artifacts:**
+  - `Sources/Harmonized/{Regular,Bold,Italic,BoldItalic}/` — 4 master PENUH (1042/1040/1046/1041 glyph) — menggantikan subset PoC 36 glyph
+  - `Sources/Harmonized/tracking.json` — 481 entri `needs_harmonization` (union+sort, schema §4.12 valid)
+  - `build/poc/harmonize_engine.py` + `build/poc/verify_masters.py` — tooling reproducible (build/ git-ignored, BUKAN artifact plan)
+  - `plan/plan-feature-multi-weight-variants-v1.13.md` — TASK-2.1/2.2/2.3 ✅ 2026-08-05
+  - `docs/audit/poc-glyph-list-2026-08-05.md` — catatan supersede (master penuh)
+- **Achieved Milestones:**
+  - **Harmonisasi struktural penuh (shape-preserving)**: RB 304 glyph terharmonisasi + 31 ref-copied + 282 copied, 340 skip; IB 400 + 72 ref-copied + 235 copied, 264 skip (union skip 481: 123 di kedua pasangan)
+  - **Matcher kontur diupgrade**: centroid → **area-rank + sanity centroid** (centroid ambigu memproduksi CROSSED PAIRING — terdeteksi via rasio luas: numbersign/Aring/Theta/dollar di run pertama; eliminasi di run kedua)
+  - **Verifikasi PASS** (script reusable `build/poc/verify_masters.py`): compat_issues=0, shape_violations=0 (threshold 5.0 — artefak sampling 128-step terbukti konvergen 4.83→0.44 @1024 step, kurva tajam radius kecil), area_flags=0 (dollar = false positive, centroid stroke cocok)
+  - **Bug engine file**: `resolve_glyph` drop kind/flags (3-tuple) → IndexError; diperbaiki pertahankan arity tuple
+- **Dead-Ends (Do NOT Repeat):**
+  - **Attempted:** kontur matching by CENTROID SAJA untuk glyph multi-kontur berimpit (numbersign, Aring, Theta, dollar)
+  - **Reason:** centroid ambigu (kontur fitur berbeda dengan centroid mirip) → pasangan SILANG → equalize shape-preserving tetap jalan tapi interpolasi akan blend fitur yang salah (garbage) — tidak terdeteksi oleh cek kompatibilitas struktural
+  - **Note:** pairing HARUS divalidasi dengan ukuran/area + sanity centroid; area-ratio > 4 bukan otomatis salah (stroke dollar proporsional beda antar weight — false positive bila centroid cocok)
+- **Updated Files:**
+  - `Sources/Harmonized/{Regular,Bold,Italic,BoldItalic}/` — 4 master penuh (ditulis ulang via engine)
+  - `Sources/Harmonized/tracking.json` — 481 entri needs_harmonization (assign Designer A/B per pair, notes + reason, date_flagged)
+  - `build/poc/harmonize_engine.py` — BARU (git-ignored tooling; parser, resolve, reverse, equalize, matcher area-rank, write-back)
+  - `build/poc/verify_masters.py` — BARU (git-ignored; compat + shape + pairing verification)
+  - `plan/plan-feature-multi-weight-variants-v1.13.md` — TASK-2.1/2.2/2.3 ✅
+  - `docs/audit/poc-glyph-list-2026-08-05.md` — catatan supersede
+- **Decisions Made:**
+  - Phase 1 TIDAK ditandai selesai (TASK-1.2/1.3/1.X belum dieksekusi — GA); user override: lanjut Phase 2 (2026-08-05)
+  - Harmonisasi Phase 2 = pass struktural shape-preserving oleh AI; 481 glyph skip = worklist desainer (tracking.json); gate TASK-2.X (fail_count=0) TIDAK bisa lulus sampai desainer menangani
+  - Master penuh menggantikan subset PoC (runbook GA tetap valid)
+- **Next Action / Pending:**
+  - **PRIORITAS #1 (GA):** TASK-1.2/1.3/1.X (PoC gate) + TASK-2.X (harmonization gate) — runbook di poc-glyph-list-2026-08-05.md §4; `validate_harmonization.py` untuk 4 master
+  - **PRIORITAS #2 (desainer):** 481 glyph needs_harmonization (tracking.json) — terutama d/m/at/percent (PoC) + skip struktural
+  - **PRIORITAS #3:** TASK-2.Y approval → Phase 3
+  - **Git:** seluruh perubahan BELUM di-commit; branch `feature/multi-weight-poc`
+- **Verification Snapshot:**
+  - `python build/poc/verify_masters.py` → RESULT: PASS (RB: 304 harmonized, 0/0/0; IB: 400 harmonized, 0/0/0)
+  - tracking.json: 481 entri, sorted, schema §4.12 conformant
+  - Jumlah glyph master = jumlah sumber (1042/1040/1046/1041)
+
+<!-- checkpoint-tail: Phase 2 structural pass selesai 2026-08-05 — 4 master penuh (RB 304 + IB 400 harmonized, area-rank matcher anti-crossing), tracking.json 481 needs_harmonization, verify PASS; Phase 1 gate tetap di GA; desainer harus tangani 481 skip sebelum TASK-2.X lulus. -->

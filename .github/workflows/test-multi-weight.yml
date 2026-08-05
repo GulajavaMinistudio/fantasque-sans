@@ -1,0 +1,26 @@
+name: Test Multi-Weight
+
+on:
+  push:
+    branches:
+      - "feature/multi-weight-*"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test dependencies
+        run: pip install pytest jsonschema
+
+      - name: Run unit tests (smoke gate)
+        run: pytest tests/ -v
+        env:
+          PYTHONPATH: "${{ github.workspace }}/Scripts:${{ github.workspace }}"
