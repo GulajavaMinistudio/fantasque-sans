@@ -180,6 +180,40 @@ PoC gate (FR-2.4): script — `pass_rate ≥ 90%` and `fail_count = 0` on R2;
 human — visual diff review (8/12/16/24 pt) with ≥ 90% "handwritten feel"
 per the Visual Quality Rubric.
 
+**Phase 3 (TASK-3.2/3.X — GA):** interpolated core weights are available at
+`Sources/Harmonized/Interpolated/{Medium,SemiBold}/` (text-level previews —
+authoritative run is `multi_weight_driver.py` under FontForge):
+
+```bash
+# TASK-3.X — validation per core weight (Phase 3 gate: ≤ 2% warning, 0 fail)
+fontforge -lang=py -script Scripts/validate_interpolation.py \
+  --interpolated Sources/Harmonized/Interpolated/Medium \
+  --masters Sources/Harmonized --threshold T_final \
+  --output build/reports/interp-medium-R2.json --fail-fast
+fontforge -lang=py -script Scripts/validate_interpolation.py \
+  --interpolated Sources/Harmonized/Interpolated/SemiBold \
+  --masters Sources/Harmonized --threshold T_final \
+  --output build/reports/interp-semibold-R2.json --fail-fast
+
+# TASK-3.2 — specimen sheet (needs TTF: generate from the .sfdir under FontForge)
+fontforge -lang=py -script Scripts/multi_weight_driver.py \
+  --sources Sources --output Sources/Harmonized/Interpolated
+python3 Scripts/generate_specimen.py --weights build/pre_hint/TTF --output build/specimen
+
+# Metadata verification Layer 1 (one-liner FontForge equivalents)
+# familyname == "Fantasque Sans Mono" across all weights incl. masters;
+# fullname == "Fantasque Sans Mono {Weight}"; os2_weight 400/500/600/700
+```
+
+> **Driver fix (2026-08-05):** `Scripts/multi_weight_driver.py` passed a font
+> *object* to `font.interpolateFonts(factor, bold)` — the FontForge API
+> requires the other font's *filename* (`interpolateFonts(fraction, filename)`).
+> Fixed surgically (bold path threaded through); call sites updated. The
+> harmonization-skip list (tracking.json) means a FontForge run currently
+> FAILS at the native interpolation step (GUD-002 fail-fast) until the 481
+> `needs_harmonization` glyphs are harmonized by the designer — the text-level
+> previews use copy-as-fallback for those glyphs instead.
+
 > **Risk flagged during review:** `Scripts/validate_interpolation.py` called
 > `glyph.selfIntersects` as a property; the FontForge API exposes it as a
 > method (`glyph.selfIntersects()`). A bound method is always truthy, so every

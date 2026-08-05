@@ -10,6 +10,8 @@ Back
 Refer: 176 175 N 1 0 0 1 63 0 2
 Refer: 24 121 N 1 0 0 1 0 0 3
 Fore
+SplineSet
+EndSplineSet
 Refer: 326 772 S 1 0 0 1 31 -291.2 2
 Refer: 803 1091 N 1 0 0 1 0 0 3
 Validated: 1

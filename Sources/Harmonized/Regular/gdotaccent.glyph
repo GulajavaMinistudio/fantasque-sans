@@ -9,10 +9,10 @@ LayerCount: 2
 Fore
 SplineSet
 379 1403 m 1xf9
- 614 1403 l 1
- 614 1178 l 1
- 379 1178 l 1
- 379 1403 l 1xf9
+614 1403 l 1
+614 1178 l 1
+379 1178 l 1
+379 1403 l 1xf9
 EndSplineSet
 Refer: 6 103 N 1 0 0 1 0 0 3
 Validated: 1

@@ -279,3 +279,46 @@
   - Jumlah glyph master = jumlah sumber (1042/1040/1046/1041)
 
 <!-- checkpoint-tail: Phase 2 structural pass selesai 2026-08-05 — 4 master penuh (RB 304 + IB 400 harmonized, area-rank matcher anti-crossing), tracking.json 481 needs_harmonization, verify PASS; Phase 1 gate tetap di GA; desainer harus tangani 481 skip sebelum TASK-2.X lulus. -->
+
+---
+
+## 📝 Session Checkpoint: 2026-08-05 (Phase Code — Phase 3 Core-Weight Interpolation, Text-Level Pass)
+
+- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
+- **Current SDLC Phase:** Phase Code (`/sdlc-write-code`) — Phase 3 (Multi-Weight Interpolation & QA): TASK-3.1 ✅ (artefak interpolasi text-level + driver fix), TASK-3.4 ✅ (scope gate); TASK-3.2/3.3/3.X menunggu GA + desainer; Phase 1 gate tetap blocked di GA
+- **Active Artifacts:**
+  - `Sources/Harmonized/Interpolated/{Medium,SemiBold}/` — 1042 glyph masing-masing (832 blend + 210 copy-fallback) — git-ignored previews
+  - `build/poc/interpolate_weights.py` + `build/poc/verify_interpolation.py` — tooling reproducible
+  - `Scripts/multi_weight_driver.py` — FIX bug kritis `interpolateFonts(factor, bold_font)` → `(factor, bold_path)`
+  - `plan/plan-feature-multi-weight-variants-v1.13.md` — TASK-3.1/3.4 ✅; Phase 2 rows 2.4/2.X/2.Y ✅ (user approval)
+  - `docs/audit/poc-glyph-list-2026-08-05.md` — runbook Phase 3 + catatan driver fix
+- **Achieved Milestones:**
+  - **Phase 2 ditandai selesai** (TASK-2.4/2.X/2.Y ✅ 2026-08-05 — user override)
+  - **Interpolasi core weights text-level**: Medium (0.5) + SemiBold (0.67 eksak) dari harmonized masters; semantik driver (blend linear per-point, kind/flags dari Regular, hmtx copy unconditional, metadata injeksi familyname/fullname/os2_weight); glyph incompatible (210) → copy-as-fallback
+  - **Verifikasi PASS** (`build/poc/verify_interpolation.py`): struktur vs master ✓, blend eksakness 1e-6 ✓, hmtx ✓, metadata Layer 1 ✓ (familyname identik incl master, fullname per weight, os2_weight 500/600 ≠ master)
+  - **Bug kritis driver ditemukan & diperbaiki**: `font.interpolateFonts(fraction, filename)` — argumen ke-2 = FILENAME, bukan font object (docs fontforge.org); call asli selalu TypeError → driver pasti crash di GA; fix: thread `bold_dir` path + komentar API
+- **Dead-Ends (Do NOT Repeat):**
+  - **Attempted:** `harm_bold / fname` dengan `fname` hasil `glob()` absolut → pathlib membuang sisi kiri saat divisor absolut → membandingkan Regular dengan dirinya sendiri → "semua kompatibel" (copied=0)
+  - **Reason:** `Path("/abs/a") / Path("/abs/b")` = `/abs/b` (absolute wins)
+  - **Note:** selalu pakai `fpath.name` sebelum membangun path pasangan; verifikasi hitungan (blend/copy) sebagai sanity check
+- **Updated Files:**
+  - `Scripts/multi_weight_driver.py` — fix interpolateFonts + 4 call site (bold_dir)
+  - `Sources/Harmonized/Interpolated/{Medium,SemiBold}/` — BARU (git-ignored previews)
+  - `build/poc/interpolate_weights.py` + `verify_interpolation.py` — BARU (git-ignored tooling)
+  - `plan/plan-feature-multi-weight-variants-v1.13.md` — TASK-2.4/2.X/2.Y ✅, TASK-3.1/3.4 ✅
+  - `docs/audit/poc-glyph-list-2026-08-05.md` — runbook Phase 3 + driver fix note
+- **Decisions Made:**
+  - Phase 2 gate di-mark selesai atas approval eksplisit user (2026-08-05)
+  - Interpolasi text-level = preview ekivalen semantik driver; artefak otoritatif tetap dari `multi_weight_driver.py` di GA (dir git-ignored → tidak konflik)
+  - Catatan penting: run FontForge driver SAAT INI akan GAGAL fail-fast (GUD-002) karena 481 glyph needs_harmonization belum dikerjakan desainer — sesuai desain gate plan
+- **Next Action / Pending:**
+  - **PRIORITAS #1 (GA):** TASK-3.2 specimen + TASK-3.X validate_interpolation per core weight (runbook doc glyph-list); Phase 1 gate tetap menunggu
+  - **PRIORITAS #2 (desainer):** 481 glyph needs_harmonization (tracking.json) — prasyarat run driver FontForge native
+  - **PRIORITAS #3:** TASK-3.3 fix loop + TASK-3.Y approval → Phase 4
+  - **Git:** seluruh perubahan BELUM di-commit; branch `feature/multi-weight-poc`
+- **Verification Snapshot:**
+  - `python build/poc/verify_interpolation.py` → RESULT: PASS (Medium 832+210, SemiBold 832+210, problems=0)
+  - `python -m py_compile Scripts/multi_weight_driver.py` → OK
+  - Interpolated dir berisi HANYA Medium + SemiBold (stretch tidak diproduksi — TASK-3.4 ✓)
+
+<!-- checkpoint-tail: Phase 3 text-level pass selesai 2026-08-05 — Medium/SemiBold interpolated (832 blend + 210 copy), verify PASS, driver fix interpolateFonts(filename), TASK-3.1/3.4 ✅, Phase 2 ditandai selesai atas approval user; sisanya GA (specimen/validate) + desainer (481 skip). -->

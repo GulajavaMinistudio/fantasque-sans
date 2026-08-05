@@ -6,6 +6,8 @@ Flags: W
 VStem: 571 145<-311 245>
 LayerCount: 2
 Fore
+SplineSet
+EndSplineSet
 Refer: 199 185 S 1 0 0 1 0 -1080 2
 Validated: 1
 EndChar

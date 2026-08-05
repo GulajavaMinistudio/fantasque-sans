@@ -9,6 +9,8 @@ LayerCount: 2
 Back
 Refer: 370 915 S 1 0 0 1 72 0 2
 Fore
+SplineSet
+EndSplineSet
 Refer: 370 915 S 1 0 0 1 72 0 2
 Validated: 1
 EndChar

@@ -177,7 +177,7 @@ def _copy_hmtx(target_font, source_font):
 # Core interpolation
 # ---------------------------------------------------------------------------
 
-def _interpolate_weight(regular_font, bold_font, factor, weight_name, output_dir, dry_run):
+def _interpolate_weight(regular_font, bold_font, bold_path, factor, weight_name, output_dir, dry_run):
     """Interpolate a single weight between Regular and Bold masters.
 
     Uses FontForge's built-in ``interpolateFonts()`` when available,
@@ -189,10 +189,14 @@ def _interpolate_weight(regular_font, bold_font, factor, weight_name, output_dir
 
     print("  Interpolating %s (factor=%.4f)..." % (weight_name, factor))
 
-    # Try FontForge built-in interpolation first
+    # Try FontForge built-in interpolation first.
+    # NOTE: the FontForge Python API is ``font.interpolateFonts(fraction,
+    # filename)`` — the SECOND argument is the OTHER FONT'S FILENAME (path),
+    # not a font object (fontforge.org/docs/scripting/python/fontforge.html).
+    # Passing a font object raises TypeError and the whole run dies.
     try:
         if hasattr(regular_font, "interpolateFonts"):
-            result = regular_font.interpolateFonts(factor, bold_font)
+            result = regular_font.interpolateFonts(factor, bold_path)
         else:
             # Fallback: copy Regular and blend per-glyph
             result = fontforge.font()
@@ -362,22 +366,22 @@ def main():
 
     # --- Core weights ---
     print("multi_weight_driver: producing core weights...")
-    _interpolate_weight(font_reg, font_bold, FACTOR_MEDIUM,
+    _interpolate_weight(font_reg, font_bold, bold_dir, FACTOR_MEDIUM,
                         "Medium", output_dir, args.dry_run)
     weights_produced.append("Medium")
 
-    _interpolate_weight(font_reg, font_bold, FACTOR_SEMIBOLD,
+    _interpolate_weight(font_reg, font_bold, bold_dir, FACTOR_SEMIBOLD,
                         "SemiBold", output_dir, args.dry_run)
     weights_produced.append("SemiBold")
 
     # --- Stretch weights (release upstream only) ---
     if args.enable_light:
-        _interpolate_weight(font_reg, font_bold, args.light_factor,
+        _interpolate_weight(font_reg, font_bold, bold_dir, args.light_factor,
                             "Light", output_dir, args.dry_run)
         weights_produced.append("Light")
 
     if args.enable_extrabold:
-        _interpolate_weight(font_reg, font_bold, args.extrabold_factor,
+        _interpolate_weight(font_reg, font_bold, bold_dir, args.extrabold_factor,
                             "ExtraBold", output_dir, args.dry_run)
         weights_produced.append("ExtraBold")
 
