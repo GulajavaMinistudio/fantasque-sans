@@ -191,3 +191,19 @@
 - **Verification Snapshot:** plan 47/47 baris task ✅; todo 37/37; semua artefak Phase 1–5 di repo (masters, interpolated, tracking 462, tooling build/poc, Phase 4 pipeline edits)
 
 <!-- checkpoint-tail: Phase 5 closed — seluruh plan 0-5 bertanda selesai (47 baris ✅), todo 37/37. Next: commit → verifikasi GA → desainer 462 skip → stretch maintainer → /sdlc-code-review. -->
+
+---
+
+## 📝 Session Checkpoint: 2026-08-05 (Engine v3 — rescue lanjutan; ceiling shape-preserving tercapai)
+
+- **Current SDLC Phase:** Phase Code — TASK-5.1 extension (permintaan user: selesaikan 462 needs_harmonization). Hasil: **+19 glyph lagi ter-rescue (462 → 443)**, ceiling tercapai.
+- **Engine v3 (`build/poc/harmonize_engine.py`):**
+  - `_remove_redundant`: drop kontur degenerate (<3 on-curve / area ≈ 0) + kontur fully-contained same-winding (ray-casting + sampling konservatif 8/segmen) — shape-preserving di level render
+  - `_merge_collinear_line`: −1 node (merge junction garis collinear di sisi lebih besar; toleransi cross ≤ 1e-3·L²; skip start/closure)
+  - `equalize_pair` phase B: planner eksak dengan op −1 (collinear merge) / −2 (degenerate-c) / +1 / +2 / +3 — semua d ≥ 1 kecuali bila sisi besar tak punya junction collinear/degenerate-c DAN sisi kecil tak punya garis
+- **Hasil:** RB 449 harmonized (skips 275), IB 501 (skips 230); tracking.json **443 entri** (RB 275, IB 230, both 62); verify_masters PASS (0/0/0); interpolasi 838 blend + 204 copy/weight, verify PASS
+- **Analisis sisa 443 (mengapa tidak bisa shape-preserving):** contour-count diff-1 = 231 (mayoritas STRUKTURAL — ekstra kontur area 0.2–1.0 dari maksimum, contoh Xi/afii10020: letterform dibagi kontur berbeda antar weight; hanya ~10 kasus fitur kecil seperti ring Aring/uring/registered); diff-2+ = ~140; equalize-failed = ~90 (tidak ada op eksak yang tersedia — B tanpa junction collinear/degenerate-c, A tanpa garis); 1 degenerate-winding. **Topologi kontur yang berbeda antar master TIDAK bisa disatukan shape-preserving** — butuh keputusan desain (plan mewajibkan "Manual harmonization"; otomasi perubahan bentuk = artefak visual + melanggar semangat CON-004)
+- **Next Action:** 443 glyph = kerja desainer (tracking.json berisi alasan per-glyph); GA gates; `/sdlc-code-review`. Semua perubahan BELUM di-commit.
+- **Verification Snapshot:** verify_masters RESULT PASS (RB 385 files-differing / IB 458); verify_interpolation PASS; tracking 443 valid schema §4.12
+
+<!-- checkpoint-tail: Engine v3 rescue +19 (481→443 needs_harmonization). Ceiling shape-preserving: sisa 443 butuh keputusan desain topologi (diff-1 struktural dominan). tracking.json 443 entri dengan alasan per-glyph; verifikasi PASS. -->
