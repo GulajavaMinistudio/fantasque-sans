@@ -113,8 +113,9 @@ def test_medium_interpolation_factor():
     font_bold = ff.open(bold_dir)
 
     result = _mod._interpolate_weight(
-        font_reg, font_bold, 0.5, "Medium",
-        os.path.join(sources, "Harmonized", "Interpolated"),
+        regular_font=font_reg, bold_font=font_bold, bold_path=bold_dir,
+        factor=0.5, weight_name="Medium",
+        output_dir=os.path.join(sources, "Harmonized", "Interpolated"),
         dry_run=False,
     )
 
@@ -151,7 +152,9 @@ def test_copy_as_fallback():
 
     out_dir = os.path.join(sources, "Harmonized", "Interpolated")
     result = _mod._interpolate_weight(
-        font_reg, font_bold, 0.5, "Medium", out_dir, dry_run=False,
+        regular_font=font_reg, bold_font=font_bold, bold_path=bold_dir,
+        factor=0.5, weight_name="Medium",
+        output_dir=out_dir, dry_run=False,
     )
 
     # 'only_reg' should be copied from Regular (copy-as-fallback)
@@ -174,7 +177,9 @@ def test_hmtx_copy():
 
     out_dir = os.path.join(sources, "Harmonized", "Interpolated")
     result = _mod._interpolate_weight(
-        font_reg, font_bold, 0.5, "Medium", out_dir, dry_run=False,
+        regular_font=font_reg, bold_font=font_bold, bold_path=bold_dir,
+        factor=0.5, weight_name="Medium",
+        output_dir=out_dir, dry_run=False,
     )
 
     # Advance width of 'A' should match Regular (600)
@@ -197,7 +202,9 @@ def test_output_sfdir_structure():
 
     out_dir = os.path.join(sources, "Harmonized", "Interpolated")
     _mod._interpolate_weight(
-        font_reg, font_bold, 0.5, "Medium", out_dir, dry_run=False,
+        regular_font=font_reg, bold_font=font_bold, bold_path=bold_dir,
+        factor=0.5, weight_name="Medium",
+        output_dir=out_dir, dry_run=False,
     )
 
     medium_dir = os.path.join(out_dir, "Medium")
@@ -235,7 +242,9 @@ def test_dry_run_no_output():
     os.makedirs(out_dir, exist_ok=True)
 
     result = _mod._interpolate_weight(
-        font_reg, font_bold, 0.5, "Medium", out_dir, dry_run=True,
+        regular_font=font_reg, bold_font=font_bold, bold_path=bold_dir,
+        factor=0.5, weight_name="Medium",
+        output_dir=out_dir, dry_run=True,
     )
 
     assert result is not None
@@ -271,7 +280,7 @@ def test_source_assembly_naming():
     font_bold = ff.open(bold_dir)
     out_dir = os.path.join(sources, "Harmonized", "Interpolated")
     os.makedirs(out_dir, exist_ok=True)
-    _mod._interpolate_weight(font_reg, font_bold, 0.5, "Medium", out_dir, dry_run=False)
+    _mod._interpolate_weight(regular_font=font_reg, bold_font=font_bold, bold_path=bold_dir, factor=0.5, weight_name="Medium", output_dir=out_dir, dry_run=False)
     font_reg.close()
     font_bold.close()
 
@@ -304,7 +313,13 @@ def test_assembly_includes_fantasque_sans():
 # ---------------------------------------------------------------------------
 
 def test_metadata_injection():
-    """Metadata values should match the contract (Spec §4.6, r6 Q-08)."""
+    """Metadata values should match the contract (Spec §4.6, r6 Q-08).
+
+    Iterates over all 6 weights (Light 300 → ExtraBold 800).  For each:
+    assert familyname is identical across all weights (family grouping
+    in font picker — AC-I03), fullname is weight-suffixed, and
+    os2_weight matches the OS/2 class number.
+    """
     tmp = tempfile.mkdtemp(prefix="test_mdw_")
     sources, reg_dir, bold_dir = _build_fixture_tree(tmp)
 
@@ -313,14 +328,29 @@ def test_metadata_injection():
     out_dir = os.path.join(sources, "Harmonized", "Interpolated")
     os.makedirs(out_dir, exist_ok=True)
 
-    result = _mod._interpolate_weight(
-        font_reg, font_bold, 0.5, "Medium", out_dir, dry_run=False,
-    )
+    # Weight → (factor, os2_number); stretch factors are PoC-test
+    # placeholders (factor contract locked in driver per Spec §4.6).
+    weights = [
+        ("Light", 0.5, 300),
+        ("Regular", 0.5, 400),
+        ("Medium", 0.5, 500),
+        ("SemiBold", 0.67, 600),
+        ("Bold", 0.5, 700),
+        ("ExtraBold", 0.5, 800),
+    ]
 
-    assert result.familyname == "Fantasque Sans Mono"
-    assert result.fullname == "Fantasque Sans Mono Medium"
-    assert "Medium" in result.fontname or "Medium" in result.fullname
+    for weight_name, factor, expected_weight in weights:
+        result = _mod._interpolate_weight(
+            regular_font=font_reg, bold_font=font_bold, bold_path=bold_dir,
+            factor=factor, weight_name=weight_name,
+            output_dir=out_dir, dry_run=False,
+        )
+
+        assert result.familyname == "Fantasque Sans Mono"
+        assert result.fullname == "Fantasque Sans Mono %s" % weight_name
+        assert result.os2_weight == expected_weight
+
+        result.close()
 
     font_reg.close()
     font_bold.close()
-    result.close()

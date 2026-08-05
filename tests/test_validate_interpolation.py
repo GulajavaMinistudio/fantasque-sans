@@ -114,8 +114,8 @@ def test_warning_status():
     # Use a very low threshold to trigger warnings on any angle
     report = _mod._validate(interp_dir, masters_dir, 0.01, None, False)
 
-    # With a tiny threshold, most shapes will have some angle
-    assert report["total_glyphs"] > 0
+    assert report["warning_count"] >= 1
+    assert report["fail_count"] == 0
 
 
 # ---------------------------------------------------------------------------
@@ -144,8 +144,10 @@ def test_fail_status():
 
     report = _mod._validate(interp_dir, masters_dir, 15.0, None, False)
 
-    # The bowtie should trigger a fail or at least be detected
-    assert report["total_glyphs"] > 0
+    assert report["fail_count"] >= 1
+    for g in report["glyphs"]:
+        if g["name"] == "A":
+            assert g["status"] == "fail"
 
 
 # ---------------------------------------------------------------------------
@@ -158,10 +160,12 @@ def test_overlay_png_generated():
     _, masters_dir, interp_dir = _build_masters_tree(base)
     overlay_dir = os.path.join(base, "overlays")
 
-    report = _mod._validate(interp_dir, masters_dir, 15.0, overlay_dir, False)
+    report = _mod._validate(interp_dir, masters_dir, 0.01, overlay_dir, False)
 
     assert report["total_glyphs"] > 0
-    # We don't require PNGs to exist — the overlay generation is best-effort
+    assert report["warning_count"] >= 1
+    png_files = [f for f in os.listdir(overlay_dir) if f.endswith(".png")]
+    assert len(png_files) >= 1, "expected at least one PNG in overlay dir"
 
 
 # ---------------------------------------------------------------------------
@@ -186,6 +190,10 @@ def test_report_json_valid():
         assert "name" in g
         assert "status" in g
         assert g["status"] in ("pass", "warning", "fail")
+
+    # Spec §4.11: status enum must be consistent with aggregate counts
+    total = report["pass_count"] + report["warning_count"] + report["fail_count"]
+    assert total == report["total_glyphs"]
 
 
 # ---------------------------------------------------------------------------

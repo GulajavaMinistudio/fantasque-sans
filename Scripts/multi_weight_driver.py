@@ -180,8 +180,8 @@ def _copy_hmtx(target_font, source_font):
 def _interpolate_weight(regular_font, bold_font, bold_path, factor, weight_name, output_dir, dry_run):
     """Interpolate a single weight between Regular and Bold masters.
 
-    Uses FontForge's built-in ``interpolateFonts()`` when available,
-    falling back to per-glyph coordinate blending.
+    Uses FontForge's built-in ``font.interpolateFonts()`` exclusively,
+    as mandated by Spec §4.6 (CON-002 — Workflow A).
 
     Returns the interpolated font, or None on failure.
     """
@@ -189,62 +189,16 @@ def _interpolate_weight(regular_font, bold_font, bold_path, factor, weight_name,
 
     print("  Interpolating %s (factor=%.4f)..." % (weight_name, factor))
 
-    # Try FontForge built-in interpolation first.
+    # Fail-fast pre-check: Spec §4.6 mandates font.interpolateFonts()
+    if not hasattr(fontforge, "font") or not hasattr(fontforge.font(), "interpolateFonts"):
+        _die("fontforge.interpolateFonts not available — required by Spec §4.6")
+
     # NOTE: the FontForge Python API is ``font.interpolateFonts(fraction,
     # filename)`` — the SECOND argument is the OTHER FONT'S FILENAME (path),
     # not a font object (fontforge.org/docs/scripting/python/fontforge.html).
     # Passing a font object raises TypeError and the whole run dies.
     try:
-        if hasattr(regular_font, "interpolateFonts"):
-            result = regular_font.interpolateFonts(factor, bold_path)
-        else:
-            # Fallback: copy Regular and blend per-glyph
-            result = fontforge.font()
-            for attr in ("fontname", "familyname", "fullname",
-                          "ascent", "descent", "em"):
-                try:
-                    setattr(result, attr, getattr(regular_font, attr))
-                except Exception:
-                    pass
-
-            for name in regular_font.glyphs():
-                try:
-                    ga = regular_font[name]
-                    gb = bold_font[name] if name in bold_font.glyphs() else None
-
-                    g_out = result.createChar(-1, name)
-                    g_out.width = ga.width
-
-                    if gb is None:
-                        g_out.foreground = ga.foreground
-                        continue
-
-                    layer_a = ga.foreground
-                    layer_b = gb.foreground
-                    if len(layer_a) != len(layer_b):
-                        g_out.foreground = ga.foreground
-                        continue
-
-                    new_layer = fontforge.layer()
-                    for ca, cb in zip(layer_a, layer_b):
-                        if len(ca) != len(cb):
-                            continue
-                        new_contour = fontforge.contour()
-                        for pa, pb in zip(ca, cb):
-                            new_x = pa.x + factor * (pb.x - pa.x)
-                            new_y = pa.y + factor * (pb.y - pa.y)
-                            new_pt = fontforge.point(new_x, new_y)
-                            if hasattr(pa, "point_type"):
-                                new_pt.type = pa.point_type
-                            elif hasattr(pa, "type"):
-                                new_pt.type = pa.type
-                            new_contour += new_pt
-                        new_contour.closed = getattr(ca, "closed", True)
-                        new_layer += new_contour
-                    g_out.foreground = new_layer
-                except Exception as exc:
-                    _warn("skipping glyph '%s' during interpolation: %s" % (name, exc))
-                    continue
+        result = regular_font.interpolateFonts(factor, bold_path)
     except Exception as exc:
         _die("interpolation failed for %s: %s" % (weight_name, exc))
 

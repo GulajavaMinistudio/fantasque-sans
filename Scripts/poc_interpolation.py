@@ -217,12 +217,12 @@ def _interpolate_subset(regular_dir, bold_dir, output_dir, ttf_path):
     except Exception as exc:
         _die("cannot save output .sfdir (%s): %s" % (output_dir, exc))
 
-    # --- Generate TTF (no hinting) ---
-    if ttf_path:
-        try:
-            font_out.generate(ttf_path)
-        except Exception as exc:
-            _die("cannot generate TTF (%s): %s" % (ttf_path, exc))
+    # --- Generate TTF (no hinting) — unconditional per Spec r3 K11 + AC-P02 ---
+    ttf_path = ttf_path or os.path.join(os.path.dirname(output_dir), "Medium.ttf")
+    try:
+        font_out.generate(ttf_path)
+    except Exception as exc:
+        _die("cannot generate TTF (%s): %s" % (ttf_path, exc))
 
     font_reg.close()
     font_bold.close()
@@ -249,9 +249,9 @@ def main():
 
     print("poc_interpolation: %d/%d glyphs interpolated to Medium (factor=0.5)"
           % (interpolated, total))
+    resolved_ttf = args.ttf or os.path.join(os.path.dirname(args.output), "Medium.ttf")
     print("poc_interpolation: .sfdir → %s" % args.output)
-    if args.ttf:
-        print("poc_interpolation: TTF   → %s" % args.ttf)
+    print("poc_interpolation: TTF   → %s" % resolved_ttf)
 
 
 if __name__ == "__main__":
