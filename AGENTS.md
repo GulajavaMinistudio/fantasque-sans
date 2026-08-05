@@ -87,8 +87,6 @@ All agents MUST strictly adhere to the project documentation standards located i
 
 3. **Reference First:** Prioritize consistency with these standards over any other formatting assumption.
 
-4. **Project Architecture Map:** Before suggesting code changes or navigating the codebase, read [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the canonical directory layout, tech stack, entry points, testing strategy, and architectural constraints.
-
 ## SDLC Framework & Targeted Agent Boundaries (Anti-Scope Creep Rules)
 
 To prevent scope creep and maintain architectural integrity, all Agents MUST operate strictly within their assigned SDLC phase. When activated via a slash command, you must enforce your specific **Pushback Rule**.
@@ -180,6 +178,7 @@ To prevent infinite loops during the Draft ➔ Audit ➔ Update cycle, all clari
   > *"The document has achieved a Readiness Score of [X]/100. It is ready for the next phase. Do you want to **PROCEED** to the next phase, or do you want to **REFINE** and clarify further?"*
 - **Deadlock Breaker:** If the document fails to reach a score of 80 after 3 review iterations, the Agent MUST automatically pause and present the User Decision Prompt anyway, **but adjusted for the low score** *(e.g., "We have reached 3 iterations but the score is only 75/100. Do you want to force-proceed, or continue refining?")*, allowing the user to explicitly force-proceed or continue refining.
 - **Handling Sub-Standard Scores (Score < 80):** If the score is below 80, the Agent must prioritize listing the **Critical** findings (blocking issues) that need to be fixed by the authoring agent (`/sdlc-draft-prd`, `/sdlc-define-specs`, etc.) to reach the 80-point threshold.
+- **Remediation Protocol (Self-Assessment):** When an Authoring Agent (`/sdlc-draft-prd`, `/sdlc-define-specs`, or `/sdlc-plan-tasks`) revises a document based on a previous audit report, it MUST execute a 3-Step Remediation Sequence before handing off: (1) Perform a Mental Calculation to project a new Readiness Score based on the rubrics above, (2) Append a `REMEDIATION STATUS: RESOLVED` block to the top of the original audit report file (in English), and (3) Output the calculation in chat and route the user to the next phase (if projected score >= 80) or back to clarification (if < 80).
 - **Handling Unknown Details:** If the user provides an ambiguous answer or explicitly states they do not know a technical detail (e.g., "use defaults", "handle it later"), the Agent MUST accept it as an intended boundary. Mark these items as `[Assumed / Out of Scope]` and proceed. Do NOT re-prompt the user for the same missing requirement.
 - **Human Override Primacy:** The user can override with explicit approval at any time (e.g., "proceed to next step", "bypass clarify", "good enough"). The Agent must immediately skip all remaining validation protocols and execute the requested command using the existing data, regardless of the current Readiness Score.
 
@@ -261,4 +260,5 @@ Whenever you detect a section titled "## 🎭 Dynamic Persona Activation" or "##
    > *"To maintain focus and consistency of the working context, role/phase changes cannot be made in the same chat session. Please open a new chat session to interact as [New Persona Name] or to execute the [New Skill Name] skill. Before you leave, don't forget to save your progress in this session using the `memory-manager` skill."*
 4. **User Override Protocol:** If the user explicitly insists and commands you to ignore this rule (e.g., "I know the risks, do it anyway"), you MUST comply (adhering to Rule #1). However, you MUST print: `[Bypassing Session Lock - Warning: Context Mixing Active]` as the very first line of your response.
 5. **Utility Skills Exception:** This session lock only applies to skills that contain a 'Dynamic Persona Activation' block. Utility or helper skills (which do not bind to a persona or lack the activation block, including custom skills written or downloaded by the user) may be invoked freely in any session without triggering a session lock violation.
+
 

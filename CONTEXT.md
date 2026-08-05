@@ -50,7 +50,7 @@ File font tunggal yang menyimpan seluruh rentang weight dalam satu *file* dengan
 _Avoid_: VF, variable typeface, multiple master font
 
 **Core Weight**:
-Weight yang menjadi target utama V1 dan wajib ada di *release*: Regular 400, Medium 500, SemiBold 600, Bold 700. Keempat weight ini dihasilkan melalui interpolasi murni (Medium 500 = factor 0.5, SemiBold 600 = factor ~0.67 antara Regular-Bold).
+Weight yang menjadi target utama V1 dan wajib ada di *release*: Regular 400, Medium 500, SemiBold 600, Bold 700. Keempat weight ini dihasilkan melalui interpolasi murni (Medium 500 = factor 0.5, SemiBold 600 = factor 0.67 eksak antara Regular-Bold).
 _Avoid_: primary weight, required weight, main weight
 
 **Stretch Weight**:
