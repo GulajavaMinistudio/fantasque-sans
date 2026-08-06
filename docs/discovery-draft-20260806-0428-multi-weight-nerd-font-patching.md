@@ -5,9 +5,11 @@ date_analyzed: 2026-08-06
 ---
 <!-- markdownlint-disable -->
 
+> **Revision 4 (2026-08-06):** Collision-surface audit corrected per Clarification Report (Review Iteration 1): full-PUA `Encoding:`-based audit of mono master sources shows per-weight **SourcePopulated 69 / 69 / 75 / 72 (union 75)**, superseding the earlier "15 codepoints" claim; Box Drawing is verified **160/160 in all four mono masters** (contiguous U+2500–259F — the report's "112" figure was not reproducible and is superseded); ligature-range "safe" claims are re-labeled **hypotheses pending the pinned v3.5.0 audit (O-3, Spec phase)**; a `PinnedIconInventory` audit is deferred to the Spec phase.
+>
 > **Revision 3 (2026-08-06):** Placement decision recorded — **[PROPOSED TARGET ARCHITECTURE — NOT IMPLEMENTED]** the Nerd Font Patcher will run as a **dedicated Docker build stage between Stage 1 (`builder-fontforge`) and Stage 2 (`final`)**, executed inside the `docker build` step of `.github/workflows/custom-build.yml` (verified as the repository's only artifact-producing workflow; `test-multi-weight.yml` is a pytest-only smoke gate that produces no artifacts). The workflow file keeps its current step structure; the change lands in the `Dockerfile` (new stage + `COPY --from`) and `Scripts/packaging.sh` (flavor packaging and independent manifest).
 >
-> **Revision 2 (2026-08-06):** Session clarification — Nerd Fonts Patcher **adds** icon glyphs; it never replaces native glyphs. Added verified collision-surface audit (15 PUA codepoints) and corrected the Box Drawing assumption (full 160/160 coverage means the patcher skips that range by design).
+> **Revision 2 (2026-08-06):** Session clarification — Nerd Fonts Patcher **adds** icon glyphs; it never replaces native glyphs. Added verified collision-surface audit (15 PUA codepoints) and corrected the Box Drawing assumption (full 160/160 coverage means the patcher skips that range by design). — **superseded by Revision 4** (corrected full-PUA audit and Box Drawing rationale below).
 
 # Project Discovery Summary: Multi-Weight Nerd Font Patching
 
@@ -53,7 +55,7 @@ The repository has a clear pipeline boundary between FontForge source authoring,
 6. **Format and metadata divergence:** Patching TTF/OTF outputs requires regenerating WOFF/WOFF2, updating checksums and manifests, and defining separate names and archives. Leaving existing webfont files untouched would create inconsistent artifacts.
 7. **Reproducibility:** The Patcher source and icon data must be pinned to the v3.5.0 release and verified by checksum. Tracking a moving `master` branch would undermine the repository's deterministic-build contract.
 8. **Licensing and attribution:** Nerd Fonts aggregates multiple icon sets. The proposed release flavor must carry the required upstream licenses and attribution alongside the existing Fantasque license rather than assuming `LICENSE.txt` is sufficient.
-9. **Visual review burden:** Overwrite-on-collision is acceptable only for the separate Nerd Font flavor. It still requires collision reports and visual checks so that valid Fantasque Box Drawing, PUA, and other existing glyphs are not changed unknowingly. *(2026-08-06: Box Drawing has full 160/160 coverage and is skipped by the patcher by design; the actual overwrite surface is the 15 PUA codepoints listed in the audit below.)*
+9. **Visual review burden:** Overwrite-on-collision is acceptable only for the separate Nerd Font flavor. It still requires collision reports and visual checks so that valid Fantasque Box Drawing, PUA, and other existing glyphs are not changed unknowingly. *(2026-08-06, Rev 4: Box Drawing — Nerd Fonts v3.5.0 is believed to have no icons in U+2500–259F (all Nerd Font icons live in PUA at U+E0xx and above — hypothesis pending the pinned v3.5.0 audit, O-3), so the patcher is expected to add nothing in Box Drawing regardless of source coverage. All four mono masters have full 160/160 codepoints in U+2500–259F (verified via the `Encoding:` field), but coverage is irrelevant because the patcher is believed to have no Box Drawing icons to add. The collision report still verifies zero overwrite in U+2500–259F as a safety check for future icon-set drift. The overwrite surface is bounded by the per-weight PUA allowlist — SourcePopulated 69/69/75/72, union 75 (see corrected audit below).)*
 
 From a Clean Architecture perspective, the safest design is to keep native-glyph fallback in the interpolation preparation boundary and keep icon augmentation in a separate artifact-producing boundary. Combining both responsibilities inside the existing interpolation driver would make failure diagnosis and quality ownership less clear.
 
@@ -61,22 +63,33 @@ From a Clean Architecture perspective, the safest design is to keep native-glyph
 
 A session review resolved a scope question: the Nerd Fonts Patcher **merges icon glyphs into the font** — it never replaces native glyphs. The patcher copies the input font and inserts icon glyphs from bundled icon sets (Pomicons, Powerline Symbols, Seti-UI, Devicons, Font Awesome, Material Design Icons) at Private Use Area codepoints. Native Latin, Greek, Cyrillic, digit, and punctuation glyphs remain untouched. The only overwrite surface is codepoint collision. The `--careful` flag ("Do not overwrite existing glyphs if detected") preserves original glyphs on collision; the default policy overwrites them.
 
-#### Collision Surface Audit (Verified Against Master Sources)
+#### Collision Surface Audit (Verified Against Master Sources — Rev 4)
 
-Audit of `Sources/FantasqueSansMono-Regular.sfdir/` codepoints against the Nerd Fonts v3.5.0 icon codepoint inventory:
+Audit of the mono master `.sfdir` sources' codepoints against the Nerd Fonts v3.5.0 icon codepoint inventory. Counts are per-weight **SourcePopulated** (populated codepoints in master source), derived from the `Encoding:` field in each `.glyph` file across the **entire** PUA range (U+E000–U+F8FF) — NOT from filename glob (glyphs at PUA codepoints can be named `quotedbl.old`, `k.noloop`, `afii10066.serbian`, `colon_colon.liga`, `bar_bar_greater.liga`, etc.; an E0xx-only filename audit undercounts by ~5x).
 
-| Fantasque PUA area | Content | Nerd Fonts icon range | Collision |
-| --- | --- | --- | --- |
-| U+E000–E007 | Stylistic alternates (`quotedbl.old`, `k.noloop`, etc.) | Pomicons U+E000–E00A | ⚠️ Overwritten by default |
-| U+E0A0–E0A2, U+E0B0–E0B3 | Native Powerline symbols | Powerline Symbols U+E0A0–E0A2, U+E0B0–E0B3 | ⚠️ Overwritten by default |
-| U+E035–E03F, U+E100–E12C | Ligatures (`::`, `=>`, `!=`, etc.) | No icon set in this range | ✅ Safe |
-| U+2500–259F | Box Drawing (160/160 coverage) | Patcher skips Box Drawing when the font already has full coverage | ✅ Safe |
+| Fantasque PUA area | Content | Regular | Bold | Italic | BoldItalic | Nerd Fonts icon range | Collision |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| U+E000–E00A | Stylistic alternates, `k.noloop` family, Serbian alternate ligatures | 8 (E000–E007) | 6 (E000–E002, E005–E007) | 11 (E000–E00A) | 11 (E000–E00A) | Pomicons U+E000–E00A (hypothesis, O-3) | ⚠️ Potential overwrite (actual set pending O-3) |
+| U+E035–E039 | Ligature prefixes (E03A–E03B unpopulated gaps) | 5 | 5 | 5 | 5 | Believed none (hypothesis, O-3) | ✅ Safe (hypothesis, O-3) |
+| U+E03C–E03F | Ligature suffixes | 4 | 4 | 4 | 4 | Believed none (hypothesis, O-3) | ✅ Safe (hypothesis, O-3) |
+| U+E0A0–E0A2 | Native Powerline symbols (left/right separator family) | 3 | 3 | 3 | 3 | Powerline Symbols U+E0A0–E0A2 (hypothesis, O-3) | ⚠️ Potential overwrite (actual set pending O-3) |
+| U+E0B0–E0B3 | Native Powerline symbols (branch/flame family) | 4 | 4 | 4 | 4 | Powerline Symbols U+E0B0–E0B3 (hypothesis, O-3) | ⚠️ Potential overwrite (actual set pending O-3) |
+| U+E0E2–E0E4 | Per-master extensions | 0 | 2 (E0E3, E0E4) | 3 (E0E2, E0E3, E0E4) | 0 | Unknown (O-3) | ⚠️ Potential overwrite (actual set pending O-3) |
+| U+E100–E12C | Programming ligatures (`bar_bar_greater.liga`, `less_tilde.liga`, etc.) | 45 | 45 | 45 | 45 | **Hypothesis: none — pending pinned v3.5.0 audit (O-3)** | ✅ Safe (hypothesis, O-3) |
+| U+2500–259F | Box Drawing | 160 | 160 | 160 | 160 | Believed none (hypothesis, O-3) | ✅ Safe (hypothesis, O-3) |
+| **SourcePopulated total (full PUA)** | | **69** | **69** | **75** | **72** | | **Union 75** |
+
+*All icon-range mappings above are hypotheses pending the pinned v3.5.0 audit (O-3); "collision" cells state the potential outcome under the patcher's default policy — the actual overwrite set per build is verified by the collision-report gate (PRD FR-4).*
 
 **Implications:**
 
-1. The effective overwrite surface is exactly **15 codepoints** (U+E000–E007, U+E0A0–E0A2, U+E0B0–E0B3), all in the PUA — no native letter is ever touched. The overwrite affects Fantasque stylistic alternates and native Powerline symbols **in the Nerd Font flavor only**; the base flavor is unaffected.
-2. The ligature ranges (U+E035–E03F, U+E100–E12C) overlap no Nerd Fonts icon set and remain intact after patching.
-3. Box Drawing (risk #9) is mitigated by design: Fantasque covers the full U+2500–259F range, so the patcher skips that block entirely. The collision report must still be generated to verify no drift against future icon-set additions.
+1. The overwrite surface per weight is bounded by the **AuthorizedOverwriteAllowlist(weight)**, whose default is the full per-weight SourcePopulated inventory (Regular 69, Bold 69, Italic 75, BoldItalic 72; union 75) — no native letter is ever touched. Whether the patcher actually overwrites depends on `PinnedIconInventory` (audited in Spec phase, O-3); the build-time collision report gate is `ObservedOverwrite(weight, build) ⊆ AuthorizedOverwriteAllowlist(weight)` (PRD FR-4).
+2. The ligature ranges (U+E035–E03F, U+E100–E12C) are *believed* to overlap no Nerd Fonts icon set; until the pinned audit (O-3) confirms this, "safe" is a **hypothesis** — the per-build collision report verifies it.
+3. Box Drawing (risk #9) is safe by design: Nerd Fonts v3.5.0 is believed to have no icons in U+2500–259F, so the patcher has nothing to add there regardless of source coverage (all four mono masters cover the full 160/160 block, verified). The collision report must still verify zero overwrite in U+2500–259F as a safety check against future icon-set drift.
+
+### PinnedIconInventory (Spec-Phase Audit, O-3)
+
+The pinned Nerd Fonts v3.5.0 icon codepoint inventory (`PinnedIconInventory`) is a build input that MUST be audited in the Spec phase: (a) download the official v3.5.0 distribution from the upstream Nerd Fonts repository, (b) verify its SHA-256 checksum, (c) enumerate PUA codepoints in the distribution's icon `.glyph` files via the `Encoding:` field across the full PUA range, (d) compute `ExpectedOverwrite(weight) = SourcePopulated(weight) ∩ PinnedIconInventory` per weight. Until this audit is performed, **no icon-set-to-range mapping in this document is asserted as verified** — including the "U+E100–E12C is safe" and "no Box Drawing icons" hypotheses above.
 
 ### Placement Decision (Resolved 2026-08-06)
 
@@ -138,6 +151,6 @@ The Product Manager must treat this proposal as a deliberate scope change to the
 
 ### Scope Clarification Recorded (2026-08-06)
 
-The exploration session confirmed the product intent for the Nerd Font flavor: **icon augmentation is additive** — the patched flavor keeps all native Fantasque glyphs and adds the complete v3.5.0 icon set on every monospace weight. The PRD must not describe the patcher as "replacing" glyphs. The only overwrite surface is the verified 15 PUA codepoints (stylistic alternates and native Powerline symbols); the collision-policy requirement in Handoff Note #4 can reference this exact list and require the patcher's collision report to confirm no drift.
+The exploration session confirmed the product intent for the Nerd Font flavor: **icon augmentation is additive** — the patched flavor keeps all native Fantasque glyphs and adds the complete v3.5.0 icon set on every monospace weight. The PRD must not describe the patcher as "replacing" glyphs. The overwrite surface is bounded by the per-weight **AuthorizedOverwriteAllowlist** (default = full SourcePopulated: Regular 69, Bold 69, Italic 75, BoldItalic 72, union 75 — see corrected audit above); the collision-policy requirement in Handoff Note #4 references this allowlist and requires the patcher's collision report to confirm zero drift via `ObservedOverwrite ⊆ AuthorizedOverwriteAllowlist`.
 
 This document is a Phase 0 discovery draft, not a PRD, technical specification, implementation plan, or code change. After the draft is reviewed and approved, start a new session with `/sdlc-draft-prd` and attach this file as the upstream discovery artifact.
