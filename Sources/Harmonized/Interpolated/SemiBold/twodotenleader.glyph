@@ -1,0 +1,23 @@
+StartChar: twodotenleader
+Encoding: 8229 8229 543
+Width: 1060
+VWidth: 26
+Flags: W
+HStem: 0 269<189 440 669 920>
+VStem: 189 251<0 269> 669 251<0 269>
+LayerCount: 2
+Fore
+SplineSet
+153.49 298.48 m 1
+447.37 298.48 l 1
+447.37 0 l 1
+153.49 0 l 1
+153.49 298.48 l 1
+633.49 298.48 m 1
+927.37 298.48 l 1
+927.37 0 l 1
+633.49 0 l 1
+633.49 298.48 l 1
+EndSplineSet
+Validated: 1
+EndChar

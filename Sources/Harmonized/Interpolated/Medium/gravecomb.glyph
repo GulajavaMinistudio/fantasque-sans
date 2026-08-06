@@ -1,0 +1,18 @@
+StartChar: gravecomb
+Encoding: 768 768 322
+Width: 1060
+VWidth: -43
+Flags: W
+HStem: 1280 461
+VStem: 162 590
+LayerCount: 2
+Fore
+SplineSet
+755.5 1347.5 m 1
+676.5 1186.5 l 1
+533.5 1233.5 288.5 1367 177.5 1479 c 1
+306 1638 l 1
+421 1530 612.5 1395.5 755.5 1347.5 c 1
+EndSplineSet
+Validated: 1
+EndChar

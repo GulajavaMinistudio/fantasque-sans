@@ -1,0 +1,19 @@
+StartChar: tcaron
+Encoding: 357 357 291
+Width: 1060
+VWidth: 32
+Flags: W
+HStem: -6 155<421.71 796.905> 872 145<170 198>
+VStem: 200 159<209.621 865 1017 1245> 602 152<1127.79 1249.75>
+LayerCount: 2
+Fore
+SplineSet
+906 1472.5 m 1
+872 1359 849 1248.5 809 1096 c 1
+640 1124 l 1
+656 1267.5 681 1410.5 699.5 1514.5 c 1
+906 1472.5 l 1
+EndSplineSet
+Refer: 19 116 N 1 0 0 1 0 0 2
+Validated: 1
+EndChar

@@ -5,6 +5,8 @@ date_analyzed: 2026-08-06
 ---
 <!-- markdownlint-disable -->
 
+> **Revision 2 (2026-08-06):** Session clarification — Nerd Fonts Patcher **adds** icon glyphs; it never replaces native glyphs. Added verified collision-surface audit (15 PUA codepoints) and corrected the Box Drawing assumption (full 160/160 coverage means the patcher skips that range by design).
+
 # Project Discovery Summary: Multi-Weight Nerd Font Patching
 
 ## 1. Project Overview
@@ -49,9 +51,30 @@ The repository has a clear pipeline boundary between FontForge source authoring,
 6. **Format and metadata divergence:** Patching TTF/OTF outputs requires regenerating WOFF/WOFF2, updating checksums and manifests, and defining separate names and archives. Leaving existing webfont files untouched would create inconsistent artifacts.
 7. **Reproducibility:** The Patcher source and icon data must be pinned to the v3.5.0 release and verified by checksum. Tracking a moving `master` branch would undermine the repository's deterministic-build contract.
 8. **Licensing and attribution:** Nerd Fonts aggregates multiple icon sets. The proposed release flavor must carry the required upstream licenses and attribution alongside the existing Fantasque license rather than assuming `LICENSE.txt` is sufficient.
-9. **Visual review burden:** Overwrite-on-collision is acceptable only for the separate Nerd Font flavor. It still requires collision reports and visual checks so that valid Fantasque Box Drawing, PUA, and other existing glyphs are not changed unknowingly.
+9. **Visual review burden:** Overwrite-on-collision is acceptable only for the separate Nerd Font flavor. It still requires collision reports and visual checks so that valid Fantasque Box Drawing, PUA, and other existing glyphs are not changed unknowingly. *(2026-08-06: Box Drawing has full 160/160 coverage and is skipped by the patcher by design; the actual overwrite surface is the 15 PUA codepoints listed in the audit below.)*
 
 From a Clean Architecture perspective, the safest design is to keep native-glyph fallback in the interpolation preparation boundary and keep icon augmentation in a separate artifact-producing boundary. Combining both responsibilities inside the existing interpolation driver would make failure diagnosis and quality ownership less clear.
+
+### Verified Clarification: Add, Not Replace (2026-08-06 Review)
+
+A session review resolved a scope question: the Nerd Fonts Patcher **merges icon glyphs into the font** — it never replaces native glyphs. The patcher copies the input font and inserts icon glyphs from bundled icon sets (Pomicons, Powerline Symbols, Seti-UI, Devicons, Font Awesome, Material Design Icons) at Private Use Area codepoints. Native Latin, Greek, Cyrillic, digit, and punctuation glyphs remain untouched. The only overwrite surface is codepoint collision. The `--careful` flag ("Do not overwrite existing glyphs if detected") preserves original glyphs on collision; the default policy overwrites them.
+
+#### Collision Surface Audit (Verified Against Master Sources)
+
+Audit of `Sources/FantasqueSansMono-Regular.sfdir/` codepoints against the Nerd Fonts v3.5.0 icon codepoint inventory:
+
+| Fantasque PUA area | Content | Nerd Fonts icon range | Collision |
+| --- | --- | --- | --- |
+| U+E000–E007 | Stylistic alternates (`quotedbl.old`, `k.noloop`, etc.) | Pomicons U+E000–E00A | ⚠️ Overwritten by default |
+| U+E0A0–E0A2, U+E0B0–E0B3 | Native Powerline symbols | Powerline Symbols U+E0A0–E0A2, U+E0B0–E0B3 | ⚠️ Overwritten by default |
+| U+E035–E03F, U+E100–E12C | Ligatures (`::`, `=>`, `!=`, etc.) | No icon set in this range | ✅ Safe |
+| U+2500–259F | Box Drawing (160/160 coverage) | Patcher skips Box Drawing when the font already has full coverage | ✅ Safe |
+
+**Implications:**
+
+1. The effective overwrite surface is exactly **15 codepoints** (U+E000–E007, U+E0A0–E0A2, U+E0B0–E0B3), all in the PUA — no native letter is ever touched. The overwrite affects Fantasque stylistic alternates and native Powerline symbols **in the Nerd Font flavor only**; the base flavor is unaffected.
+2. The ligature ranges (U+E035–E03F, U+E100–E12C) overlap no Nerd Fonts icon set and remain intact after patching.
+3. Box Drawing (risk #9) is mitigated by design: Fantasque covers the full U+2500–259F range, so the patcher skips that block entirely. The collision report must still be generated to verify no drift against future icon-set additions.
 
 ## ⚙️ Operational Workflow
 
@@ -97,5 +120,9 @@ The Product Manager must treat this proposal as a deliberate scope change to the
 - The authoritative source for patched OTF and webfont files, plus the required post-patch metric and checksum gates.
 - The complete license/attribution manifest for every icon set enabled by the `--complete` policy.
 - The collision report format and the visual review owner for the separate Nerd Font flavor.
+
+### Scope Clarification Recorded (2026-08-06)
+
+The exploration session confirmed the product intent for the Nerd Font flavor: **icon augmentation is additive** — the patched flavor keeps all native Fantasque glyphs and adds the complete v3.5.0 icon set on every monospace weight. The PRD must not describe the patcher as "replacing" glyphs. The only overwrite surface is the verified 15 PUA codepoints (stylistic alternates and native Powerline symbols); the collision-policy requirement in Handoff Note #4 can reference this exact list and require the patcher's collision report to confirm no drift.
 
 This document is a Phase 0 discovery draft, not a PRD, technical specification, implementation plan, or code change. After the draft is reviewed and approved, start a new session with `/sdlc-draft-prd` and attach this file as the upstream discovery artifact.

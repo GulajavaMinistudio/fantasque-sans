@@ -1,0 +1,18 @@
+StartChar: tonos
+Encoding: 900 900 392
+Width: 1060
+VWidth: -43
+Flags: W
+HStem: 1222 491
+VStem: 542 180<1562.42 1667.9>
+LayerCount: 2
+Fore
+SplineSet
+337.88 1326.41 m 1
+432.88 1443.41 464.14 1535.21 503.14 1688.21 c 1
+720.66 1635.86 l 1
+687.66 1481.86 600.7 1338 505.7 1222 c 1
+337.88 1326.41 l 1
+EndSplineSet
+Validated: 1
+EndChar
