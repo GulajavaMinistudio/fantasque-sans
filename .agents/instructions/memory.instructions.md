@@ -261,3 +261,63 @@
 <!-- checkpoint-tail: Phase 1 code review remediation selesai (5/5 TASKs) — fallback removed, tests fixed, metadata loop, TTF unconditional. Container verification tertahan (no Docker). Menunggu approval Phase 2. -->
 
 ---
+
+## 📝 Session Checkpoint: 2026-08-06 (Code Review Remediation — Phases 2 & 3 COMPLETED; plan COMPLETE v1.4)
+
+- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
+- **Current SDLC Phase:** Phase Code — Code Review Remediation **SELESAI** (Phases 1–3 ✅, user approvals 10Y/20Y/30Y). Plan refactor v1.4 status Complete (25/25 task). Handoff berikutnya: `/sdlc-code-review` (sesi baru).
+- **Active Artifacts:**
+  - `plan/plan-refactor-multi-weight-code-review-v1.0.md` — v1.4, status Complete, 25 `[x]` / 0 `[ ]`
+  - `plan/plan-feature-multi-weight-variants-v1.13.md` — TASK-0.X/4.X doc-synced (DOC-001)
+  - `spec/spec-multi-weight-variants.md` — v1.8, UNCHANGED (confirmed test #11 os2_weight 300–800; spec edits out of Dev scope)
+- **Achieved Milestones:**
+  - **Phase 2 (TASK-201–209, TASK-20X)** — all implemented + verified:
+    - TASK-201: `Scripts/tangent_analysis.py` (stdlib-only, `compute_max_tangent_angle`/`extract_on_curve_triples`) + both validators refactored to import it; `tests/test_tangent_analysis.py` 8 tests (dummy glyphs; square 90°, equilateral triangle 120° TURNING angle = 180°−60° interior, collinear-closed → 180° reversal, degenerate segments, missing foreground)
+    - TASK-202: Dockerfile `ARG T_FINAL=15.0` + `ENV T_FINAL=${T_FINAL}` (build-time override; pre-calibration default)
+    - TASK-203: pytest RUN chain + `--cov-fail-under=90` (Spec §6.7)
+    - TASK-204: `_generate_overlay` side-by-side REAL comparison — FontForge-native composite (interpolated left + master shifted 1 em via `g_ref.transform((1,0,0,1,em,0))`); **no Pillow** (DEP-NEW-001 resolved; `foreground` getter returns copy — verified in FontForge docs, source masters never mutated)
+    - TASK-205: `node_diff`/`contour_diff` fields in validate_harmonization fail results (detect_incompatibility schema) + docstring + 4 tests extended
+    - TASK-206: `_assemble_build_sources` fail-fast `_die` on missing master + new test `test_assembly_fails_fast_on_missing_master`
+    - TASK-207: `validate_config` surfaces ALL errors (max 5) + `test_multiple_invalid_fields_all_reported`; 3 legacy exact-message assertions updated to multi-line format
+    - TASK-208: x-height fallback `post.underlinePosition` REMOVED (wrong metric); missing sxHeight → None → "—" via `_fmt_metric`
+    - TASK-209: WOFF2 zip guarded (`shopt -s nullglob` + `${#woff2_files[@]}` pre-check); simulated zero-match OK
+    - TASK-20X: host pytest 81 passed/4 skipped
+  - **Phase 3 (TASK-301–305, TASK-30X)** — all implemented + verified:
+    - TASK-301: `Scripts/font_weights.py` (`WEIGHT_OS2_CLASS`) + refactored 3 sites (driver `WEIGHT_CLASS` removed, generate_specimen `_css_font_faces` + `_weight_number`)
+    - TASK-302: `html.escape()` on ALL dynamic HTML content (8 sites: index items, waterfall text, weight names ×6 writers, checklist labels)
+    - TASK-303: `_parse_bool` rejects `yes`/`no` (only true/false/1/0) + `test_parse_bool_rejects_yes_no`; parametrize updated
+    - TASK-304: Dockerfile `mkdir -p build/reports` → `RUN mkdir -p build` (base, BOTH modes — Stage 2 `COPY --from=builder-fontforge /build/build` needs source path) + `mkdir -p build/reports` INSIDE multi-weight branch before pytest. **Deviation from plan text recorded in §11** (plain removal would break COPY)
+    - TASK-305: plan v1.13 TASK-0.X `pip3 install` marked SUPERSEDED (Dockerfile bakes deps); TASK-4.X "Metadata Layer 2" backed by `test_metadata_injection`; Spec v1.8 test #11 CONFIRMED already documents os2_weight 300–800
+    - TASK-30X: host pytest 80 passed/4 skipped; `configure.py --help` exit 0; `--form-large-line-height yes` exit 2 (rejected); `true` exit 0; WEIGHT_OS2_CLASS import OK; py_compile + bash -n + RUN chain syntax OK
+- **Dead-Ends (Do NOT Repeat):**
+  - **Attempted:** Unit tests assumed triangle → 60° and collinear closed contour → 0° turning angle.
+  - **Reason:** `compute_max_tangent_angle` measures edge-direction TURNING angle: interior 60° triangle turns 120°; a closed all-collinear contour must reverse 180° at closure. Tests failed with 120.00000000000001 / 180.0 — fixed via `pytest.approx` + corrected expectations.
+  - **Attempted:** Host-side coverage gate verification (`--cov=Scripts` + `--cov-fail-under`).
+  - **Reason:** pytest-cov NOT installed on dev host (container Stage 1 only). Exit code 4 = usage error, not gate. Gate mechanism verified against pytest-cov docs instead; actual ≥90% gate run deferred to GA.
+  - **Attempted (evaluated, rejected):** Pillow for `_generate_overlay` composite (advisory suggested `Pillow>=10.0` + `python3-pil`).
+  - **Reason:** Research concluded FontForge-native suffices (transform + foreground-copy semantics verified in official docs); plan DEP-NEW-001 prefers native when sufficient; adding a dependency expands Docker image + requirements surface unnecessarily.
+- **Updated Files (committed by user):**
+  - `Scripts/tangent_analysis.py` [NEW], `Scripts/font_weights.py` [NEW], `tests/test_tangent_analysis.py` [NEW] — commits `eed9281` (Phase 2+3) + `a70dd50` (Phase 1)
+  - `Scripts/multi_weight_driver.py`, `Scripts/validate_harmonization.py`, `Scripts/validate_interpolation.py`, `Scripts/configure.py`, `Scripts/generate_specimen.py`, `Scripts/poc_interpolation.py`, `Scripts/packaging.sh`, `Dockerfile`
+  - `tests/test_multi_weight_driver.py`, `tests/test_validate_interpolation.py`, `tests/test_validate_harmonization.py`, `tests/test_configure.py`
+  - `plan/plan-refactor-multi-weight-code-review-v1.0.md` (v1.0→v1.4), `plan/plan-feature-multi-weight-variants-v1.13.md` (TASK-0.X/4.X)
+  - Working tree: CLEAN except this memory file (user committed everything)
+- **Decisions Made:**
+  - TASK-204 overlay: FontForge-native composite, no Pillow dependency (DEP-NEW-001 resolved as "not needed")
+  - TASK-304: keep `RUN mkdir -p build` unconditional (Stage 2 COPY contract) — documented deviation
+  - TASK-10X closed via user approval 2026-08-06 with deferred-to-GA note (same pattern as previous phase closures); plan status Complete
+  - Remediation phases closed sequentially per plan execution directive (approval gates 10Y/20Y/30Y all granted)
+- **Next Action / Pending:**
+  - **Sesi baru `/sdlc-code-review`** — input: plan refactor v1.4, Spec v1.8, plan v1.13, code review report 2026-08-05 (verify closure of 22 findings). Scope: 2 commits `eed9281` + `a70dd50` (15 code/test files)
+  - **Verifikasi GA (TASK-10X/20X container portion + plan v1.13 TASK-4.X)**: docker build `enable_multi_weight=false` (byte-identical AC-B03) + `true` (RUN chain, coverage ≥ 90% gate, fail-fast expected at interpolation — 427 glyphs still needs_harmonization) + `RELEASE_MODE=1` tanpa VERSION → `_die`
+  - **Desainer:** 427 glyph (374 topology + 53 equalize) — manual harmonization from tracking.json
+  - **Maintainer:** stretch weights TASK-5.4 runbook 10 langkah + kalibrasi `T_FINAL` (replace 15.0 placeholder via `--build-arg T_FINAL=...`)
+  - Phase Docs (`/sdlc-generate-docs`) setelah review
+- **Verification Snapshot:**
+  - Final host pytest: 80 passed / 4 skipped (FontForge importorskip)
+  - CON-001: legacy files (build.py, fontbuilder.py, features.py, Makefile) diff = 0 lines
+  - Smoke: configure CLI (help=0, yes→2, true→0), WEIGHT_OS2_CLASS dict OK, RUN chain + packaging.sh syntax OK
+
+<!-- checkpoint-tail: Remediation Phase 2+3 selesai 2026-08-06 — plan refactor v1.4 COMPLETE (25/25): tangent_analysis+font_weights modules, overlay side-by-side FontForge-native, T_FINAL ARG + cov gate 90%, node_diff/contour_diff, multi-error config, x-height honest, html.escape, nullglob, _parse_bool; 80 passed/4 skipped host; commits eed9281+a70dd50. Next: /sdlc-code-review (sesi baru) + verifikasi GA (TASK-10X/20X container, coverage gate) + desainer 427 glyph + maintainer stretch/T_FINAL. -->
+
+---
