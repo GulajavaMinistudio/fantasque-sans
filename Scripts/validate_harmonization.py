@@ -138,8 +138,8 @@ def _validate(master_a_path, master_b_path, strict, threshold):
     except Exception as exc:
         _die("cannot open master B (%s): %s" % (master_b_path, exc))
 
-    glyphs_a = set(font_a.glyphs())
-    glyphs_b = set(font_b.glyphs())
+    glyphs_a = set(g.glyphname for g in font_a.glyphs())
+    glyphs_b = set(g.glyphname for g in font_b.glyphs())
     common = sorted(glyphs_a & glyphs_b)
 
     results = []

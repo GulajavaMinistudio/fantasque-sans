@@ -163,8 +163,8 @@ def _detect(master_a_path, master_b_path):
         _die("cannot open master B (%s): %s" % (master_b_path, exc))
 
     # --- Collect glyph names ---
-    glyphs_a = set(font_a.glyphs())
-    glyphs_b = set(font_b.glyphs())
+    glyphs_a = set(g.glyphname for g in font_a.glyphs())
+    glyphs_b = set(g.glyphname for g in font_b.glyphs())
 
     if len(glyphs_a) == 0:
         _die("master A (%s) contains zero glyphs" % master_a_path)

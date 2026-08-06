@@ -93,8 +93,8 @@ def _interpolate_subset(regular_dir, bold_dir, output_dir, ttf_path):
         _die("cannot open Bold master (%s): %s" % (bold_dir, exc))
 
     # --- Identify common glyphs ---
-    glyphs_reg = set(font_reg.glyphs())
-    glyphs_bold = set(font_bold.glyphs())
+    glyphs_reg = set(g.glyphname for g in font_reg.glyphs())
+    glyphs_bold = set(g.glyphname for g in font_bold.glyphs())
     common = sorted(glyphs_reg & glyphs_bold)
     only_in_reg = sorted(glyphs_reg - glyphs_bold)
 
