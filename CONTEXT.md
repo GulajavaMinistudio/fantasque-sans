@@ -92,3 +92,21 @@ _Avoid_: font designer, glyph artist, type engineer
 **Visual Quality Rubric**:
 Dokumen acuan yang mendefinisikan kualitas visual "wibbly-wobbly handwriting feel" Fantasque Sans Mono secara terukur. Berisi 5–10 *glyph* referensi (gold standard), 5 contoh distorsi yang ditolak, dan *checklist* terstruktur per *glyph* (counter shape, Bézier asymmetry, terminal style). Menjadi acuan bagi *type designer* dan *validation script* otomatis.
 _Avoid_: quality checklist, visual standards doc, style guide
+
+### Nerd Font Flavor
+
+**Nerd Font Flavor**:
+Flavor rilis Fantasque Sans Mono yang diperkaya dengan set icon lengkap Nerd Fonts v3.5.0 pada setiap *weight* monospace yang dirilis. Icon ditambahkan oleh *patcher* (aditif) di codepoint Private Use Area dan tidak pernah menggantikan *glyph* native.
+_Avoid_: patched font, icon font, Nerd Font variant
+
+**Base Flavor**:
+Flavor rilis Fantasque Sans Mono tanpa augmentasi icon — artefak yang sama dengan output pipeline saat ini. Base Flavor tidak pernah dimutasi oleh *patcher*; dalam mode *single-weight* set artefak dan perilaku outputnya tetap sama dengan baseline (byte-identity tidak dijamin karena manifest berisi *build_timestamp* dinamis).
+_Avoid_: vanilla font, original font, regular flavor
+
+**Native Glyph Fallback**:
+Kebijakan substitusi outline Regular untuk *glyph* native yang tidak dapat diharmonisasi (427 *glyph*: 374 topology + 53 equalize) pada *weight* hasil interpolasi, sehingga output tetap *renderable* dan deterministik. Merupakan batasan visual yang didisklosur, bukan perbaikan.
+_Avoid_: fallback font, glyph substitution, outline copying
+
+**Collision Report**:
+Laporan per-*weight* yang mendaftar setiap codepoint yang *glyph*-nya berubah akibat *patching*, dibandingkan terhadap baseline 15 codepoint PUA yang terverifikasi. Laporan ini menjadi *gate* rilis untuk mendeteksi drift icon set baru.
+_Avoid_: conflict report, overwrite report

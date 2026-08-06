@@ -5,5 +5,19 @@ VWidth: 0
 Flags: W
 LayerCount: 2
 Fore
+SplineSet
+ 100 100 m 1
+ 150 150 l 1
+ 155 155 l 1
+ 160 160 l 1
+ 165 165 l 1
+ 170 170 l 1
+ 175 175 l 1
+ 180 180 l 1
+ 185 185 l 1
+ 190 190 l 1
+ 195 195 l 1
+ 200 200 l 1
+EndSplineSet
 Validated: 1
 EndChar

@@ -48,6 +48,10 @@ SplineSet
 777 867 l 1xf4
 785.5 866.5 l 1xf4
 789.75 866.25 l 1xf4
+ 150 150 l 1
+ 155 155 l 1
+ 160 160 l 1
+ 165 165 l 1
 794 866 l 1xf4
 EndSplineSet
 Validated: 1

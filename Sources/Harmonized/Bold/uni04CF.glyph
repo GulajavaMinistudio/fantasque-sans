@@ -6,6 +6,16 @@ HStem: -18 200<618.352 874.717> 1201 200<101.523 355>
 VStem: 355 256<191.813 274 274.62 1201>
 LayerCount: 2
 Fore
+SplineSet
+ 100 100 m 1
+ 150 150 l 1
+ 155 155 l 1
+ 160 160 l 1
+ 165 165 l 1
+ 170 170 l 1
+ 175 175 l 1
+ 180 180 l 1
+EndSplineSet
 Refer: 12 108 N 1 0 0 1 0 0 2
 Validated: 1
 EndChar

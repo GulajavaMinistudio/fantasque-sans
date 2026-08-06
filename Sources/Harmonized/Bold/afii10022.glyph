@@ -8,6 +8,7 @@ VStem: 125 258<204 646 849 1118>
 AnchorPoint: "above_accent" 517 1322 basechar 0
 LayerCount: 2
 Fore
-Refer: 30 69 S 1 0 0 1 23 0 3
+Refer: 30 69 N 1 0 0 1 0 0 3
+Refer: 30 69 N 1 0 0 1 0 0 3
 Validated: 1
 EndChar

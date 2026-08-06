@@ -24,6 +24,10 @@ SplineSet
  316 220 318 185 318 0 c 1
  60 0 l 1
  60 1320 l 1
+ 150 150 l 1
+ 155 155 l 1
+ 160 160 l 1
+ 165 165 l 1
  317 1322 l 1
 EndSplineSet
 Validated: 1

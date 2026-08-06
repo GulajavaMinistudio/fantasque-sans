@@ -8,6 +8,7 @@ VStem: 716 256<565.814 1013>
 AnchorPoint: "above_accent" 497 1107 basechar 0
 LayerCount: 2
 Fore
+Refer: 24 121 N 1 0 0 1 0 0 3
 SplineSet
 83 -110 m 1
  140 -142 202 -167 282 -167 c 0
