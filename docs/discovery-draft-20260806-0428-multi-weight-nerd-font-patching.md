@@ -5,6 +5,8 @@ date_analyzed: 2026-08-06
 ---
 <!-- markdownlint-disable -->
 
+> **Revision 3 (2026-08-06):** Placement decision recorded — **[PROPOSED TARGET ARCHITECTURE — NOT IMPLEMENTED]** the Nerd Font Patcher will run as a **dedicated Docker build stage between Stage 1 (`builder-fontforge`) and Stage 2 (`final`)**, executed inside the `docker build` step of `.github/workflows/custom-build.yml` (verified as the repository's only artifact-producing workflow; `test-multi-weight.yml` is a pytest-only smoke gate that produces no artifacts). The workflow file keeps its current step structure; the change lands in the `Dockerfile` (new stage + `COPY --from`) and `Scripts/packaging.sh` (flavor packaging and independent manifest).
+>
 > **Revision 2 (2026-08-06):** Session clarification — Nerd Fonts Patcher **adds** icon glyphs; it never replaces native glyphs. Added verified collision-surface audit (15 PUA codepoints) and corrected the Box Drawing assumption (full 160/160 coverage means the patcher skips that range by design).
 
 # Project Discovery Summary: Multi-Weight Nerd Font Patching
@@ -26,7 +28,7 @@ The repository architecture is pipeline-based. Existing architecture information
 - **Harmonization and Validation:** `Scripts/detect_incompatibility.py`, `Scripts/validate_harmonization.py`, `Scripts/validate_interpolation.py`, and the session tooling under `build/poc/`.
 - **Build Orchestration:** Docker multi-stage build and GitHub Actions `workflow_dispatch` through `.github/workflows/custom-build.yml`.
 - **Post-Processing:** `ttfautohint`, `sfnt2woff`, `woff2_compress`, checksum/manifest generation, and archive packaging in `Scripts/packaging.sh`.
-- **Proposed Icon Augmentation:** Nerd Fonts Patcher v3.5.0, pinned to the official release tag and executed in a FontForge-capable stage.
+- **Proposed Icon Augmentation:** Nerd Fonts Patcher v3.5.0, pinned to the official release tag and executed in a dedicated Docker build stage (`builder-nerd-patcher`) between Stage 1 and Stage 2, inside the `docker build` step of `custom-build.yml` — the repository's only artifact-producing workflow.
 - **Testing:** `pytest`, FontForge-dependent tests in the Stage 1 container, and visual review using the specimen generator and Visual Quality Rubric.
 
 ## 3. Current Architecture Assessment
@@ -38,7 +40,7 @@ The repository has a clear pipeline boundary between FontForge source authoring,
 - `Sources/Harmonized/` separates generated harmonized masters from protected legacy `.sfdir` sources. This preserves the CON-001 boundary and makes fallback preparation auditable.
 - `Scripts/validate_harmonization.py` and `Scripts/validate_interpolation.py` provide structured reports and fail-fast behavior for critical contour failures before packaging.
 - `Scripts/multi_weight_driver.py` keeps FontForge interpolation as a single authoritative interpolation interface. This avoids divergent per-glyph blending semantics and supports deterministic factor contracts for Medium and SemiBold.
-- The Docker stages already separate FontForge compilation from hinting, webfont conversion, manifest generation, and archive packaging. A FontForge-dependent Patcher stage can run before Stage 2 without adding FontForge to the final packaging image.
+- The Docker stages already separate FontForge compilation from hinting, webfont conversion, manifest generation, and archive packaging. A FontForge-dependent Patcher stage can run before Stage 2 without adding FontForge to the final packaging image. Because the Patcher stage executes inside `docker build`, `custom-build.yml` keeps its current step structure — only the Dockerfile gains a stage.
 - Separate Nerd Font artifacts preserve the existing base font as a rollback and comparison point. This is the safest boundary for the user-selected overwrite policy.
 
 ### Tech Debt & Risks
@@ -76,6 +78,16 @@ Audit of `Sources/FantasqueSansMono-Regular.sfdir/` codepoints against the Nerd 
 2. The ligature ranges (U+E035–E03F, U+E100–E12C) overlap no Nerd Fonts icon set and remain intact after patching.
 3. Box Drawing (risk #9) is mitigated by design: Fantasque covers the full U+2500–259F range, so the patcher skips that block entirely. The collision report must still be generated to verify no drift against future icon-set additions.
 
+### Placement Decision (Resolved 2026-08-06)
+
+> **[PROPOSED TARGET ARCHITECTURE — NOT IMPLEMENTED]** The verified `Dockerfile` currently has only two stages (`builder-fontforge` and `final`); the `builder-nerd-patcher` stage described below does not exist yet and is the agreed target design.
+
+- **Decision:** In the target architecture, the Patcher runs in a dedicated Docker build stage (`builder-nerd-patcher`) between Stage 1 and Stage 2, inside the `docker build` step of `custom-build.yml`. Its outputs are copied into Stage 2 via `COPY --from=builder-nerd-patcher` before `Scripts/packaging.sh` runs.
+- **Rationale (verified against `Dockerfile`):** Stage 2 (`final`) ships no FontForge runtime — only `ttfautohint`, `woff-tools`, `woff2`, `python3.14`, `zip`, `tar`, and `jq`. The Patcher requires FontForge, so the stage derives from Stage 1 (`FROM builder-fontforge`) and inherits the verified FontForge toolchain without bloating the final packaging image.
+- **Workflow impact (verified against `.github/workflows/`):** `custom-build.yml` (job `build`, steps 6–7) is the only workflow that produces font artifacts — `docker build` compiles the font and `docker run` runs Stage 2 packaging, after which artifacts are uploaded and a release is created. Both steps keep their current command form. `test-multi-weight.yml` runs only `pytest tests/ -v` on `feature/multi-weight-*` pushes and is unaffected.
+- **Rejected alternative:** a host-runner patching step between `docker build` and `docker run` would split build logic out of the container, violating ADR-0002 (all build steps inside Docker) and requiring FontForge on the runner.
+- **Remaining open decision:** how the flavor is activated (new `workflow_dispatch` input vs. always-on output) stays with the PRD; today's five boolean inputs have no Nerd Font toggle.
+
 ## ⚙️ Operational Workflow
 
 ### 1. Workflow A: Native Multi-Weight Base Font
@@ -87,12 +99,12 @@ Audit of `Sources/FantasqueSansMono-Regular.sfdir/` codepoints against the Nerd 
 5. The validation report distinguishes structural interpolation passes from fallback glyphs and records the fallback count, glyph names, source master, and reason. The Visual Quality Rubric must explicitly classify the weight inconsistency as an accepted limitation or a release blocker.
 6. The existing variant expansion and Stage 2 packaging produce the base font artifacts. These artifacts remain free of Nerd Font icon augmentation and preserve the current rollback path.
 
-### 2. Workflow B: Separate Nerd Font Flavor
+### 2. Workflow B: Separate Nerd Font Flavor (Proposed — Not Implemented)
 
-1. The FontForge-capable build stage consumes the generated base TTF and OTF files for every released monospace weight: Regular, Bold, Italic, BoldItalic, Medium, SemiBold, and any stretch weight that passes its release gate.
+1. A dedicated Docker build stage (`builder-nerd-patcher`), derived from Stage 1 so it inherits the FontForge runtime, consumes the generated base TTF and OTF files for every released monospace weight: Regular, Bold, Italic, BoldItalic, Medium, SemiBold, and any stretch weight that passes its release gate. The stage runs inside the `docker build` step of `custom-build.yml`; no new Actions step or workflow is added.
 2. The build invokes the official Nerd Fonts Patcher v3.5.0 from a pinned, checksum-verified distribution. The `--complete` policy enables the full available icon set, and the selected collision policy permits existing glyphs to be overwritten in the Nerd Font flavor only.
-3. The Patcher writes to a separate output namespace with distinct family/full names and file names. It never writes over the base TTF, OTF, `.sfdir`, or existing webfont output.
-4. Stage 2 runs the normal hinting and conversion steps over the patched TTF files, regenerates OTF/webfont outputs according to the chosen source-of-truth policy, and computes independent manifest checksums.
+3. The Patcher writes to a separate output namespace with distinct family/full names and file names, inside the stage's own output directory. It never writes over the base TTF, OTF, `.sfdir`, or existing webfont output; Stage 2 consumes the patched files via `COPY --from=builder-nerd-patcher`.
+4. Stage 2 runs the normal hinting and conversion steps over the patched TTF files in the existing `docker run` packaging step, regenerates OTF/webfont outputs according to the chosen source-of-truth policy, and computes independent manifest checksums.
 5. The release package includes the Nerd Fonts icon-set licenses and attribution required by the bundled glyph data. The base package remains unchanged and carries only its existing contents.
 6. A separate validation gate compares the patched flavor with its pre-patch inputs. The gate records codepoint collisions, changes to native glyphs, vertical metrics, advance widths, family naming, and output completeness before publication.
 
@@ -111,8 +123,11 @@ The Product Manager must treat this proposal as a deliberate scope change to the
 5. **Artifact and format parity:** Base and Nerd Font flavors require independent TTF, OTF, WOFF, WOFF2, manifests, checksums, archive names, family names, and release notes. A patched TTF without regenerated webfont outputs is incomplete.
 6. **Toolchain policy:** The Nerd Fonts Patcher is pinned to official release `v3.5.0`, not the moving `master` branch. The release process must retain the checksum and the upstream icon-set license/attribution files.
 7. **Backward compatibility:** Existing builds with multi-weight disabled must retain the current base output behavior. Enabling the new flavor must not mutate or replace the base artifacts.
+8. **Pipeline placement:** In the target architecture, the Patcher stage executes inside the existing `docker build` step of `custom-build.yml` as a dedicated Docker stage between Stage 1 and Stage 2. No new workflow, job, or Actions step is required, and `test-multi-weight.yml` (a pytest-only smoke gate) is unaffected.
 
 ### Decisions Required Before the Technical Specification
+
+*(Resolved 2026-08-06: Patcher placement — dedicated Docker build stage between Stage 1 and Stage 2, inside `docker build` in `custom-build.yml`, the repository's only artifact-producing workflow. See "Placement Decision".)*
 
 - The exact fallback preparation mechanism and the boundary between `compatible`, `fallback_regular`, and `needs_harmonization` statuses.
 - The visual acceptance threshold for fallback glyphs and whether the base flavor may ship while the manual harmonization backlog remains open.

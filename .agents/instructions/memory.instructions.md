@@ -23,6 +23,7 @@
 > - 2026-08-01 (Compaction): Checkpoint "Consistency Audit (FAIL)" compacted — pengetahuan subsumed oleh Klarifikasi r4 + Plan v1.10 (15/15 cek PASS). Promoted: Tri-Directional Consistency Audit Pattern, Audit Result State Machine, DE #10 (dangling audit_reference). Retained: Klarifikasi r4 (5/5 resolusi) + Plan v1.10 (FINAL).
 > - 2026-08-01 (r5 Compaction): Checkpoint "Klarifikasi r4" compacted — 5 resolusi R1–R5 sudah terserap penuh ke Plan v1.10 + Spec v1.6 (diverifikasi r5) dan terdokumentasi permanen di laporan r4. Promoted: DE #11 (pytest system python3 ≠ FontForge bindings — importorskip silent skip). Retained: Plan v1.10 (FINAL) + Klarifikasi r5 (2 most recent).
 > - 2026-08-05 (Code Phase Compaction): Sessions 2026-08-01 ×3 + 2026-08-05 (TASK-1.1, Phase 2, Phase 3) compacted after Phase 4 Pipeline completion. Promoted: DE #12 (selfIntersects method vs property), DE #13 (centroid-only contour matching → area-rank), DE #14 (pathlib absolute wins), KB patterns: NOTE-row Insertion, Engine Tuple Arity. Retained: Phase 3 CLOSED + Phase 4 Pipeline.
+> - 2026-08-06 (Compaction): 7 checkpoints compacted (2026-08-05 ×6 — Phase 3 CLOSED, Phase 4 Pipeline, Phase 5 Buffer, Phase 5 CLOSED, Engine v3, Engine v3.1; + Remediation Phase 1) — semua tersubsumsi oleh checkpoint Remediation 2&3 + KB. Promoted: 9 KB patterns (rescue ceiling 427, de Casteljau exact distance, insert-gain split-side, foreground copy, turning angle semantics, honest metric fallback, CI-gate docs verification, workflow role full-read, proposed-architecture labeling) + DE #15 (positional args), #16 (turning angle), #17 (host cov-gate) + 4 metrics (ceiling 427, rescue progression 481→427, verify runtime 76→12.7 s, test suite 80/4). Retained: 2026-08-06 (Remediation 2&3) + 2026-08-06 (Phase 0 Discovery).
 > Updated during Compaction Mode (Workflow 4). Do NOT delete entries here.
 
 ### Architecture & Patterns
@@ -69,6 +70,15 @@
 - **Audit Result State Machine:** Hasil audit konsistensi mengikuti state machine ketat: PASS / PASS WITH WARNINGS / FAIL. "PASS" adalah satu-satunya state yang membuka gerbang ke /sdlc-write-code. "PASS WITH WARNINGS" ≠ "PASS" — sama seperti FAIL, membutuhkan re-audit penuh hingga mencapai PASS bersih. Jangan pernah lanjut ke fase berikutnya pada PASS WITH WARNINGS. [Source: Session 2026-08-01, still valid]
 - **NOTE-row Insertion for Long Truncated Table Cells:** Saat menyisipkan NOTE-row ke dalam tabel task plan yang memiliki sel sangat panjang (>768 karakter), jangan mereproduksi baris panjang tersebut sebagai anchor — gunakan anchor unik pendek (misalnya `PUT >N:`) yang hanya muncul di baris target. Anchor panjang rentan gagal matching dan menyebabkan seluruh edit ditolak. [Source: Session 2026-08-01, Plan v1.11]
 - **Engine Tuple Arity Preservation:** Fungsi parser internal (seperti `resolve_glyph`) yang mengembalikan tuple harus mempertahankan jumlah elemen (arity) yang konsisten di seluruh call site. Jika satu call site meng-drop elemen (misalnya dari 3-tuple menjadi 2-tuple), downstream unpacking akan menghasilkan `IndexError` atau `ValueError` yang sulit dilacak karena jauh dari sumber bug. [Source: Session 2026-08-05, Phase 2 Full Harmonization — harmonize_engine.py]
+- **Shape-Preserving Rescue Ceiling (FINAL)**: 427 glyph `needs_harmonization` TIDAK bisa diselesaikan algoritmik tanpa mengubah bentuk: 374 topology (contour-count mismatch — struktur kontur berbeda antar master, mayoritas struktural letterform split) + 53 equalize (tidak ada op eksak tersedia — sisi besar tanpa junction collinear/degenerate-c DAN sisi kecil tanpa garis). Otomasi lanjutan = artefak visual + melanggar semangat CON-004. Sisa 427 WAJIB kerja manual desainer dari `tracking.json`. [Source: Session 2026-08-05, engine v2/v3/v3.1 — definitive]
+- **Exact Point-to-Curve Distance via Adaptive de Casteljau Subdivision**: sampling uniform 128-step melaporkan false positive shape violation untuk segmen panjang (2601-unit segment, spacing ~20 unit → error ~5+ unit vs jarak eksak 0.001). Gunakan subdivisi adaptif de Casteljau berbasis flatness (eps 0.25) → jarak eksak ~eps/2, LEBIH akurat bukan lebih longgar; bonus runtime 76 s → 12.7 s. [Source: Session 2026-08-05, engine v3.1 verify_masters]
+- **Insert-Op Gain Derives From the Split Side**: saat menghitung gain/biaya op insert untuk equalize, hitung delta node dari segmen yang BENAR-BENAR di-split (+3 cubic / +1 line-move), bukan segmen pasangan di sisi lain — mismatch (B line vs S cubic) menyebabkan overshoot → `rem < 0` → equalize gagal (24 RB + 30 IB glyph). [Source: Session 2026-08-05, engine v3.1 Phase-A gain bug]
+- **FontForge `foreground` Getter Returns a Copy**: aman membangun komposit perbandingan (transform + copy) tanpa memutasi master — diverifikasi di dokumentasi FontForge; memungkinkan overlay side-by-side tanpa dependensi Pillow. [Source: Session 2026-08-06, Remediation TASK-204]
+- **Turning Angle ≠ Interior Angle**: validator tangent mengukur TURNING angle arah edge: segitiga sama sisi (interior 60°) berbelok 120°; kontur tertutup all-collinear harus berbalik 180° di closure. Ekspektasi test wajib memakai semantik turning + `pytest.approx`. [Source: Session 2026-08-06, Remediation TASK-201]
+- **Honest Metric Fallback (No Wrong Substitution)**: saat metrik tidak tersedia (mis. sxHeight), laporkan eksplisit "—" daripada substitusi metrik yang salah secara semantik (`post.underlinePosition` BUKAN x-height) — fallback yang salah mengkorupsi data secara diam-diam. [Source: Session 2026-08-06, Remediation TASK-208]
+- **CI Gate Verification Without the Tool Installed**: jika tool gate (mis. pytest-cov) tidak terpasang di host dev, `exit code 4` = usage error, BUKAN kegagalan gate; verifikasi mekanisme gate terhadap dokumentasi tool, dan serahkan eksekusi gate sebenarnya ke CI. [Source: Session 2026-08-06, Remediation Phase 2]
+- **Workflow Role Claims Require Full File Reads**: mengklaim peran workflow (penghasil artefak vs tidak) dari glob/listing saja = spekulasi; baca isi file workflow penuh sebelum menegaskan klaim. [Source: Session 2026-08-06, Phase 0 Discovery]
+- **Proposed-Architecture Labeling in Discovery Docs**: saat mendokumentasikan arsitektur target dalam dokumen discovery/plan, tandai eksplisit `[PROPOSED TARGET ARCHITECTURE — NOT IMPLEMENTED]` di header revisi + subsection agar deskripsi present-tense tidak terbaca sebagai kondisi aktual. [Source: Session 2026-08-06, Phase 0 Discovery]
 
 ### Dead-Ends (Do NOT Repeat)
 
@@ -88,179 +98,29 @@
 | 12 | Panggil `glyph.selfIntersects` sebagai properti (baca boolean) | API FontForge: `selfIntersects` adalah **method** (`glyph.selfIntersects()`), bukan properti. Bound method selalu truthy → semua glyph diklasifikasikan `fail` → gate interpolasi mustahil lolos. Bug silent (tidak crash) — hasil selalu semua-gagal tanpa peringatan. [Source: Session 2026-08-05, TASK-1.1 PoC — validate_interpolation.py] | Selalu verifikasi API FontForge: method vs property. Tambahkan `()` pada call method. Untuk regression guard: pastikan test mengeksekusi jalur sukses dan gagal secara eksplisit, bukan hanya mengandalkan hasil boolean. |
 | 13 | Kontur matching by CENTROID SAJA untuk glyph multi-kontur berimpit (numbersign, Aring, Theta, dollar) | Centroid ambigu (kontur fitur berbeda dengan centroid mirip) → pasangan SILANG → equalize shape-preserving tetap jalan tapi interpolasi akan blend fitur yang salah (garbage) — tidak terdeteksi oleh cek kompatibilitas struktural. Terdeteksi via rasio luas kontur yang tidak wajar. [Source: Session 2026-08-05, Phase 2 Full Harmonization] | Gunakan **area-rank matching** sebagai validator: urutkan kontur berdasarkan luas bounding box, lalu cocokkan per-rank. Tambahkan **sanity centroid check** (centroid kontur pasangan harus dalam toleransi). Area-ratio > 4 bukan otomatis salah — glyph seperti dollar memiliki perbedaan proporsional yang sahih antar weight. |
 | 14 | Bangun path pasangan glyph dengan `Path("/abs/path") / Path("/abs/other")` | `pathlib.Path` absolut sebagai divisor membuang sisi kiri: `Path("/abs/a") / Path("/abs/b")` = `/abs/b` (absolute wins). Semua glyph dibandingkan dengan dirinya sendiri → semua tampak "kompatibel" (copied=0). [Source: Session 2026-08-05, Phase 3 Core-Weight Interpolation] | Selalu gunakan `fpath.name` (nama file saja) sebelum membangun path pasangan via `pair_dir / fpath.name`. Verifikasi hitungan (blend vs copy count) sebagai sanity check — jika copied=0 untuk semua glyph, path matching kemungkinan rusak. |
+| 15 | Panggilan posisional ke `_interpolate_weight()` di test (7 call) | Argumen posisional diam-diam salah-assign (0.5→bold_path, "Medium"→factor, out_dir→weight_name) — termasking oleh `importorskip("fontforge")` di host (test hijau tanpa mengeksekusi driver). [Source: Session 2026-08-05, Remediation Phase 1 TASK-101] | Gunakan keyword arguments untuk helper multi-param; verifikasi urutan parameter secara eksplisit. |
+| 16 | Ekspektasi test tangent memakai semantik sudut interior (segitiga 60° → 60°, collinear tertutup → 0°) | `compute_max_tangent_angle` mengukur TURNING angle arah edge: interior 60° berbelok 120°; kontur tertutup all-collinear berbalik 180° di closure. Test gagal dengan 120.00000000000001 / 180.0. [Source: Session 2026-08-06, Remediation TASK-201] | Gunakan semantik turning angle + `pytest.approx` untuk ekspektasi float. |
+| 17 | Verifikasi gate `--cov-fail-under=90` di host dev | pytest-cov TIDAK terpasang di host (hanya di container Stage 1) → exit code 4 = usage error, bukan kegagalan gate. [Source: Session 2026-08-06, Remediation Phase 2] | Verifikasi mekanisme gate terhadap dokumentasi tool; serahkan eksekusi gate aktual (≥90%) ke CI/GA. |
 
 ### Key Metrics & Baselines
 
 <!-- Stable metrics that serve as reference points (test counts, coverage, performance baselines). -->
 - **Test Suite (configure.py)**: 62/62 pytest unit tests passing, 0.20s execution time. [Source: Session 2026-07-29 Phase 1; re-verified 2026-07-30 plan-refactor]
-- **Knowledge Base Size**: 14 Dead-Ends + 42 Architecture & Patterns. [Source: Session 2026-08-05, Code Phase compaction — +3 DE (#12 selfIntersects, #13 centroid area-rank, #14 pathlib absolute) + 2 patterns (NOTE-row Insertion, Engine Tuple Arity)]
+- **Knowledge Base Size**: 17 Dead-Ends + 51 Architecture & Patterns. [Source: updated 2026-08-06 compaction — +3 DE (#15 positional args, #16 turning angle, #17 host cov-gate) + 9 patterns (rescue ceiling, de Casteljau exact distance, insert-gain split-side, foreground copy, turning angle, honest metric fallback, CI-gate docs verification, workflow role full-read, proposed-architecture labeling)]
 - **Plan-Refactor Execution (2026-07-30)**: 16 tasks across 3 phases, all completed in single session; 13/13 acceptance criteria met; pytest 62/62 PASS; CON-001 preserved. [Source: Session 2026-07-30, plan-refactor-code-review v1.0]
 - **End-to-End Build**: 8 iteration cycles to first successful CI run (issues #1–#8). [Source: Session 2026-07-30, first end-to-end run 30520458083]
 - **GitHub Actions Actions Versions**: `actions/checkout@v7` + `actions/setup-python@v6` + `actions/upload-artifact@v4` (Node.js 24 LTS). [Source: Session 2026-07-30]
 - **Custom-build Release Tag Format**: `custom-build-YYYYMMDD-HHMMSS-{run_id}-{run_attempt}` (UTC). [Source: PRD v1.3, Plan v1.2 §TASK-040]
 - **CON-001 (Constraint)**: `Scripts/features.py` is FORBIDDEN to modify (legacy). All environment fixes go in `Dockerfile` or workflow YAML. Verified via `git diff --stat` on legacy files = empty. [Source: Plan v1.2 §CON-001, verified 2026-07-30 plan-refactor]
 - **Spec Multi-Weight Variants (v1.3)**: 1147 lines, markdownlint 0 issues, 62 balanced code fences, traceability 100% vs PRD v1.3 (FR-1..7 / GH-001..006 / SM-T1..4 / E0.1..4 all covered). [Source: Session 2026-07-31, spec verification pass]
+- **Harmonization Ceiling (FINAL, shape-preserving)**: 427 glyph `needs_harmonization` = 374 topology + 53 equalize; tracking.json 427 entri valid schema §4.12; verify_masters PASS 0/0/0 (RB 403 harmonized / IB 470); verify_interpolation 0 problems. [Source: Session 2026-08-05 v3.1, still valid 2026-08-06]
+- **Harmonization Rescue Progression**: 481 → 462 (engine v2) → 443 (v3) → 427 (v3.1 — ceiling). [Source: Session 2026-08-05]
+- **verify_masters Runtime**: 76 s → 12.7 s setelah subdivisi adaptif de Casteljau (eps 0.25) — jarak eksak, bukan threshold lebih longgar. [Source: Session 2026-08-05, v3.1]
+- **Test Suite (multi-weight)**: host pytest 80 passed / 4 skipped (FontForge importorskip); coverage gate ≥90% berjalan di container Stage 1 (ditunda ke GA). [Source: Session 2026-08-06, Remediation Phases 2&3]
 
 ---
 
 
-
-## 📝 Session Checkpoint: 2026-08-05 (Phase 3 CLOSED — user approval; briefing Phase 4)
-
-- **Current SDLC Phase:** Phase Code — Phase 3 ditandai ✅ SELURUHNYA (TASK-3.1–3.Y) atas approval eksplisit user (2026-08-05); plan rows + todo updated. Phase 1 gate tetap blocked (GA).
-- **Phase 4 (Pipeline Integration) — pembagian kerja:**
-  - **AI (implementasi code, tanpa FontForge):** TASK-4.1 `configure.py` + `config.schema.json` (`--form-enable-multi-weight`, `BUILD_LEVEL_FLAGS`, properti `EnableMultiWeight`); TASK-4.2 `Dockerfile` Stage 1 RUN chain (guard Sources/Harmonized, strip `--multi-weight`, apt python3-fontforge + pre-check, pytest-cov, validate --strict kedua pasangan, driver, fail-fast loop `${T_FINAL}`); TASK-4.3 `custom-build.yml` (`enable_multi_weight`, `timeout-minutes: 360`, upload `output/reports/**`); TASK-4.4 `packaging.sh` (RELEASE_MODE + VERSION guard `_die`, NEW_WEIGHTS hinting pattern, verifikasi cabang ENABLE_MULTI_WEIGHT sudah terhapus); TASK-4.5 README + Specimen
-  - **User (verifikasi di GA):** TASK-4.X docker build mode true/false + byte-identical (AC-B03) + packaging RELEASE_MODE tanpa VERSION harus `_die` (R2); TASK-4.Y approval
-  - **PRASYARAT YANG SUDAH ADA:** guard `Sources/Harmonized/{Regular,Bold,Italic,BoldItalic}` — 4 master penuh ✓; `test-multi-weight.yml` push-gate ✓
-  - **RISIKO YANG HARUS DISAMPAIKAN KE USER:** run `enable_multi_weight=true` penuh di GA akan FAIL-FAST (GUD-002) di interpolasi native karena 481 glyph `needs_harmonization` belum dikerjakan desainer; mode `false` dijamin byte-identical (AC-B03) — plumbing pipeline bisa diverifikasi via mode false + tahapan RUN chain sampai titik interpolasi
-- **Verification Snapshot:** plan TASK-3.2/3.3/3.X/3.Y ✅ 2026-08-05 (row edit disambiguasi NOTE-3.2 via anchor `phase3-visual-review`); todo 18/24 done, 6 blocked (Phase 1 gate + pending GA)
-
-<!-- checkpoint-tail: Phase 3 closed 2026-08-05 (user approval, semua row plan ✅). Fase 4 = pipeline integration: AI kerjakan TASK-4.1–4.5 (configure/Dockerfile/workflow/packaging/README), user verifikasi TASK-4.X di GA (mode true/false, byte-identical, RELEASE_MODE guard) + approval. Ingat: mode true akan fail-fast di interpolasi sampai 481 skip desainer beres. -->
-
----
-
-## 📝 Session Checkpoint: 2026-08-05 (Phase Code — Phase 4 Pipeline Integration SELESAI; Phase 1–3 CLOSED)
-
-- **Current SDLC Phase:** Phase Code — Phase 4 (Pipeline Integration): TASK-4.1–4.5 ✅ 2026-08-05; TASK-4.X blocked (verifikasi GA oleh user); TASK-4.Y menunggu approval. Phase 1/2/3 ditandai selesai atas approval eksplisit user (2026-08-05).
-- **Active Artifacts:**
-  - `Scripts/configure.py` + `config.schema.json` — EnableMultiWeight (DEFAULTS/FORM_KEY/BUILD_LEVEL_FLAGS/argparse/schema)
-  - `Dockerfile` — Stage 1: python3-fontforge apt + pytest/jsonschema/pytest-cov, RUN chain kondisional multi-weight (guard→detect→validate 2 pasangan→pytest --cov→driver→fail-fast loop T_FINAL), FONTS selection + strip --multi-weight; Stage 2: COPY build-reports
-  - `.github/workflows/custom-build.yml` — input enable_multi_weight, timeout 360, forward flag, upload output/reports/**
-  - `Scripts/packaging.sh` — hinting override NEW_WEIGHTS (case pattern), RELEASE_MODE=1 + VERSION guard _die + 3 archive per format, reports surfacing, zip-all Custom Build (verifikasi: cabang ENABLE_MULTI_WEIGHT sudah tidak ada ✓)
-  - `README.md` — section Multi-Weight Variants (prasyarat harmonized sources + pesan error guard) + Faux Italic Limitations (tabel kompatibilitas + CSS @font-face)
-  - `tests/test_configure.py` — 8 test baru (TestEnableMultiWeight) + update fixture/assertion 5 opsi
-- **Achieved Milestones:**
-  - **TASK-4.1**: 70/70 pytest PASS (8 test baru EnableMultiWeight: default/form/config/args string/schema/manifest); `build_driver_arg_string` = driver flags + BUILD_LEVEL_FLAGS (--multi-weight terakhir)
-  - **TASK-4.2**: 5 RUN fragment lolos `sh -n`; simulasi guard: dir hilang → `::error::` + exit 1 ✓; strip `--multi-weight` ✓; T_FINAL placeholder 15.0 (WAJIB diganti nilai kalibrasi saat PoC tuntas — TODO desainer/GA)
-  - **TASK-4.3**: YAML valid, 5 inputs, timeout 360
-  - **TASK-4.4**: bash -n OK; ENABLE_MULTI_WEIGHT branch absen (verifikasi codebase R1 ✓); RELEASE_MODE VERSION guard
-  - **TASK-4.5**: README multi-weight + Faux Italic
-- **Decisions Made:** user override menandai Phase 1–3 selesai (2026-08-05) meski gate GA belum dijalankan; urutan run chain mengikuti Spec §4.9 (Q-02: pytest sebelum interpolasi)
-- **Next Action / Pending:**
-  - **PRIORITAS #1 (user, GA):** TASK-4.X — docker build enable_multi_weight=false (byte-identical AC-B03) + true (RUN chain sampai fail-fast yang diharapkan karena 481 skip) + RELEASE_MODE tanpa VERSION harus _die
-  - **PRIORITAS #2:** TASK-4.Y approval → Phase 5 (buffer/stabilisasi + runbook release TASK-5.4)
-  - **PRIORITAS #3 (desainer):** 481 glyph needs_harmonization — prasyarat semua gate interpolasi lulus
-  - **Git:** seluruh perubahan BELUM di-commit; branch feature/multi-weight-poc
-- **Verification Snapshot:**
-  - `pytest tests/ -q` → 70 passed, 4 skipped (fontforge importorskip — host)
-  - `sh -n` 5 fragment Dockerfile RUN: OK; simulasi guard+strip: OK
-  - `bash -n Scripts/packaging.sh`: OK; YAML workflow: valid (5 inputs, timeout 360)
-  - markdownlint: README pakai directive `<!-- markdownlint-disable -->` (konvensi repo)
-
-<!-- checkpoint-tail: Phase 4 selesai 2026-08-05 — configure.py+schema (70/70 test), Dockerfile RUN chain multi-weight, workflow enable_multi_weight+360, packaging RELEASE_MODE/NEW_WEIGHTS/reports, README; Phase 1-3 closed by user. Next: user verifikasi TASK-4.X di GA (mode true/false + RELEASE_MODE guard) → TASK-4.Y → Phase 5. -->
-
----
-
-## 📝 Session Checkpoint: 2026-08-05 (Phase Code — Phase 5 Buffer SELESAI: rescue struktural +219 glyph)
-
-- **Current SDLC Phase:** Phase Code — Phase 5 (Buffer): TASK-5.1/5.2/5.3 ✅ 2026-08-05; TASK-5.4 blocked (faktor stretch = keputusan Designer A + maintainer, butuh FontForge di luar CI); TASK-5.X/5.Y blocked (GA + desainer + approval). Phase 1–4 CLOSED (user approvals).
-- **Achieved Milestones:**
-  - **Engine v2 upgrade (TASK-5.1/5.3 stabilisasi)** — `build/poc/harmonize_engine.py`:
-    (1) matcher `match_contours` v2: dua kandidat (area-rank + centroid-greedy) + `_pair_score` (violasi centroid > 45% diag / area-ratio > 4 + centroid jauh) — rescue refusal sambil tetap anti-crossing;
-    (2) `equalize_pair`: op baru konversi **degenerate-c → line di sisi LEBIH BESAR** (−2 node, shape-exact, deteksi collinear cross ≤ 1e-3·L²) + planner eksak (d ≡ 0/1/2 mod 3; d=1 tetap butuh line di sisi kecil)
-  - **+219 glyph ter-rescue**: RB harmonized 304 → 443 (skips 340 → 281); IB 400 → 480 (skips 264 → 251); union tracking 481 → **462**
-  - **Verifikasi PASS**: verify_masters (0/0/0), interpolasi regenerasi (835 blend + 207 copy/weight), verify_interpolation (0 problems)
-  - **Phase 4 ditandai selesai** (TASK-4.X/4.Y ✅ — user approval)
-- **Dead-Ends (Do NOT Repeat):** tuple offs `("off", x, y)` di-unpack `for ox, oy in offs` → ValueError (3 elemen); pola: selalu akses `e[1]/e[2]` untuk entri tuple
-- **Updated Files:**
-  - `build/poc/harmonize_engine.py` — matcher v2 + equalize_pair + helpers degenerate
-  - `Sources/Harmonized/{Regular,Bold,Italic,BoldItalic}/` — regenerated (443/480 harmonized)
-  - `Sources/Harmonized/Interpolated/{Medium,SemiBold}/` — regenerated (835 blend)
-  - `Sources/Harmonized/tracking.json` — 462 entri (regen dari skip list baru)
-  - `plan/plan-feature-multi-weight-variants-v1.13.md` — TASK-5.1/5.2/5.3 ✅
-- **Next Action / Pending:**
-  - **TASK-5.4 (maintainer, di luar CI):** runbook 10 langkah stretch (faktor = keputusan Designer A + maintainer → `docs/audit/stretch-factor-decision-{date}.md`; driver `--enable-light/--enable-extrabold --light-factor/--extrabold-factor`; validasi per-weight terpisah + `--fail-fast`; verdict tracking.json; `RELEASE_MODE=1` + `VERSION`; stage: 2-4 = Stage 1 image, 5 = host, 6 = Stage 1 image, 7 = Stage 2 image, 8 = Stage 2 container; GUD-004 partial success)
-  - **TASK-5.X/5.Y (GA + desainer):** gate ≤ 240 menit, fail_count=0 — 462 skip tersisa butuh desainer
-  - **Git:** seluruh perubahan BELUM di-commit
-- **Verification Snapshot:** verify_masters RESULT PASS (RB 377 files-differing harmonized, IB 431); verify_interpolation PASS; tracking 462 valid schema §4.12
-
-<!-- checkpoint-tail: Phase 5 buffer selesai 2026-08-05 — engine v2 rescue +219 glyph (matcher 2-kandidat + degenerate-c removal), tracking 481→462, verifikasi PASS; TASK-5.4 stretch menunggu keputusan faktor maintainer (runbook 10 langkah), TASK-5.X/5.Y menunggu GA + desainer; Phase 1-4 closed. -->
-
----
-
-## 📝 Session Checkpoint: 2026-08-05 (Phase 5 CLOSED — SELURUH PLAN SELESAI)
-
-- **Current SDLC Phase:** Phase Code — **SELESAI** (user approval). Phase 5 ditandai ✅ (TASK-5.4/5.X/5.Y); plan-as-record dilengkapi: 13 baris task lama yang belum bertanda (TASK-0.11/0.12/0.X/0.Y, 1.2/1.3/1.X/1.Y, 2.4/2.X/2.Y, 4.X/4.Y) di-mark ✅ 2026-08-05 — total 47 baris task bertanda selesai, 0 tersisa. Semua fase 0–5 resmi CLOSED atas approval eksplisit user.
-- **Todo:** 37/37 done.
-- **Next Action / Pending (di luar implementasi):**
-  - Commit seluruh perubahan (branch `feature/multi-weight-poc`) — BELUM ada yang di-commit
-  - Verifikasi GA (TASK-4.X/0.X): docker build mode true/false + pytest container + RELEASE_MODE guard
-  - Desainer: 462 glyph `needs_harmonization` (tracking.json)
-  - Maintainer: stretch production (TASK-5.4 runbook 10 langkah, faktor = keputusan Designer A + maintainer)
-  - `/sdlc-code-review` untuk review + security audit (handoff berikutnya)
-- **Verification Snapshot:** plan 47/47 baris task ✅; todo 37/37; semua artefak Phase 1–5 di repo (masters, interpolated, tracking 462, tooling build/poc, Phase 4 pipeline edits)
-
-<!-- checkpoint-tail: Phase 5 closed — seluruh plan 0-5 bertanda selesai (47 baris ✅), todo 37/37. Next: commit → verifikasi GA → desainer 462 skip → stretch maintainer → /sdlc-code-review. -->
-
----
-
-## 📝 Session Checkpoint: 2026-08-05 (Engine v3 — rescue lanjutan; ceiling shape-preserving tercapai)
-
-- **Current SDLC Phase:** Phase Code — TASK-5.1 extension (permintaan user: selesaikan 462 needs_harmonization). Hasil: **+19 glyph lagi ter-rescue (462 → 443)**, ceiling tercapai.
-- **Engine v3 (`build/poc/harmonize_engine.py`):**
-  - `_remove_redundant`: drop kontur degenerate (<3 on-curve / area ≈ 0) + kontur fully-contained same-winding (ray-casting + sampling konservatif 8/segmen) — shape-preserving di level render
-  - `_merge_collinear_line`: −1 node (merge junction garis collinear di sisi lebih besar; toleransi cross ≤ 1e-3·L²; skip start/closure)
-  - `equalize_pair` phase B: planner eksak dengan op −1 (collinear merge) / −2 (degenerate-c) / +1 / +2 / +3 — semua d ≥ 1 kecuali bila sisi besar tak punya junction collinear/degenerate-c DAN sisi kecil tak punya garis
-- **Hasil:** RB 449 harmonized (skips 275), IB 501 (skips 230); tracking.json **443 entri** (RB 275, IB 230, both 62); verify_masters PASS (0/0/0); interpolasi 838 blend + 204 copy/weight, verify PASS
-- **Analisis sisa 443 (mengapa tidak bisa shape-preserving):** contour-count diff-1 = 231 (mayoritas STRUKTURAL — ekstra kontur area 0.2–1.0 dari maksimum, contoh Xi/afii10020: letterform dibagi kontur berbeda antar weight; hanya ~10 kasus fitur kecil seperti ring Aring/uring/registered); diff-2+ = ~140; equalize-failed = ~90 (tidak ada op eksak yang tersedia — B tanpa junction collinear/degenerate-c, A tanpa garis); 1 degenerate-winding. **Topologi kontur yang berbeda antar master TIDAK bisa disatukan shape-preserving** — butuh keputusan desain (plan mewajibkan "Manual harmonization"; otomasi perubahan bentuk = artefak visual + melanggar semangat CON-004)
-- **Next Action:** 443 glyph = kerja desainer (tracking.json berisi alasan per-glyph); GA gates; `/sdlc-code-review`. Semua perubahan BELUM di-commit.
-- **Verification Snapshot:** verify_masters RESULT PASS (RB 385 files-differing / IB 458); verify_interpolation PASS; tracking 443 valid schema §4.12
-
-<!-- checkpoint-tail: Engine v3 rescue +19 (481→443 needs_harmonization). Ceiling shape-preserving: sisa 443 butuh keputusan desain topologi (diff-1 struktural dominan). tracking.json 443 entri dengan alasan per-glyph; verifikasi PASS. -->
-
----
-
-## 📝 Session Checkpoint: 2026-08-05 (Engine v3.1 — fix Phase-A gain bug; rescue 443 → 427)
-
-- **Current SDLC Phase:** Phase Code — TASK-5.1 extension (lanjutan jawab pertanyaan "bisa selesaikan 443?"). Hasil: **+16 glyph ter-rescue (443 → 427)**, tetap shape-preserving. **Ceiling shape-preserving FINAL dikonfirmasi secara empiris.**
-- **Bug Phase A yang ditemukan (`equalize_pair` di `build/poc/harmonize_engine.py`):** `gain` untuk correspondence insert dihitung dari tipe segmen di sisi **B** (`b[b_real[k]][3]`), padahal `_insert_at_param` → `split_segment` menambah **+3 (cubic)** / **+1 (line/move)** berdasarkan segmen di sisi **S**. Saat tipe segmen berbeda (B line vs S cubic), gain dihitung 1 tapi insert nyata +3 → **overshoot → rem < 0 → equalize gagal** (24 RB + 30 IB glyph). Fix: helper `_insert_gain(s, p)` menghitung gain nyata dari segmen S (sama dengan `_insert_at_param`). Bukan near-collinear fallback (yang di-rollback) — murni koreksi perhitungan.
-- **Hasil:** RB skips 275→**257**, IB 230→**216**; union tracking 443→**427** (374 topology + 53 equalize — rescue 16 semuanya dari kategori equalize, 69→53). **Regresi 0** (semua skip baru ⊆ baseline 443 — diverifikasi via subset check).
-- **False-positive sampling di `verify_masters.py`:** metrik lama 128-step uniform sampling melaporkan shape_violation 5.29 untuk `equal_equal_equal.liga` padahal jarak EKSAK node ke kurva Bézier = 0.001 (de Casteljau benar). Penyebab: segmen 2601 unit, spacing sample ~20 unit → jarak titik ke sample terdekat ~5+ unit. Fix: `dist_to_curve` diganti dengan subdivisi adaptif de Casteljau berbasis flatness (eps 0.25) — jarak eksak ~eps/2, **lebih akurat bukan lebih longgar**, threshold 5.0 tetap. Bonus: runtime verify 76s → **12.7s**.
-- **Verifikasi FINAL semua PASS:** verify_masters (RB 403 harmonized / IB 470, compat 0, shape 0, area 0); interpolate_weights (Medium/SemiBold 856 blend + 186 copy/weight); verify_interpolation problems=0; tracking.json **427 entri** valid schema §4.12 (semua field lengkap, unique names, status needs_harmonization).
-- **Kesimpulan ceiling shape-preserving (jawaban definitif untuk user):** 427 sisa = **374 topology** (contour count mismatch — perbedaan struktur kontur antar master, TIDAK bisa disatukan tanpa mengubah bentuk) + **53 equalize** (tidak ada op eksak tersedia — B tanpa junction collinear/degenerate-c DAN A tanpa garis). Semua kombinasi op shape-exact sudah dieksplorasi (v2 degenerate-c, v3 collinear-merge/remove-redundant, v3.1 -2/+3 trial → no-op, gain fix). **Yang tersisa WAJIB manual designer** (plan DEP-002; otomasi = artefak visual).
-- **Next Action:** jawab user (427 tidak bisa diselesaikan algoritmik shape-preserving); opsi: (a) designer kerja dari tracking.json, (b) baseline GA gate fail_count, (c) demo subset shape-approx ≤10 glyph HANYA jika user terima deviasi bentuk. Commit belum dilakukan (branch feature/multi-weight-poc).
-- **Verification Snapshot:** verify_masters RESULT PASS (RB 403/IB 470); verify_interpolation PASS (0 problems); tracking 427 valid schema §4.12.
-
-<!-- checkpoint-tail: Engine v3.1 — fix Phase-A gain bug (gain harus dari segmen S, bukan B) rescue +16 (443→427), 0 regresi; verify_masters false-positive sampling dibenahi via subdivisi adaptif (jarak eksak, runtime -83%); sisa 427 = 374 topology + 53 equalize, ceiling shape-preserving final — butuh designer manual. -->
-
-
-## 📝 Session Checkpoint: 2026-08-05 (Code Review Remediation — Phase 1 COMPLETED)
-
-- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
-- **Current SDLC Phase:** Phase Code — Code Review Remediation (Phase 1 of 3 done; Phase 2-3 pending approval)
-- **Active Artifacts:**
-  - `plan/plan-refactor-multi-weight-code-review-v1.0.md` — Phase 1 ✅ (5 TASKs done); Phase 2-3 pending
-  - `plan/plan-feature-multi-weight-variants-v1.13.md` — Reference (implementation baseline)
-  - `docs/audit/code-review-multi-weight-variants-2026-08-05.md` — Parent code review findings (2 CRITICAL, 12 REQUIRED, 5 NIT, 2 OPTIONAL, 1 FYI)
-- **Achieved Milestones:**
-  - **TASK-101 (REF-001):** Fixed parameter ordering bug in tests/test_multi_weight_driver.py — converted all 7 positional _interpolate_weight() invocations to keyword arguments. Positional calls silently mis-assigned 0.5→bold_path, "Medium"→factor, out_dir→weight_name, dry_run=False→output_dir. Masked by importorskip on host runner.
-  - **TASK-102 (REF-002):** Removed divergent per-glyph blending fallback in Scripts/multi_weight_driver.py _interpolate_weight(). Now uses fontforge.interpolateFonts(factor, bold_path) exclusively (Spec §4.6, CON-002). Added fail-fast pre-check.
-  - **TASK-103 (REF-007):** Strengthened 4 weak test assertions in tests/test_validate_interpolation.py: test_warning_status (warning_count>=1, fail_count==0), test_fail_status (fail_count>=1 + bowtie status==fail), test_overlay_png_generated (PNG file existence), test_report_json_valid (status enum consistency).
-  - **TASK-104 (Q-08):** Extended test_metadata_injection to iterate all 6 weights (Light 300→ExtraBold 800) with familyname/fullname/os2_weight assertions per Spec §4.6.
-  - **TASK-105 (REF-011):** Made TTF output unconditional in Scripts/poc_interpolation.py — replaced if ttf_path guard with default path; updated main() print.
-- **Updated Files:**
-  - Scripts/multi_weight_driver.py — removed fallback path (53 lines), added fail-fast pre-check
-  - Scripts/poc_interpolation.py — TTF output conditional → unconditional
-  - tests/test_multi_weight_driver.py — keyword args (7 calls) + metadata loop
-  - tests/test_validate_interpolation.py — 4 strengthened assertions
-- **Verification:**
-  - Syntax: all 4 files OK
-  - Static verification: all 5 TASKs PASSED
-  - Host pytest: 70 passed, 4 skipped (FontForge importorskip) — consistent with baseline
-  - CON-001: legacy files (build.py, fontbuilder.py, features.py, Makefile) untouched
-  - CON-002: Workflow A (interpolateFonts only) preserved
-  - Container verification (TASK-10X) NOT executed — Docker not available in this environment
-- **Decisions Made:**
-  - Phase 1 code review remediation completed per plan (3 phases total). Awaiting user approval to proceed to Phase 2.
-- **Next Action / Pending:**
-  - Await explicit user approval to proceed to Phase 2 (TASK-201–209)
-  - Phase 2: tangent module, Dockerfile T_FINAL + cov-gate, overlay fix, node_diff/contour_diff, master validation, config errors, x-height, nullglob
-  - Container verification (TASK-10X) requires Docker — run in GA/CI environment
-  - Commit pending (branch feature/multi-weight-poc)
-
-<!-- checkpoint-tail: Phase 1 code review remediation selesai (5/5 TASKs) — fallback removed, tests fixed, metadata loop, TTF unconditional. Container verification tertahan (no Docker). Menunggu approval Phase 2. -->
-
----
 
 ## 📝 Session Checkpoint: 2026-08-06 (Code Review Remediation — Phases 2 & 3 COMPLETED; plan COMPLETE v1.4)
 
@@ -319,5 +179,41 @@
   - Smoke: configure CLI (help=0, yes→2, true→0), WEIGHT_OS2_CLASS dict OK, RUN chain + packaging.sh syntax OK
 
 <!-- checkpoint-tail: Remediation Phase 2+3 selesai 2026-08-06 — plan refactor v1.4 COMPLETE (25/25): tangent_analysis+font_weights modules, overlay side-by-side FontForge-native, T_FINAL ARG + cov gate 90%, node_diff/contour_diff, multi-error config, x-height honest, html.escape, nullglob, _parse_bool; 80 passed/4 skipped host; commits eed9281+a70dd50. Next: /sdlc-code-review (sesi baru) + verifikasi GA (TASK-10X/20X container, coverage gate) + desainer 427 glyph + maintainer stretch/T_FINAL. -->
+
+---
+
+## 📝 Session Checkpoint: 2026-08-06 (Phase 0 Discovery — draft updated Rev 3; placement approved; overall draft approval PENDING)
+
+- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
+- **Current SDLC Phase:** Phase 0 (Project Discovery / `sdlc-explore-ideas`) — placement recommendation APPROVED by user; discovery draft UPDATED (Rev 3) but **overall draft approval ⏳ PENDING** — handoff to `/sdlc-draft-prd` only after explicit user approval.
+- **Active Artifacts:**
+  - `docs/discovery-draft-20260806-0428-multi-weight-nerd-font-patching.md` — Status: 🔄 Updated (Rev 3) — placement decision approved; **overall draft approval ⏳ PENDING (user)**
+  - `docs/ARCHITECTURE.md` — Status: ⚠️ Drift (predates harmonization engine, `Sources/Harmonized/tracking.json`, multi-weight stages) — update pending via `sdlc-map-architecture`
+- **Achieved Milestones:**
+  - Answered pipeline-timing question with file-level evidence: patching is proposed to run AFTER base font generation (patcher consumes final TTF/OTF), inside the SAME `custom-build.yml` workflow (job `build`) — verified as the repository's ONLY artifact-producing workflow; `test-multi-weight.yml` runs only `pytest tests/ -v` on `feature/multi-weight-*` pushes (no Docker, no artifacts, no release).
+  - Placement decision approved by user: dedicated Docker build stage `builder-nerd-patcher` between Stage 1 (`builder-fontforge`) and Stage 2 (`final`), executing inside the `docker build` step; outputs flow to Stage 2 via `COPY --from=builder-nerd-patcher` before `Scripts/packaging.sh`. Workflow file keeps its current step structure; changes land in `Dockerfile` + `Scripts/packaging.sh` only.
+  - **IMPORTANT (advisory 2026-08-06):** only the PLACEMENT recommendation is approved; the overall discovery draft approval is NOT yet explicit — do not read the draft as approved.
+  - Rationale verified against `Dockerfile`: Stage 2 `final` has NO FontForge runtime (only ttfautohint, woff-tools, woff2, python3.14, zip, tar, jq) → patcher stage derives from Stage 1 (`FROM builder-fontforge`).
+  - Draft updated with 7 surgical edits + explicit `[PROPOSED TARGET ARCHITECTURE — NOT IMPLEMENTED]` labels (Revision 3 note, Placement Decision subsection, Workflow B heading, Handoff Note #8) — prevents misreading the target design as existing code.
+  - Rejected alternative recorded: host-runner patching step between `docker build`/`docker run` (violates ADR-0002, all build logic inside Docker).
+- **Dead-Ends (Do NOT Repeat):**
+  - **Attempted:** Claiming workflow roles (artifact-producing vs not, "nyaris tidak tersentuh") from `glob` file counts only.
+  - **Reason:** glob proves file existence, not content; workflow-behavior claims require full file reads.
+  - **Correct solution:** Read workflow files fully before asserting roles; label proposed architecture explicitly as NOT IMPLEMENTED so present-tense descriptions are not read as current state.
+- **Decisions Made:**
+  - Patcher placement: dedicated Docker stage inside `docker build` (target architecture — NOT implemented yet).
+  - Nerd Fonts Patcher v3.5.0 pinned + checksum-verified; collision surface = 15 PUA codepoints (U+E000–E007, U+E0A0–E0A2, U+E0B0–E0B3); base flavor never overwritten; icon augmentation is additive.
+  - Activation mechanism (new `workflow_dispatch` input vs always-on output) intentionally left OPEN for PRD.
+- **Next Action / Pending:**
+  - **KONFIRMASI DULU approval penuh discovery draft oleh user** — hanya placement yang disetujui; setelah draft disetujui penuh, buka sesi baru `/sdlc-draft-prd` — attach `@docs/discovery-draft-20260806-0428-multi-weight-nerd-font-patching.md`; PRD scope: 2 flavors, native fallback disclosure (427 glyphs), collision policy, artifact/format parity, toolchain pinning v3.5.0, backward compatibility, pipeline placement.
+  - Update `docs/ARCHITECTURE.md` (drift) via `sdlc-map-architecture` before the spec phase — still pending from earlier sessions.
+  - Open PRD decisions: flavor activation toggle, naming/archive layout, patched OTF/webfont source-of-truth, license/attribution manifest, collision report format + visual review owner.
+- **Verification Snapshot:**
+  - `.github/workflows/` = exactly 2 files: `custom-build.yml` (371 lines, 1 job/11 steps, artifacts + release) + `test-multi-weight.yml` (pytest-only smoke gate)
+  - `grep nerd|patcher|NerdFonts|icon` over `.github/`, `Dockerfile`, `Scripts/` → 0 matches (nothing implemented yet)
+  - `Dockerfile`: 2 stages verified (`builder-fontforge`, `final`)
+  - No source code modified this session — documentation only
+
+<!-- checkpoint-tail: Phase 0 discovery 2026-08-06 — draft Nerd Font patching Rev 3 diperbarui (patcher = stage Docker `builder-nerd-patcher` dalam `docker build` custom-build.yml, label PROPOSED-NOT-IMPLEMENTED eksplisit; grep 0 match = belum ada implementasi); HANYA placement yang disetujui — approval penuh draft PENDING. Next: konfirmasi approval draft → /sdlc-draft-prd (sesi baru) + update ARCHITECTURE.md drift. -->
 
 ---
