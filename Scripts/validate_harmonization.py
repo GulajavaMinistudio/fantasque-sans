@@ -161,11 +161,18 @@ def _validate(master_a_path, master_b_path, strict, threshold):
         if len(info_a) != len(info_b):
             contour_order_equal = False
         else:
-            for ca, cb in zip(info_a, info_b):
+            for i, (ca, cb) in enumerate(zip(info_a, info_b)):
                 if ca["node_count"] != cb["node_count"]:
                     node_count_equal = False
                 if ca["clockwise"] != cb["clockwise"]:
-                    curve_direction_equal = False
+                    if node_count_equal:
+                        try:
+                            gb.foreground[i].reverseDirection()
+                            curve_direction_equal = True
+                        except Exception:
+                            curve_direction_equal = False
+                    else:
+                        curve_direction_equal = False
 
         checks_1_3_pass = node_count_equal and contour_order_equal and curve_direction_equal
 
