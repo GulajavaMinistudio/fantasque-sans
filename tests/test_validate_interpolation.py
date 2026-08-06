@@ -83,6 +83,45 @@ def _build_masters_tree(base_dir):
     return base_dir, masters_dir, interp_dir
 
 
+def _build_smooth_glyph_tree(base_dir):
+    """Build a masters + interpolated tree with a smooth 30-gon glyph.
+
+    A regular 30-gon has turning angles of 360°/30 = 12° at each vertex —
+    well under the default 15.0° threshold.  The glyph is classified 'pass'
+    without needing a threshold override.
+
+    Returns ``(base_dir, masters_dir, interp_dir)``.
+    """
+    import math
+
+    n = 30
+    r = 200.0
+    cx, cy = 250.0, 250.0
+    pts = [
+        (cx + r * math.cos(2.0 * math.pi * i / n),
+         cy + r * math.sin(2.0 * math.pi * i / n))
+        for i in range(n)
+    ]
+
+    spec = [("A", [pts])]
+    font_reg = _make_font(spec)
+    font_bold = _make_font(spec)
+    font_interp = _make_font(spec)
+
+    masters_dir = os.path.join(base_dir, "masters_smooth")
+    reg_dir = os.path.join(masters_dir, "Regular")
+    bold_dir = os.path.join(masters_dir, "Bold")
+    interp_dir = os.path.join(base_dir, "interp_smooth")
+
+    os.makedirs(reg_dir, exist_ok=True)
+    os.makedirs(bold_dir, exist_ok=True)
+    font_reg.save(reg_dir)
+    font_bold.save(bold_dir)
+    font_interp.save(interp_dir)
+
+    return base_dir, masters_dir, interp_dir
+
+
 # ---------------------------------------------------------------------------
 # Test 1: pass status
 # ---------------------------------------------------------------------------
@@ -96,6 +135,19 @@ def test_pass_status():
     # threshold and would be classified as a minor warning — not a fail.
     # Use a threshold above 90° so the clean glyph is classified 'pass'.
     report = _mod._validate(interp_dir, masters_dir, 100.0, None, False)
+
+    assert report["fail_count"] == 0
+    assert report["warning_count"] == 0
+    assert report["pass_count"] >= 1
+
+
+def test_pass_at_default_threshold():
+    """A smooth glyph (30-gon, 12° turning angle) passes at the spec
+    default threshold of 15.0° — no threshold override needed."""
+    base = tempfile.mkdtemp(prefix="test_vi_")
+    _, masters_dir, interp_dir = _build_smooth_glyph_tree(base)
+
+    report = _mod._validate(interp_dir, masters_dir, 15.0, None, False)
 
     assert report["fail_count"] == 0
     assert report["warning_count"] == 0

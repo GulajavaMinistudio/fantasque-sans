@@ -102,7 +102,7 @@ RUN if echo "$BUILD_ARGS" | grep -q -- "--multi-weight"; then \
         || { echo "::error::multi-weight build requires harmonized sources (Sources/Harmonized/{Regular,Bold,Italic,BoldItalic}); sync upstream or run harmonization first" >&2; exit 1; } \
         && echo "::notice::multi-weight build: Detecting incompatibilities..." \
         && fontforge --quiet -lang=py -script Scripts/detect_incompatibility.py \
-               Sources/Harmonized/Regular Sources/Harmonized/Bold \
+               Sources/FantasqueSansMono-Regular.sfdir Sources/FantasqueSansMono-Bold.sfdir \
                --output build/incompatibility_report.json \
         && echo "::notice::multi-weight build: Harmonizing (validating masters, --strict, both pairs)..." \
         && fontforge --quiet -lang=py -script Scripts/validate_harmonization.py \

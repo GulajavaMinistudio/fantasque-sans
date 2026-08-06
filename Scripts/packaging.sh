@@ -188,7 +188,12 @@ cp "${APP_DIR}/README.md" "${OUTPUT_DIR}/README.md"
 #     mode).
 # ---------------------------------------------------------------------------
 mkdir -p "${OUTPUT_DIR}/reports"
-cp -n /app/build-reports/* "${OUTPUT_DIR}/reports/" 2>/dev/null || true
+# Guard independent of nullglob status: ls on a non-matching glob fails
+# under non-nullglob (path literally doesn't exist), succeeding only when
+# there are real files to copy.
+if ls /app/build-reports/* >/dev/null 2>&1; then
+    cp /app/build-reports/* "${OUTPUT_DIR}/reports/"
+fi
 
 if [ "${RELEASE_MODE:-}" = "1" ]; then
     # Release upstream (public): one archive per format named
