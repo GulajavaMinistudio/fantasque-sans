@@ -1,0 +1,9 @@
+[run]
+omit =
+    Scripts/build.py
+    Scripts/custom_build_driver.py
+    Scripts/features.py
+    Scripts/fontbuilder.py
+    Scripts/generate_specimen.py
+    Scripts/poc_interpolation.py
+    Scripts/font_weights.py

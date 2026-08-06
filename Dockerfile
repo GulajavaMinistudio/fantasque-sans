@@ -21,6 +21,7 @@
 FROM ubuntu:26.04 AS builder-fontforge
 
 ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONPATH=/usr/lib/python3/dist-packages:.
 
 # FontForge from the default Ubuntu 26.04 (resolute) repos. The team PPA
 # ``ppa:fontforge/fontforge`` does NOT support ``resolute`` (404) so we
