@@ -165,13 +165,9 @@ def _validate(master_a_path, master_b_path, strict, threshold):
                 if ca["node_count"] != cb["node_count"]:
                     node_count_equal = False
                 if ca["clockwise"] != cb["clockwise"]:
-                    if node_count_equal:
-                        try:
-                            gb.foreground[i].reverseDirection()
-                            curve_direction_equal = True
-                        except Exception:
-                            curve_direction_equal = False
-                    else:
+                    try:
+                        gb.foreground[i].reverseDirection()
+                    except Exception:
                         curve_direction_equal = False
 
         checks_1_3_pass = node_count_equal and contour_order_equal and curve_direction_equal
