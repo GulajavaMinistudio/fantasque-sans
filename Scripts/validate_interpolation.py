@@ -234,7 +234,7 @@ def _validate(interpolated_path, masters_dir, threshold, overlay_dir, fail_fast)
     weight_name = os.path.basename(os.path.normpath(interpolated_path))
 
     # --- Iterate over interpolated glyphs ---
-    glyph_names = sorted(font_interp.glyphs())
+    glyph_names = sorted(g.glyphname for g in font_interp.glyphs())
     results = []
     pass_count = 0
     warning_count = 0
@@ -281,10 +281,13 @@ def _validate(interpolated_path, masters_dir, threshold, overlay_dir, fail_fast)
             # Use nearest master for overlay: compare against Regular
             # (typically the closer reference for Medium/SemiBold)
             ref_glyph = None
-            if name in font_regular.glyphs():
+            try:
                 ref_glyph = font_regular[name]
-            elif name in font_bold.glyphs():
-                ref_glyph = font_bold[name]
+            except TypeError:
+                try:
+                    ref_glyph = font_bold[name]
+                except TypeError:
+                    pass
 
             if ref_glyph is not None:
                 png_path = _generate_overlay(

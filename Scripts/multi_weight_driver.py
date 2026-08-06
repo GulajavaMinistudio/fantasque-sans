@@ -160,9 +160,9 @@ def _copy_hmtx(target_font, source_font):
     Unconditional per Spec §4.6 (r5 E5).  Glyphs not found in the source
     are left unchanged.
     """
-    for glyph_name in source_font.glyphs():
+    for g in source_font.glyphs():
         try:
-            target_font[glyph_name].width = source_font[glyph_name].width
+            target_font[g.glyphname].width = g.width
         except Exception:
             pass
 
