@@ -14,6 +14,7 @@ Covers:
     * CLI smoke (argparse, ``--form-*`` boolean parsing, ``--help``)
 """
 
+import argparse
 import json
 import logging
 import os
@@ -131,9 +132,8 @@ class TestValidateConfig:
         # AC-004: ``Invalid config.json: 'NoCalt' must be a boolean, got string``
         with pytest.raises(configure.ConfigValidationError) as exc_info:
             configure.validate_config({"NoCalt": "yes"}, config_schema)
-        assert str(exc_info.value) == (
-            "Invalid config.json: 'NoCalt' must be a boolean, got string"
-        )
+        assert str(exc_info.value).startswith("Invalid config.json:")
+        assert "'NoCalt' must be a boolean, got string" in str(exc_info.value)
 
     @pytest.mark.parametrize(
         "key,bad_value,expected_got",
@@ -149,9 +149,24 @@ class TestValidateConfig:
     ):
         with pytest.raises(configure.ConfigValidationError) as exc_info:
             configure.validate_config({key: bad_value}, config_schema)
-        assert str(exc_info.value) == (
-            f"Invalid config.json: '{key}' must be a boolean, got {expected_got}"
-        )
+        msg = str(exc_info.value)
+        assert msg.startswith("Invalid config.json:")
+        assert f"'{key}' must be a boolean, got {expected_got}" in msg
+
+    def test_multiple_invalid_fields_all_reported(self, config_schema):
+        """REF-012 / PRN-002: ALL schema errors are surfaced (up to 5),
+        not just the first — a multi-field config lists every bad key."""
+        with pytest.raises(configure.ConfigValidationError) as exc_info:
+            configure.validate_config(
+                {"NoLoopK": "yes", "EnableMultiWeight": "maybe"},
+                config_schema,
+            )
+        msg = str(exc_info.value)
+        assert msg.startswith("Invalid config.json:")
+        assert "'NoLoopK' must be a boolean, got string" in msg
+        assert "'EnableMultiWeight' must be a boolean, got string" in msg
+        # Multi-line: one line per reported error
+        assert msg.count("\n") >= 2
 
     def test_unknown_key_warns_but_does_not_fail(
         self, config_schema, caplog
@@ -653,12 +668,21 @@ class TestFormBoolParser:
             ("true", True), ("false", False),
             ("True", True), ("FALSE", False),
             ("1", True), ("0", False),
-            ("yes", True), ("no", False),
             (True, True), (False, False),
         ],
     )
     def test_parse_bool_accepts_canonical_forms(self, raw, expected):
         assert configure._parse_bool(raw) is expected
+
+    def test_parse_bool_rejects_yes_no(self):
+        """NIT-001: ``yes``/``no`` are no longer accepted — workflow_dispatch
+        boolean inputs only emit ``true``/``false``."""
+        with pytest.raises(argparse.ArgumentTypeError):
+            configure._parse_bool("yes")
+        with pytest.raises(argparse.ArgumentTypeError):
+            configure._parse_bool("no")
+        with pytest.raises(argparse.ArgumentTypeError):
+            configure._parse_bool("YES")
 
     def test_parse_bool_rejects_garbage(self):
         with pytest.raises(SystemExit):
@@ -701,7 +725,8 @@ class TestMainEntryPoint:
         )
         assert rc == 1
         joined = "\n".join(r.getMessage() for r in caplog.records)
-        assert "Invalid config.json: 'NoCalt' must be a boolean, got string" in joined
+        assert "Invalid config.json:" in joined
+        assert "'NoCalt' must be a boolean, got string" in joined
 
     def test_main_writes_args_and_manifest(self, tmp_path, caplog):
         args_file = tmp_path / "args.txt"

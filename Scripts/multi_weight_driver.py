@@ -44,15 +44,9 @@ import sys
 FACTOR_MEDIUM = 0.5
 FACTOR_SEMIBOLD = 0.67  # exact — two decimals (r4 R3)
 
-# OS/2 weight class mapping
-WEIGHT_CLASS = {
-    "Light": 300,
-    "Regular": 400,
-    "Medium": 500,
-    "SemiBold": 600,
-    "Bold": 700,
-    "ExtraBold": 800,
-}
+# OS/2 weight class mapping — single source of truth in ``font_weights.py``
+# (PRN-001 — DRY, REF-014).
+from font_weights import WEIGHT_OS2_CLASS
 
 # .sfdir naming convention for assembly
 SFDIR_NAME = "FantasqueSansMono-{weight}.sfdir"
@@ -132,7 +126,7 @@ def _inject_metadata(font, weight_name):
     Sets ``familyname``, ``fullname``, ``fontname``, ``weight``, and
     OS/2 weight class according to the Spec §4.6 contract.
     """
-    weight_num = WEIGHT_CLASS.get(weight_name, 400)
+    weight_num = WEIGHT_OS2_CLASS.get(weight_name, 400)
 
     try:
         font.familyname = "Fantasque Sans Mono"
@@ -239,8 +233,16 @@ def _assemble_build_sources(sources_dir, output_dir, weights, dry_run):
 
     os.makedirs(build_dir, exist_ok=True)
 
-    # Copy 4 harmonized masters
+    # Fail-fast: all 4 harmonized masters MUST exist (REF-010, GUD-002).
+    # Mirrors the Dockerfile existence guard (r4 R5) — a silent skip here
+    # would produce an incomplete build/sources/ assembly with no diagnostic.
     harmonized = os.path.join(sources_dir, "Harmonized")
+    for master in ("Regular", "Bold", "Italic", "BoldItalic"):
+        src = os.path.join(harmonized, master)
+        if not os.path.isdir(src):
+            _die("harmonized master missing: %s" % src)
+
+    # Copy 4 harmonized masters
     for master in ("Regular", "Bold", "Italic", "BoldItalic"):
         src = os.path.join(harmonized, master)
         dst = os.path.join(build_dir, SFDIR_NAME.format(weight=master))

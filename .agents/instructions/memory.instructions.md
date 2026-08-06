@@ -222,3 +222,42 @@
 - **Verification Snapshot:** verify_masters RESULT PASS (RB 403/IB 470); verify_interpolation PASS (0 problems); tracking 427 valid schema §4.12.
 
 <!-- checkpoint-tail: Engine v3.1 — fix Phase-A gain bug (gain harus dari segmen S, bukan B) rescue +16 (443→427), 0 regresi; verify_masters false-positive sampling dibenahi via subdivisi adaptif (jarak eksak, runtime -83%); sisa 427 = 374 topology + 53 equalize, ceiling shape-preserving final — butuh designer manual. -->
+
+
+## 📝 Session Checkpoint: 2026-08-05 (Code Review Remediation — Phase 1 COMPLETED)
+
+- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
+- **Current SDLC Phase:** Phase Code — Code Review Remediation (Phase 1 of 3 done; Phase 2-3 pending approval)
+- **Active Artifacts:**
+  - `plan/plan-refactor-multi-weight-code-review-v1.0.md` — Phase 1 ✅ (5 TASKs done); Phase 2-3 pending
+  - `plan/plan-feature-multi-weight-variants-v1.13.md` — Reference (implementation baseline)
+  - `docs/audit/code-review-multi-weight-variants-2026-08-05.md` — Parent code review findings (2 CRITICAL, 12 REQUIRED, 5 NIT, 2 OPTIONAL, 1 FYI)
+- **Achieved Milestones:**
+  - **TASK-101 (REF-001):** Fixed parameter ordering bug in tests/test_multi_weight_driver.py — converted all 7 positional _interpolate_weight() invocations to keyword arguments. Positional calls silently mis-assigned 0.5→bold_path, "Medium"→factor, out_dir→weight_name, dry_run=False→output_dir. Masked by importorskip on host runner.
+  - **TASK-102 (REF-002):** Removed divergent per-glyph blending fallback in Scripts/multi_weight_driver.py _interpolate_weight(). Now uses fontforge.interpolateFonts(factor, bold_path) exclusively (Spec §4.6, CON-002). Added fail-fast pre-check.
+  - **TASK-103 (REF-007):** Strengthened 4 weak test assertions in tests/test_validate_interpolation.py: test_warning_status (warning_count>=1, fail_count==0), test_fail_status (fail_count>=1 + bowtie status==fail), test_overlay_png_generated (PNG file existence), test_report_json_valid (status enum consistency).
+  - **TASK-104 (Q-08):** Extended test_metadata_injection to iterate all 6 weights (Light 300→ExtraBold 800) with familyname/fullname/os2_weight assertions per Spec §4.6.
+  - **TASK-105 (REF-011):** Made TTF output unconditional in Scripts/poc_interpolation.py — replaced if ttf_path guard with default path; updated main() print.
+- **Updated Files:**
+  - Scripts/multi_weight_driver.py — removed fallback path (53 lines), added fail-fast pre-check
+  - Scripts/poc_interpolation.py — TTF output conditional → unconditional
+  - tests/test_multi_weight_driver.py — keyword args (7 calls) + metadata loop
+  - tests/test_validate_interpolation.py — 4 strengthened assertions
+- **Verification:**
+  - Syntax: all 4 files OK
+  - Static verification: all 5 TASKs PASSED
+  - Host pytest: 70 passed, 4 skipped (FontForge importorskip) — consistent with baseline
+  - CON-001: legacy files (build.py, fontbuilder.py, features.py, Makefile) untouched
+  - CON-002: Workflow A (interpolateFonts only) preserved
+  - Container verification (TASK-10X) NOT executed — Docker not available in this environment
+- **Decisions Made:**
+  - Phase 1 code review remediation completed per plan (3 phases total). Awaiting user approval to proceed to Phase 2.
+- **Next Action / Pending:**
+  - Await explicit user approval to proceed to Phase 2 (TASK-201–209)
+  - Phase 2: tangent module, Dockerfile T_FINAL + cov-gate, overlay fix, node_diff/contour_diff, master validation, config errors, x-height, nullglob
+  - Container verification (TASK-10X) requires Docker — run in GA/CI environment
+  - Commit pending (branch feature/multi-weight-poc)
+
+<!-- checkpoint-tail: Phase 1 code review remediation selesai (5/5 TASKs) — fallback removed, tests fixed, metadata loop, TTF unconditional. Container verification tertahan (no Docker). Menunggu approval Phase 2. -->
+
+---

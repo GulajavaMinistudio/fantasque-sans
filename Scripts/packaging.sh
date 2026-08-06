@@ -203,8 +203,15 @@ if [ "${RELEASE_MODE:-}" = "1" ]; then
     zip -r "${OUTPUT_DIR}/FantasqueSansMono-${VERSION}-TTF.zip" TTF >/dev/null
     zip -r "${OUTPUT_DIR}/FantasqueSansMono-${VERSION}-OTF.zip" OTF >/dev/null
     # WOFF2 archive: the generated .woff2 files live in TTF_DIR (produced
-    # by woff2_compress in step 3).
-    ( cd "${TTF_DIR}" && zip -q -r "${OUTPUT_DIR}/FantasqueSansMono-${VERSION}-WOFF2.zip" ./*.woff2 )
+    # by woff2_compress in step 3). Guarded with nullglob: zero matches
+    # (e.g. woff2_compress failure) must not fail the archive step under
+    # ``set -euo pipefail`` (REF-015, PRN-002).
+    shopt -s nullglob
+    woff2_files=("${TTF_DIR}"/*.woff2)
+    shopt -u nullglob
+    if [ ${#woff2_files[@]} -gt 0 ]; then
+        ( cd "${TTF_DIR}" && zip -q -r "${OUTPUT_DIR}/FantasqueSansMono-${VERSION}-WOFF2.zip" ./*.woff2 )
+    fi
     echo "packaging: release archives written (VERSION=${VERSION})"
 else
     # Custom Build (fork owner): single zip-all archive (backward

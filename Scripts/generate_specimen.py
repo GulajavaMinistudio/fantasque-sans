@@ -22,9 +22,13 @@ Contract: Spec §4.8
 from __future__ import print_function
 
 import argparse
+import html
 import os
 import re
 import sys
+
+# Shared weight → OS/2 number mapping (PRN-001 — DRY, REF-014).
+from font_weights import WEIGHT_OS2_CLASS
 
 # ---------------------------------------------------------------------------
 # Optional fontTools import for metric extraction
@@ -115,7 +119,6 @@ def _extract_metrics(ttf_path):
         font = TTFont(ttf_path)
         os2 = font["OS/2"]
         hmtx = font["hmtx"]
-        post = font["post"]
 
         # Advance width: use 'n' or fallback to the most common width
         advance = None
@@ -135,14 +138,19 @@ def _extract_metrics(ttf_path):
             "stem_width": getattr(os2, "usStemV", None),
         }
 
-        # Use underline position as approximate x-height if missing
-        if metrics["x_height"] is None:
-            metrics["x_height"] = getattr(post, "underlinePosition", None)
-
+        # REF-013: no x-height fallback. ``post.underlinePosition`` is the
+        # underline position, NOT the x-height — substituting it reports
+        # wrong data. Missing ``os2.sxHeight`` stays None and renders as
+        # "—" in the metrics table.
         font.close()
         return metrics
     except Exception:
         return {}
+
+
+def _fmt_metric(value):
+    """Render a metrics-table cell; missing values show an em dash."""
+    return "—" if value is None else str(value)
 
 
 # ---------------------------------------------------------------------------
@@ -153,16 +161,7 @@ def _css_font_faces(weights):
     """Generate @font-face CSS rules."""
     rules = []
     for weight_name, ttf_path in weights:
-        # Map weight name to numeric value
-        weight_map = {
-            "Light": 300,
-            "Regular": 400,
-            "Medium": 500,
-            "SemiBold": 600,
-            "Bold": 700,
-            "ExtraBold": 800,
-        }
-        num = weight_map.get(weight_name, 400)
+        num = WEIGHT_OS2_CLASS.get(weight_name, 400)
         rules.append(
             '@font-face {\n'
             '    font-family: "Fantasque Sans Mono";\n'
@@ -243,9 +242,11 @@ def _waterfall_line(text, size, label=True):
     If ``label`` is True, the line includes a size label.
     """
     label_html = '<span class="size-label">%d</span> ' % size if label else ""
+    # REF-016: escape dynamic text — sample content may contain HTML
+    # metacharacters (e.g. "<", ">", "&") in the future.
     return (
         '<div class="waterfall-line" style="font-size:%dpx">'
-        "%s%s</div>" % (size, label_html, text)
+        "%s%s</div>" % (size, label_html, html.escape(text))
     )
 
 
@@ -253,7 +254,7 @@ def _write_index(output_dir, weights):
     """Write index.html — navigation page."""
     weight_items = ""
     for weight_name, _ in weights:
-        weight_items += "<li>%s</li>\n" % weight_name
+        weight_items += "<li>%s</li>\n" % html.escape(weight_name)
 
     html = (
         '<!DOCTYPE html>\n'
@@ -298,7 +299,7 @@ def _write_waterfall(output_dir, weights):
             '<h2>%s (%s)</h2>\n'
             '%s\n'
             '</div>\n'
-        ) % (weight_name, _weight_number(weight_name), lines)
+        ) % (html.escape(weight_name), _weight_number(weight_name), lines)
 
     html = (
         '<!DOCTYPE html>\n'
@@ -335,7 +336,7 @@ def _write_pangrams(output_dir, weights):
             '<h2>%s (%s)</h2>\n'
             '%s\n'
             '</div>\n'
-        ) % (weight_name, _weight_number(weight_name), lines)
+        ) % (html.escape(weight_name), _weight_number(weight_name), lines)
 
     html = (
         '<!DOCTYPE html>\n'
@@ -373,7 +374,7 @@ def _write_programming(output_dir, weights):
             '<h2>%s (%s)</h2>\n'
             '%s\n'
             '</div>\n'
-        ) % (weight_name, _weight_number(weight_name), lines)
+        ) % (html.escape(weight_name), _weight_number(weight_name), lines)
 
     html = (
         '<!DOCTYPE html>\n'
@@ -411,11 +412,11 @@ def _write_metrics(output_dir, weights):
             '<td>%s</td>'
             '</tr>\n'
         ) % (
-            weight_name,
-            str(m.get("x_height", "—")),
-            str(m.get("cap_height", "—")),
-            str(m.get("advance_width", "—")),
-            str(m.get("stem_width", "—")),
+            html.escape(weight_name),
+            _fmt_metric(m.get("x_height")),
+            _fmt_metric(m.get("cap_height")),
+            _fmt_metric(m.get("advance_width")),
+            _fmt_metric(m.get("stem_width")),
         )
 
     html = (
@@ -463,7 +464,8 @@ def _write_discontinuity_checklist(output_dir, weights):
         ]
         for chk in checks:
             checklist += (
-                '<tr><td>%s</td><td class="checklist-fail">☐</td></tr>\n' % chk
+                '<tr><td>%s</td><td class="checklist-fail">☐</td></tr>\n'
+                % html.escape(chk)
             )
 
         sections += (
@@ -471,7 +473,7 @@ def _write_discontinuity_checklist(output_dir, weights):
             '<h2>%s (%s)</h2>\n'
             '<table>\n%s</table>\n'
             '</div>\n'
-        ) % (weight_name, _weight_number(weight_name), checklist)
+        ) % (html.escape(weight_name), _weight_number(weight_name), checklist)
 
     html = (
         '<!DOCTYPE html>\n'
@@ -497,15 +499,8 @@ def _write_discontinuity_checklist(output_dir, weights):
 
 
 def _weight_number(weight_name):
-    """Map weight name to CSS font-weight number."""
-    return {
-        "Light": "300",
-        "Regular": "400",
-        "Medium": "500",
-        "SemiBold": "600",
-        "Bold": "700",
-        "ExtraBold": "800",
-    }.get(weight_name, "400")
+    """Map weight name to CSS font-weight number (string form)."""
+    return str(WEIGHT_OS2_CLASS.get(weight_name, 400))
 
 
 # ---------------------------------------------------------------------------

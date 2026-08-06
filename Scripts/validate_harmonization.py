@@ -22,13 +22,17 @@ Contract: Spec §4.5
     * Checks 1–3 are blocking under ``--strict`` (any failure → non-zero exit).
     * Check 4 is **non-blocking** — reported but does not affect exit code.
     * ``--threshold`` (default 15.0°) only applies to check 4.
+    * Fail results additionally carry ``node_diff`` / ``contour_diff``
+      dicts (schema as in ``detect_incompatibility.py``): ``node_diff``
+      holds the first contour whose node count differs (``contour_index`` /
+      ``count_a`` / ``count_b``); ``contour_diff`` holds the whole-glyph
+      contour count mismatch (``count_a`` / ``count_b``).
 """
 
 from __future__ import print_function
 
 import argparse
 import json
-import math
 import os
 import sys
 
@@ -77,6 +81,13 @@ def _parse_args(argv):
 # Contour analysis helpers
 # ---------------------------------------------------------------------------
 
+# Shared tangent-angle computation lives in ``tangent_analysis.py`` —
+# single source of truth (PRN-001 — DRY, REF-006). Importing keeps both
+# validators and the unit suite on the identical code path (Spec §4.5).
+
+from tangent_analysis import compute_max_tangent_angle
+
+
 def _get_contour_info(glyph):
     """Extract contour-level info from a FontForge glyph.
 
@@ -97,70 +108,6 @@ def _get_contour_info(glyph):
     return contours
 
 
-def _compute_tangent_angle(point_pairs):
-    """Compute the angle in degrees between two consecutive edge directions.
-
-    Receives a list of ``(prev_pt, this_pt, next_pt)`` on-curve point triples
-    extracted from a contour.  Returns the maximum absolute turning angle
-    found, or 0.0 if there are fewer than 3 points.
-    """
-    max_angle = 0.0
-    for prev_pt, this_pt, next_pt in point_pairs:
-        # Incoming vector: prev → this
-        dx_in = this_pt.x - prev_pt.x
-        dy_in = this_pt.y - prev_pt.y
-        mag_in = math.sqrt(dx_in * dx_in + dy_in * dy_in)
-
-        # Outgoing vector: this → next
-        dx_out = next_pt.x - this_pt.x
-        dy_out = next_pt.y - this_pt.y
-        mag_out = math.sqrt(dx_out * dx_out + dy_out * dy_out)
-
-        if mag_in < 1e-9 or mag_out < 1e-9:
-            # Degenerate segment — skip angle check
-            continue
-
-        # Dot product → angle
-        dot = dx_in * dx_out + dy_in * dy_out
-        cos_angle = dot / (mag_in * mag_out)
-        # Clamp for floating-point safety
-        cos_angle = max(-1.0, min(1.0, cos_angle))
-        angle = math.degrees(math.acos(cos_angle))
-
-        if angle > max_angle:
-            max_angle = angle
-
-    return max_angle
-
-
-def _get_on_curve_triples(contour):
-    """Extract consecutive on-curve point triples from a FontForge contour.
-
-    Returns a list of ``(prev_pt, this_pt, next_pt)`` for every on-curve
-    point in the contour, wrapping around at the ends.
-    """
-    # Collect on-curve points in order
-    on_curve = [contour[i] for i in range(len(contour))]
-    # FontForge contours include all points (on- and off-curve).
-    # We use all points as a pragmatic approximation; true Bezier tangent
-    # analysis would require per-segment spline evaluation, which is
-    # materially more complex.  This simplified approach detects the vast
-    # majority of sharp discontinuities in practice.
-
-    n = len(on_curve)
-    if n < 3:
-        return []
-
-    triples = []
-    for i in range(n):
-        prev_pt = on_curve[(i - 1) % n]
-        this_pt = on_curve[i]
-        next_pt = on_curve[(i + 1) % n]
-        triples.append((prev_pt, this_pt, next_pt))
-
-    return triples
-
-
 def _check_curve_smoothness(glyph, threshold_deg):
     """Check tangent-angle continuity for all contours in a glyph.
 
@@ -168,20 +115,8 @@ def _check_curve_smoothness(glyph, threshold_deg):
     indicating whether the worst angle is within the threshold, and
     ``max_angle`` is the maximum angle found across all contours.
     """
-    try:
-        layer = glyph.foreground
-    except Exception:
-        return True, 0.0
-
-    overall_max = 0.0
-    for i in range(len(layer)):
-        triples = _get_on_curve_triples(layer[i])
-        if triples:
-            angle = _compute_tangent_angle(triples)
-            if angle > overall_max:
-                overall_max = angle
-
-    return overall_max <= threshold_deg, overall_max
+    max_angle = compute_max_tangent_angle(glyph)
+    return max_angle <= threshold_deg, max_angle
 
 
 # ---------------------------------------------------------------------------
@@ -258,6 +193,27 @@ def _validate(master_a_path, master_b_path, strict, threshold):
                 "curve_smoothness_ok": curve_smoothness_ok,
             },
         }
+
+        # Populate node_diff / contour_diff for fail cases (REF-009).
+        # Schema matches ``detect_incompatibility.py`` (Spec §4.5):
+        #   node_diff      — first contour whose node count differs
+        #                    (``contour_index`` / ``count_a`` / ``count_b``)
+        #   contour_diff   — whole-glyph contour count mismatch
+        #                    (``count_a`` / ``count_b``)
+        if not contour_order_equal:
+            result["contour_diff"] = {
+                "count_a": len(info_a),
+                "count_b": len(info_b),
+            }
+        if not node_count_equal:
+            for idx, (ca, cb) in enumerate(zip(info_a, info_b)):
+                if ca["node_count"] != cb["node_count"]:
+                    result["node_diff"] = {
+                        "contour_index": idx,
+                        "count_a": ca["node_count"],
+                        "count_b": cb["node_count"],
+                    }
+                    break
 
         # Details: only for failures on checks 1–3 OR smoothness issues
         details_parts = []

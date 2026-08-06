@@ -135,23 +135,24 @@ def validate_config(config, schema):
     validator = Draft7Validator(schema)
     errors = sorted(validator.iter_errors(config), key=lambda e: list(e.path))
     if errors:
-        # AC-004 mandates an exact, human-readable diagnostic. Surface the
-        # first error (deterministic order) in the spec-required form.
-        err = errors[0]
-        if err.validator == "type" and err.path:
-            key = err.path[0]
-            got_type = _PY_TYPE_TO_JSON_TYPE.get(
-                type(config[key]).__name__, type(config[key]).__name__
-            )
-            raise ConfigValidationError(
-                f"Invalid config.json: '{key}' must be a boolean, got {got_type}"
-            )
-        # Fallback: use jsonschema's own message (preserves all validator
-        # kinds for future-proofing, even though the current schema only
-        # declares type constraints).
-        raise ConfigValidationError(
-            f"Invalid config.json: {err.message}"
-        )
+        # AC-004 mandates an exact, human-readable diagnostic. Surface ALL
+        # schema errors (up to 5) — reporting only the first extends the
+        # debugging cycle when several fields are invalid at once
+        # (REF-012, PRN-002).
+        msgs = []
+        for err in errors[:5]:
+            if err.validator == "type" and err.path:
+                key = err.path[0]
+                got_type = _PY_TYPE_TO_JSON_TYPE.get(
+                    type(config[key]).__name__, type(config[key]).__name__
+                )
+                msgs.append("  - '%s' must be a boolean, got %s" % (key, got_type))
+            else:
+                # jsonschema's own message preserves all validator kinds
+                # for future-proofing, even though the current schema only
+                # declares type constraints.
+                msgs.append("  - %s" % err.message)
+        raise ConfigValidationError("Invalid config.json:\n" + "\n".join(msgs))
 
     # GUD-001: unknown keys warn but never fail.
     allowed = set(schema.get("properties", {}).keys())
@@ -341,16 +342,17 @@ def generate_manifest(resolved, sources, config_source, manifest_path):
 def _parse_bool(value):
     """argparse ``type=`` for boolean form inputs.
 
-    Accepts ``true|false`` (case-insensitive), ``1|0``, ``yes|no``. Already
-    decoded booleans pass through unchanged so test code can pass ``True``
-    / ``False`` directly.
+    Accepts ``true|false`` (case-insensitive) and ``1|0`` — GitHub Actions
+    ``workflow_dispatch`` boolean inputs only emit ``true``/``false``
+    (NIT-001); ``yes``/``no`` are rejected. Already decoded booleans pass
+    through unchanged so test code can pass ``True`` / ``False`` directly.
     """
     if isinstance(value, bool):
         return value
     s = str(value).strip().lower()
-    if s in ("true", "1", "yes"):
+    if s in ("true", "1"):
         return True
-    if s in ("false", "0", "no"):
+    if s in ("false", "0"):
         return False
     raise argparse.ArgumentTypeError(
         f"expected true|false (got {value!r})"

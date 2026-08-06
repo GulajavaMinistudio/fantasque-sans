@@ -309,6 +309,29 @@ def test_assembly_includes_fantasque_sans():
 
 
 # ---------------------------------------------------------------------------
+# Test 10b: assembly fails fast on missing master (REF-010, GUD-002)
+# ---------------------------------------------------------------------------
+
+def test_assembly_fails_fast_on_missing_master(capsys):
+    """A missing harmonized master aborts assembly with a diagnostic instead
+    of silently producing an incomplete build/sources/ tree."""
+    tmp = tempfile.mkdtemp(prefix="test_mdw_")
+    sources, reg_dir, bold_dir = _build_fixture_tree(tmp)
+
+    # Remove one master to simulate an incomplete harmonized source tree
+    shutil.rmtree(os.path.join(sources, "Harmonized", "BoldItalic"))
+
+    with pytest.raises(SystemExit) as exc_info:
+        _mod._assemble_build_sources(
+            sources,
+            os.path.join(sources, "Harmonized", "Interpolated"),
+            [], dry_run=False,
+        )
+    assert exc_info.value.code == 1
+    assert "BoldItalic" in capsys.readouterr().err
+
+
+# ---------------------------------------------------------------------------
 # Test 11: metadata injection
 # ---------------------------------------------------------------------------
 

@@ -75,6 +75,9 @@ def test_all_three_checks_pass():
     assert r["checks"]["node_count_equal"] is True
     assert r["checks"]["contour_order_equal"] is True
     assert r["checks"]["curve_direction_equal"] is True
+    # No diff fields on pass results (REF-009)
+    assert "node_diff" not in r
+    assert "contour_diff" not in r
 
 
 # ---------------------------------------------------------------------------
@@ -95,6 +98,9 @@ def test_node_count_fails():
     r = report["results"][0]
     assert r["status"] == "fail"
     assert r["checks"]["node_count_equal"] is False
+    # node_diff populated for the first mismatching contour (REF-009)
+    assert r["node_diff"] == {"contour_index": 0, "count_a": 4, "count_b": 3}
+    assert "contour_diff" not in r
 
 
 # ---------------------------------------------------------------------------
@@ -116,6 +122,9 @@ def test_contour_order_fails():
     r = report["results"][0]
     assert r["status"] == "fail"
     assert r["checks"]["contour_order_equal"] is False
+    # contour_diff populated with whole-glyph counts (REF-009)
+    assert r["contour_diff"] == {"count_a": 1, "count_b": 2}
+    assert "node_diff" not in r
 
 
 # ---------------------------------------------------------------------------
@@ -161,6 +170,9 @@ def test_multiple_failures():
     # At least one check should fail
     assert (r["checks"]["node_count_equal"] is False or
             r["checks"]["contour_order_equal"] is False)
+    # Both diff fields populated (REF-009, Spec §4.5 schema)
+    assert r["node_diff"] == {"contour_index": 0, "count_a": 4, "count_b": 3}
+    assert r["contour_diff"] == {"count_a": 1, "count_b": 2}
 
 
 # ---------------------------------------------------------------------------

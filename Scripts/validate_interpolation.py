@@ -27,7 +27,6 @@ from __future__ import print_function
 
 import argparse
 import json
-import math
 import os
 import sys
 
@@ -93,56 +92,11 @@ def _parse_args(argv):
 # ---------------------------------------------------------------------------
 # Tangent-angle analysis
 # ---------------------------------------------------------------------------
+# Shared computation lives in ``tangent_analysis.py`` — single source of
+# truth (PRN-001 — DRY, REF-006). Importing keeps both validators and the
+# unit suite on the identical code path (Spec §4.5 / §4.11).
 
-def _get_on_curve_triples(contour):
-    """Extract consecutive on-curve point triples from a FontForge contour."""
-    on_curve = [contour[i] for i in range(len(contour))]
-    n = len(on_curve)
-    if n < 3:
-        return []
-    triples = []
-    for i in range(n):
-        prev_pt = on_curve[(i - 1) % n]
-        this_pt = on_curve[i]
-        next_pt = on_curve[(i + 1) % n]
-        triples.append((prev_pt, this_pt, next_pt))
-    return triples
-
-
-def _compute_max_tangent_angle(glyph):
-    """Return the maximum tangent-angle discontinuity across all contours.
-
-    Returns 0.0 if the glyph has fewer than 3 points in every contour.
-    """
-    try:
-        layer = glyph.foreground
-    except Exception:
-        return 0.0
-
-    overall_max = 0.0
-    for i in range(len(layer)):
-        triples = _get_on_curve_triples(layer[i])
-        for prev_pt, this_pt, next_pt in triples:
-            dx_in = this_pt.x - prev_pt.x
-            dy_in = this_pt.y - prev_pt.y
-            mag_in = math.sqrt(dx_in * dx_in + dy_in * dy_in)
-
-            dx_out = next_pt.x - this_pt.x
-            dy_out = next_pt.y - this_pt.y
-            mag_out = math.sqrt(dx_out * dx_out + dy_out * dy_out)
-
-            if mag_in < 1e-9 or mag_out < 1e-9:
-                continue
-
-            dot = dx_in * dx_out + dy_in * dy_out
-            cos_angle = dot / (mag_in * mag_out)
-            cos_angle = max(-1.0, min(1.0, cos_angle))
-            angle = math.degrees(math.acos(cos_angle))
-
-            if angle > overall_max:
-                overall_max = angle
-
-    return overall_max
+from tangent_analysis import compute_max_tangent_angle
 
 
 # ---------------------------------------------------------------------------
@@ -192,26 +146,19 @@ def _has_self_intersection(glyph):
 # ---------------------------------------------------------------------------
 
 def _generate_overlay(glyph, master_glyph, weight_name, glyph_name, overlay_dir):
-    """Generate a side-by-side overlay PNG comparing interpolated vs master.
+    """Generate a side-by-side overlay PNG: interpolated (left) vs master (right).
+
+    Builds a scratch font holding both glyphs — the interpolated glyph at
+    its original position and the master glyph shifted one em to the right —
+    merges the two into a single composite glyph, and exports it as a PNG
+    (200 px em-size). FontForge-only: the ``foreground`` getter returns a
+    copy of the glyph's outlines, so transforming the scratch copies never
+    mutates the source masters (REF-005, Spec REQ-S04).
 
     Returns the relative path to the PNG, or None on failure.
     """
     try:
         import fontforge as _ff
-        import tempfile as _tempfile
-
-        # Build a temporary font containing both glyphs for visual comparison
-        tmp_font = _ff.font()
-        # Create a simple temp font with the two glyphs
-        g_int = tmp_font.createChar(-1, glyph_name + "_int")
-        g_ref = tmp_font.createChar(-1, glyph_name + "_ref")
-
-        # Copy contours from source glyphs
-        try:
-            g_int.foreground = glyph.foreground
-            g_ref.foreground = master_glyph.foreground
-        except Exception:
-            return None
 
         if not os.path.isdir(overlay_dir):
             os.makedirs(overlay_dir)
@@ -219,8 +166,26 @@ def _generate_overlay(glyph, master_glyph, weight_name, glyph_name, overlay_dir)
         out_path = os.path.join(overlay_dir,
                                 "%s_%s.png" % (weight_name, glyph_name))
 
-        # Export the glyph pair as a bitmap
-        g_int.export(out_path, 200)  # 200 px em-size
+        # Scratch font: one em of horizontal space between the two glyphs.
+        tmp_font = _ff.font()
+        tmp_font.em = 1000
+        g_int = tmp_font.createChar(-1, glyph_name + "_int")
+        g_ref = tmp_font.createChar(-1, glyph_name + "_ref")
+        g_int.foreground = glyph.foreground
+        g_ref.foreground = master_glyph.foreground
+        # Shift the master one em to the right (side-by-side layout)
+        g_ref.transform((1, 0, 0, 1, tmp_font.em, 0))
+
+        # Merge both outlines into a single composite glyph
+        composite = tmp_font.createChar(-1, glyph_name + "_both")
+        layer = _ff.layer()
+        for i in range(len(g_int.foreground)):
+            layer += g_int.foreground[i]
+        for i in range(len(g_ref.foreground)):
+            layer += g_ref.foreground[i]
+        composite.foreground = layer
+
+        composite.export(out_path, 200)  # 200 px em-size
         return os.path.relpath(out_path, overlay_dir)
     except Exception:
         return None
@@ -295,7 +260,7 @@ def _validate(interpolated_path, masters_dir, threshold, overlay_dir, fail_fast)
             continue
 
         # --- Check tangent-angle discontinuity (warning) ---
-        max_angle = _compute_max_tangent_angle(g_interp)
+        max_angle = compute_max_tangent_angle(g_interp)
         if max_angle > threshold:
             result = {
                 "name": name,

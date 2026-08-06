@@ -63,10 +63,22 @@ COPY . /build
 # invocation (see the final RUN below).
 ARG BUILD_ARGS=""
 
-# Base report directory for the multi-weight RUN chain (JSON reports +
-# coverage.xml), surfaced to Stage 2 via ``COPY --from=builder-fontforge``
-# (clarification r5 H3, r6 Q-02).
-RUN mkdir -p build/reports
+# T_FINAL: tangent-angle fail-fast threshold for interpolation validation
+# (Spec r5 B2 + §4.11). Sourced at BUILD time from
+# docs/audit/phase0-experiments-{date}.md + docs/audit/visual-quality-rubric.md
+# (r5 B2); ``15.0`` is the PRE-CALIBRATION default until the PoC two-pass
+# protocol lands (plan TASK-4.2 / NOTE-4.2). Override per build with:
+#   docker build --build-arg T_FINAL=<calibrated-value> ...
+ARG T_FINAL=15.0
+ENV T_FINAL=${T_FINAL}
+
+# Base ``build/`` directory: Stage 2 ``COPY --from=builder-fontforge
+# /build/build /app/build-reports`` requires the source path to exist in
+# BOTH modes, so the base dir is created unconditionally. The
+# ``build/reports/`` subdirectory (coverage.xml) is created inside the
+# multi-weight RUN chain only — single-weight mode keeps it empty
+# (NIT-002, TASK-304; clarification r5 H3, r6 Q-02).
+RUN mkdir -p build
 
 # Multi-weight branch (active iff BUILD_ARGS contains ``--multi-weight``).
 # Contract: Spec §4.9 + plan TASK-4.2 (i)-(v). Order per r6 Q-02:
@@ -77,10 +89,11 @@ RUN mkdir -p build/reports
 #   (iv) multi_weight_driver.py — core weights + build/sources/ assembly
 #   (v) fail-fast loop validate_interpolation.py --threshold ${T_FINAL}
 #       --fail-fast per core weight (GUD-002, r3 K8)
-# T_FINAL is sourced from docs/audit/phase0-experiments-{date}.md +
-# docs/audit/visual-quality-rubric.md (r5 B2); ``15.0`` below is the
-# PRE-CALIBRATION placeholder — replace with the calibrated value once
-# the PoC two-pass protocol lands (plan TASK-4.2 / NOTE-4.2).
+# T_FINAL comes from the ``ARG T_FINAL`` / ``ENV T_FINAL`` declared above
+# (REF-003): the value can be overridden at build time by the runbook once
+# the calibration protocol lands (docs/audit/visual-quality-rubric.md,
+# r5 B2). The default ``15.0`` is the pre-calibration placeholder (plan
+# TASK-4.2 / NOTE-4.2).
 RUN if echo "$BUILD_ARGS" | grep -q -- "--multi-weight"; then \
         echo "::notice::multi-weight build: checking harmonized sources..." \
         && python3 -c "import fontforge" \
@@ -98,14 +111,15 @@ RUN if echo "$BUILD_ARGS" | grep -q -- "--multi-weight"; then \
         && fontforge --quiet -lang=py -script Scripts/validate_harmonization.py \
                Sources/Harmonized/Italic Sources/Harmonized/BoldItalic \
                --strict --output build/harmonization_report-ib.json \
-        && echo "::notice::multi-weight build: running unit tests with coverage..." \
+        && mkdir -p build/reports \
+        && echo "::notice::multi-weight build: running unit tests with coverage (Spec §6.7 gate: --cov-fail-under=90, REF-008)..." \
         && pytest tests/ -v --cov=Scripts --cov-report=term-missing \
                --cov-report=xml:build/reports/coverage.xml \
+               --cov-fail-under=90 \
         && echo "::notice::multi-weight build: Interpolating core weights (Medium 500, SemiBold 600)..." \
         && fontforge --quiet -lang=py -script Scripts/multi_weight_driver.py \
                --sources Sources --output Sources/Harmonized/Interpolated \
-        && echo "::notice::multi-weight build: Validating interpolated weights (fail-fast)..." \
-        && T_FINAL=15.0 \
+        && echo "::notice::multi-weight build: Validating interpolated weights (fail-fast, T_FINAL=${T_FINAL})..." \
         && fontforge --quiet -lang=py -script Scripts/validate_interpolation.py \
                --interpolated Sources/Harmonized/Interpolated/Medium \
                --masters Sources/Harmonized --threshold "${T_FINAL}" --fail-fast \
