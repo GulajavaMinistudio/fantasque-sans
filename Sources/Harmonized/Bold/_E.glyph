@@ -9,7 +9,7 @@ AnchorPoint: "above_accent" 474 1322 basechar 0
 LayerCount: 2
 Fore
 SplineSet
-102 1319 m 1
+ 102 1319 m 1
  158 1323 228 1323 306 1323 c 0
  337 1323 370 1323 404 1323 c 2
  514 1323 l 2

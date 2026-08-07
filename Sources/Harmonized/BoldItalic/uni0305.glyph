@@ -8,13 +8,13 @@ AnchorPoint: "above_accent" 662 1302 mark 0
 LayerCount: 2
 Fore
 SplineSet
-1126 1658 m 1
+ 1126 1658 m 1
  1116.25 1607.75 l 1
  1106.5 1557.5 l 1
  1087 1457 l 1
-295 1458 l 1
-308 1526 322 1593 335 1661 c 1
-1126 1658 l 1
+ 295 1458 l 1
+ 308 1526 322 1593 335 1661 c 1
+ 1126 1658 l 1
 EndSplineSet
 Validated: 1
 EndChar

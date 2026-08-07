@@ -9,7 +9,7 @@ AnchorPoint: "cedilla_accent" 510 53 mark 0
 LayerCount: 2
 Fore
 SplineSet
-390 4 m 1xc0
+ 390 4 m 1xc0
  660 4 l 1
  660 -211 l 2xc0
  660 -362 630 -426 504 -528 c 1

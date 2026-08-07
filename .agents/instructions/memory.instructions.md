@@ -215,3 +215,51 @@
 <!-- checkpoint-tail: Phase 0 discovery 2026-08-06 — draft Nerd Font patching Rev 3 diperbarui (patcher = stage Docker `builder-nerd-patcher` dalam `docker build` custom-build.yml, label PROPOSED-NOT-IMPLEMENTED eksplisit; grep 0 match = belum ada implementasi); HANYA placement yang disetujui — approval penuh draft PENDING. Next: konfirmasi approval draft → /sdlc-draft-prd (sesi baru) + update ARCHITECTURE.md drift. -->
 
 ---
+
+## 📝 Session Checkpoint: 2026-08-06 (PRD v1.2 — Multi-Weight Nerd Font Patching remediated per Clarification r2; ready for Spec)
+
+- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
+- **Current SDLC Phase:** Phase 1 (PRD) — remediation v1.1 → v1.2 **COMPLETE** (Clarification Report Review Iteration 2, Edits 9–13 applied; Readiness Score 90/100 → projected 95/100). Handoff berikutnya: `/sdlc-define-specs` (sesi baru) — user choice Option A (recommended) vs Option B (re-clarify) still PENDING.
+- **Active Artifacts:**
+  - `docs/prd-20260806-1401-multi-weight-nerd-font-patching.md` — Status: ✅ Finalized (v1.2, DRAFT status banner; Edits 9–13 applied)
+  - `docs/audit/clarification-report-prd-multi-weight-nerd-font-patching-2026-08-06-r2.md` — Status: ✅ RESOLVED (REMEDIATION STATUS block added to top, Projected 95/100)
+  - `docs/discovery-draft-20260806-0428-multi-weight-nerd-font-patching.md` — Status: ✅ Rev 4, NO further changes needed per audit r2
+  - `docs/prd-20260731-1000-multi-weight-variants.md` — parent PRD v1.4 (unchanged)
+- **Achieved Milestones:**
+  - **Edits 9–13 applied as targeted surgical edits (16 total edit ops; NOT full-file replacement):**
+    - Edit 9: per-weight source-master fallback language in §1.2, FR-2.4, §5.2, GH-002 AC + §2.3 Non-goals (consistency touch) — "Regular outline" hardcode replaced: Medium/SemiBold/Light → Regular outline; ExtraBold → Bold outline
+    - Edit 10: FR-2.2 stretch-weight extrapolation clause — Light 300 (factor < 0, from Regular), ExtraBold 800 (factor > 1.0, from Bold); 'fallback' terminology scoped to interpolation only
+    - Edit 11: FR-2.1 — 427 count = **Regular↔Bold master pair only** (`Sources/Harmonized/tracking.json`); Italic↔BoldItalic harmonization stays V2, does not affect V1 disclosure
+    - Edit 12: FR-9.3a (ii) — "(must be zero)" scoped to changes **outside AuthorizedOverwriteAllowlist** (drift gate); allowlist overwrites recorded as ObservedOverwrite, not drift
+    - Edit 13: FR-4 intro new paragraph + SM-T1 — stretch weight SourcePopulated inheritance (Light 300 ← Regular 69; ExtraBold 800 ← Bold 69); drift gate applies identically to stretch weights; Spec phase MUST verify actual PUA inventory in extrapolated font
+    - Version bump v1.1 → v1.2: frontmatter (status/version/related_docs +r2), §1.1 (Version line, downstream chain → `/sdlc-define-specs`, Clarification Checkpoint passed), Recorded decisions (+T-1, +T-2 bullets)
+  - **Audit r2 remediation block** added (English, at top of report): REMEDIATION STATUS: RESOLVED + Projected Readiness Score 95/100
+  - Self-assessment vs AGENTS.md rubrics: Completeness 40/40, Clarity 29/30 (AR-2 inheritance still assumption pending Spec verification), Alignment 26/30 (O-3/O-4 dependencies honestly disclosed) = **95/100**
+  - All 16 edits verified by grep/read after application (frontmatter, §1.2, Non-goals, FR-2.1, FR-2.2, FR-2.4, FR-4 intro, FR-9.3a, §5.2, SM-T1, GH-002)
+- **Dead-Ends (Do NOT Repeat):**
+  - **Attempted:** 16 parallel `edit` calls to the same file in one batch.
+  - **Reason:** 3 calls failed with `EUNKNOWN: unknown error, open '...'` — file-lock contention from concurrent writes to the same path.
+  - **Correct solution:** Batch parallel edits to the SAME file only when lock contention is acceptable; on failure, retry the failed edits sequentially (all succeeded on retry). Distinct-file edits are safe to parallelize.
+- **Updated Files:**
+  - `docs/prd-20260806-1401-multi-weight-nerd-font-patching.md` — v1.1 → v1.2 (Edits 9–13 + header/decisions sync)
+  - `docs/audit/clarification-report-prd-multi-weight-nerd-font-patching-2026-08-06-r2.md` — REMEDIATION STATUS: RESOLVED block (top)
+  - No source code modified — documentation only
+- **Decisions Made (recorded in PRD §1.1 + audit r2):**
+  - T-1 (stretch fallback): Light 300 → Regular outline; ExtraBold 800 → Bold outline (extrapolation, single master; no substitution needed)
+  - T-2 (427 scope): Regular↔Bold master pair only; Medium/SemiBold/Light share Regular's 427 entries, ExtraBold shares Bold's
+  - AR-1: FR-9.3a "must be zero" = drift gate (changes outside allowlist); AR-2: stretch SourcePopulated inheritance (69/69) — **assumption, Spec phase MUST verify via PUA Encoding audit of extrapolated fonts**
+  - AR-3/AR-4/AR-5 auto-resolved (SM-B3 "runs clean" = upstream validation pass; non-PUA overwrites = drift by definition; §6 narrative illustrative, not normative)
+  - PUA SourcePopulated counts (supersede Discovery checkpoint's stale "15 codepoints"): Regular 69, Bold 69, Italic 75, BoldItalic 72, union 75 (U+E000–E00A, E035–E039, E03C–E03F, E0A0–E0A2, E0B0–E0B3, E0E2–E0E4, E100–E12C)
+- **Next Action / Pending:**
+  - **User choice pending:** Option A → `/sdlc-define-specs` (new chat session, attach PRD v1.2) — RECOMMENDED; Option B → `/sdlc-clarify-reqs` Iteration 3
+  - **Spec phase critical items (from audit r2 §5):** O-3 audit Nerd Fonts v3.5.0 distribution (SHA-256 verify, PUA `Encoding:` enumeration → `PinnedIconInventory`, compute `ExpectedOverwrite(weight) = SourcePopulated ∩ PinnedIconInventory`, confirm/refute icons in U+E100–E12C and U+2500–259F); O-4 cite patcher v3.5.0 source for metric-normalization behavior; finalize `AuthorizedOverwriteAllowlist(weight)` per weight; verify AR-2 inheritance via extrapolated `.sfdir` PUA audit; implement FR-9.3a collision-report gate + FR-9.3b webfont-integrity gate; create ADR-0004 (patcher Docker stage placement, Triple-Gate validated); extend VQR with "Fallback Disclosure" section
+  - GitHub issues for user stories GH-001–006: offer made, user response PENDING
+  - Carry-over: `docs/ARCHITECTURE.md` drift update via `sdlc-map-architecture` before Spec phase
+- **Verification Snapshot:**
+  - 16/16 edit ops success (3 retried after lock contention), verified via read/grep: version 1.2 in frontmatter + §1.1, related_docs +r2, source-master phrasing at all 5 locations, FR-2.2 stretch clauses (lines 123–127), FR-4 inheritance paragraph, SM-T1 inheritance, GH-002 AC updated
+  - Audit report: REMEDIATION block present at top with Projected 95/100
+  - No tests applicable (documentation-only change)
+
+<!-- checkpoint-tail: PRD Nerd Font patching v1.2 SELESAI 2026-08-06 — Edits 9-13 diterapkan (source-master fallback per weight: Light→Regular, ExtraBold→Bold; 427 = Regular↔Bold only; FR-9.3a drift-gate wording; stretch SourcePopulated inheritance 69/69); audit r2 ditandai RESOLVED projected 95/100; versi bump + decisions T-1/T-2 tercatat. Next: pilihan user (Option A → /sdlc-define-specs sesi baru dengan O-3 PinnedIconInventory + O-4 patcher citation, atau Option B re-clarify); ARCHITECTURE.md drift masih pending. -->
+
+---

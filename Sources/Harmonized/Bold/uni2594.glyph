@@ -7,7 +7,7 @@ HStem: 1529 291<-20 1080>
 LayerCount: 2
 Fore
 SplineSet
--20 1820 m 1
+ -20 1820 m 1
  1080 1820 l 1
  1080 1529 l 1
  -20 1529 l 1

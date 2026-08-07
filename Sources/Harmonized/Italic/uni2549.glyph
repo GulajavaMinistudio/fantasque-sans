@@ -8,7 +8,7 @@ VStem: 400 260<-505 390 650 1820>
 LayerCount: 2
 Fore
 SplineSet
-400 650 m 1xa0
+ 400 650 m 1xa0
  400 1820 l 1
  660 1820 l 1
  660 604 l 1
