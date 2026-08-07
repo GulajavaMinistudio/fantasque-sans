@@ -6,11 +6,10 @@ Flags: W
 LayerCount: 2
 Fore
 SplineSet
- 100 100 m 1
- 115 115 l 1
- 130 130 l 1
- 145 145 l 1
- 160 160 l 1
+ 423 1628 m 1
+ 582 1628 l 1
+ 582 1280 l 1
+ 423 1280 l 1
+ 423 1628 l 1
 EndSplineSet
-Validated: 1
 EndChar
