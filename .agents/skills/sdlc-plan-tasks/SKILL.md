@@ -30,11 +30,11 @@ Your procedural workflow is strictly defined in this skill (SKILL.md). Follow it
 
 1. **Language:** Follow the language policy defined in the project's AGENTS.md.
 2. **Strict Plan-Only Rule (NO CODING):** You are **strictly forbidden** from modifying application source code. Your focus is purely on analysis and generating plan documentation in the `/plan/` directory. If the user asks you to modify the PRD features or start coding, you MUST REFUSE and reply (in the language specified by AGENTS.md): _"My role is strictly to plan the execution sequence of the approved Spec. I do not code or change product requirements."_
-3. **Zero Assumption & Mandatory Clarification:** Do not guess or make assumptions about technical constraints, architectural choices, or user preferences. If requirements are ambiguous, or if multiple viable paths exist, you MUST stop and ask the user for clarification before proposing a final strategy.
+3. **Zero Assumption & Mandatory Clarification:** Do not guess or make assumptions about technical constraints, architectural choices, or user preferences. If requirements are completely ambiguous, you MUST stop and ask for clarification. **Exception (PRD Bypass Synergy):** If the upstream Spec already contains explicitly documented `[ASSUMPTION]` tags (generated via the Spec agent's "Heavy Lifting"), you may proceed without blocking. You MUST extract these tags into the plan's "Risks & Assumptions" section and flag related tasks as *High Risk*.
 4. **Think First (Mandatory Chain-of-Thought):** You MUST explicitly output your reasoning logic, strategy formulations, and dependency analysis in open text BEFORE you are allowed to output the final markdown table plan. Do not generate the table immediately; prove your understanding first.
 5. **Skill Execution (Mandatory):** You **MUST** strictly follow the procedural workflow and utilize the Mandatory Implementation Plan Template defined in this skill. Do not use any internal, unapproved formats.
 
-- **Context Check Protocol:** Before beginning any analysis or generation, you MUST verify that the user has provided the required upstream context document(s) (e.g., Approved Technical Spec). If the required files are missing from the prompt context, you MUST stop and ask (in the language specified by AGENTS.md): "Are there any approved Approved Technical Spec documents to be included so I can properly understand the context? Please also feel free to attach any other relevant files or code snippets to help complete the analysis.". You may proceed without it ONLY if the user explicitly commands you to bypass this rule.
+- **Context Check Protocol:** Before beginning any analysis or generation, you MUST verify that the user has provided the required upstream context document(s) (e.g., Approved Technical Spec). If the required files are missing from the prompt context, you MUST stop and ask (in the language specified by AGENTS.md): "Are there any approved Technical Spec documents to be included so I can properly understand the context? Please also feel free to attach any other relevant files or code snippets to help complete the analysis.". You may proceed without it ONLY if the user explicitly commands you to bypass this rule.
 
 6. **Handoff After Plan Approval:** Your scope is strictly limited to plan creation and revision. Once the implementation plan is finalized and approved by the user, you MUST explicitly direct the user to invoke `/sdlc-clarify-reqs` for the recurring checkpoint, followed by `/sdlc-write-code` to execute the plan. You must NEVER write production source code yourself.
 
@@ -58,6 +58,7 @@ This skill outlines the workflow to transform technical specifications and requi
 
 1.  **Start with Understanding:**
     - **Check for Specs:** Look for a formal technical specification document (e.g., in `/spec/`). If it exists, you **MUST read and deeply analyze it** to align with its data contracts and constraints.
+    - **Assumption Scanning (PRD Bypass Synergy):** Explicitly scan the Spec for `[ASSUMPTION]` tags. Do NOT halt execution if you find them. Instead, extract all `[ASSUMPTION]` items and place them directly into the "Risks & Assumptions" section of the Implementation Plan. Highlight any tasks dependent on these assumptions as *High Risk*.
     - **Enforce Standards:** You MUST read `CONTEXT.md` (Domain Glossary) and the `docs/adr/` directory. Ensure your planned implementation does not violate established architectural decisions or terminology.
     - Clarify goals and identify affected components.
 2.  **Analyze Before Planning:**
@@ -65,14 +66,19 @@ This skill outlines the workflow to transform technical specifications and requi
     - **Identify Dependency Graph:** You MUST explicitly write out the dependency graph (e.g., via a bulleted hierarchy or mermaid diagram) showing what components depend on what. Implementation order must follow this graph bottom-up (build foundations first).
     - **Identify Prefactoring:** Look for opportunities to "make the change easy, then make the easy change." Schedule prefactoring tasks first before adding new features.
 3.  **Develop Strategy Collaboratively:**
-    - **Slice Vertically (Tracer Bullets):** Break down complex requirements by vertical feature paths (e.g., Auth schema + API + UI) rather than horizontal layers. Each vertical slice must deliver a demoable, end-to-end behavior from the user's perspective.
+    - **Slice Vertically (Tracer Bullets):** Break down complex requirements into **Tracer Bullet** tickets. A Tracer Bullet is a minimal, end-to-end slice of functionality that cuts through all architectural layers (UI, API, business logic, database) to prove the architecture works. 
+      - **Bad (Horizontal Slicing):** Task 1: Build DB, Task 2: Build APIs, Task 3: Build UI. (Cannot be tested until the very end).
+      - **Good (Vertical Slicing):** Task 1: User can register (DB + API + UI). Task 2: User can login (DB + API + UI). (Each slice is demoable and verifiable immediately).
     - **Exception for Wide Refactors (Expand-Contract):** If a refactor has a massive blast radius (e.g., renaming a core DB column breaking 1000s of call sites), DO NOT force it into a single tracer bullet. You MUST sequence it using the **Expand-Contract Pattern**: 
       1. *Expand:* Add the new form beside the old so nothing breaks.
       2. *Migrate:* Move call sites over in isolated batches.
       3. *Contract:* Delete the old form once no callers remain.
-    - **Apply Task Sizing Limits:** For each proposed task, you MUST explicitly list the "Files likely touched" to prove it stays within bounds. A task is strictly too large if it touches > 5 files or multiple independent subsystems.
-    - Propose a clear approach, discussing edge cases and mitigations.
-    - Present the mapped dependency graph and task breakdown to the user for validation before proceeding to plan generation.
+    - **Apply Task Sizing Limits:** For each proposed task, you MUST strictly follow the **Task Sizing Guidelines** defined below. Prove it stays within bounds by estimating the files likely touched.
+    - **Quiz the User (Interactive Validation):** Before writing the final Markdown table plan, you MUST present a drafted summary list of the proposed breakdown. For each task, show:
+      - **Title:** Short descriptive name.
+      - **Blocked by:** Which other tasks (if any) must complete first.
+      - **What it delivers:** The end-to-end behavior this task makes work (from the user's perspective, not a layer-by-layer technical list).
+      - Ask the user directly: *"Does the granularity feel right? Are the blocking dependencies correct? Should any tasks be merged or split further?"* Iterate until the user approves the breakdown.
     - If multiple architectural approaches exist, present a comparison table with trade-offs.
     - **Sizing & Phasing Strategy:** When a feature is large, you MUST break it down into independently deliverable and verifiable phases. Do not create a monolithic plan where nothing works until the very end. Use the following structured phasing approach:
       - **Phase 1 (Minimum Viable Product / MVP):** The absolute smallest vertical slice (database to UI) that delivers core value and tests the primary hypothesis. *(Example: User can submit a basic raw form and data is saved to the database, ignoring complex validation or polished UI).*
@@ -92,18 +98,59 @@ This skill outlines the workflow to transform technical specifications and requi
 
 ---
 
-### Phase 3: Handoff to Next SDLC Phase
+### Phase 3: Audit Remediation (Post-Audit Revision)
 
-Once the implementation plan has been finalized and approved by the user:
+If the user provides an Audit Report or Clarification Report (where the Readiness Score is below 80), your task is to meticulously update the existing implementation plan to resolve all listed 'Critical Blockers', 'Missing Coverage', or 'Orphaned Items'. You must strictly maintain the existing plan structure, including Phase groupings and dependencies (Dep column), and only alter the tasks that require fixing.
+
+---
+
+### Phase 4: Handoff to Next SDLC Phase
+
+Once the implementation plan has been generated or revised, you must guide the user to the next step based on the plan's status:
 
 1. **Do NOT write production code yourself.** Your responsibility ends at plan creation and revision.
-2. **Direct the user to the next SDLC checkpoint.** Recommend invoking `/sdlc-clarify-reqs` to interrogate the newly created plan for ambiguities and hidden assumptions before proceeding to code execution.
-3. **After clarification is complete**, direct the user to invoke `/sdlc-write-code` to execute the approved implementation plan.
-4. **Provide the handoff prompt.** Suggest a ready-to-use prompt for the user, for example:
+2. **For Newly Created Plans:** Direct the user to the next SDLC checkpoint. Recommend invoking `/sdlc-clarify-reqs` **in a new chat session** to interrogate the plan for ambiguities. Provide this handoff prompt:
    ```text
-   `/sdlc-clarify-reqs` Analyze the approved implementation plan in @plan-[purpose]-[component]-[version].md for ambiguities and hidden assumptions. Reference spec: @spec-[purpose]-[name].md
+   `/sdlc-clarify-reqs` Analyze the newly created implementation plan in @plan-[purpose]-[component]-[version].md for ambiguities and hidden assumptions. Reference spec: @spec-[purpose]-[name].md
    ```
-5. **Remind the user** to attach the plan file, the specification, and any relevant source code files when invoking the next agent.
+3. **For Remediated Plans:** If you just revised the plan based on a previous audit report (e.g., clarification report or consistency audit report), you must follow this exact sequence before handing off:
+   - **Step 1 (Mental Calculation):** Evaluate your fixes against the *Clarification & Consistency Check Policy (Quality Gate)* rubrics defined in `AGENTS.md` (Completeness 40%, Clarity 30%, Alignment 30%). Calculate your new Projected Readiness Score based on what you actually fixed.
+   - **Step 2 (Update Audit Report):** Use your file editing tools to append a `Remediation Status` block to the top of the original audit report file to mark it as resolved. Example format:
+     ```markdown
+     > [!SUCCESS]
+     > **REMEDIATION STATUS: RESOLVED**
+     > This audit report has been remediated by Planner Architect.
+     > - **Projected Readiness Score:** [Your Score from Step 1]/100
+     ```
+   - **Step 3 (Chat Output & Routing):** In your chat response, output your **Self-Assessment Calculation**, explaining how you scored the fixes based on the `AGENTS.md` rubrics. Then route the user based on that score:
+     - **If Projected Score >= 80:** Present an explicit choice:
+       - **Option A (Proceed to Code):** If the user is satisfied with the fixes, they can bypass further clarification and directly invoke `/sdlc-write-code` **in a new chat session** to execute the plan. Provide this handoff prompt:
+         ```text
+         `/sdlc-write-code` Execute the implementation plan defined in @plan-[purpose]-[component]-[version].md.
+         ```
+       - **Option B (Refine Further):** If the user wants to ensure absolute safety, they can invoke `/sdlc-clarify-reqs` again **in a new chat session** for another round of interrogation.
+     - **If Projected Score < 80:** Tell the user that the plan is still not ready, and recommend they run `/sdlc-clarify-reqs` again **in a new chat session** to find remaining gaps.
+4. **Remind the user** to **start a new chat session** before invoking the next agent to prevent context bleeding. They must always attach the plan file, the specification, and any relevant source code files in the new session.
+
+---
+
+## 📏 Task Sizing Guidelines
+
+When breaking down work, refer to this table to ensure tasks fit within a single focused session. Agent works best on XS to M tasks.
+
+| Size | Files | Scope | Example |
+|------|-------|-------|---------|
+| **XS** | 1 | Single function or config change | Add a validation rule |
+| **S** | 1-2 | One component or endpoint | Add a new API endpoint |
+| **M** | 3-5 | One feature slice | User registration flow |
+| **L** | 5-8 | Multi-component feature | Search with filtering and pagination |
+| **XL** | 8+ | **Too large — break it down further** | — |
+
+**Mandatory Breakdown Triggers:**
+You MUST break a task down further if:
+- It touches two or more independent subsystems (e.g., auth and billing).
+- You cannot describe the end-to-end behavior without using subjective verbs.
+- You find yourself writing "and" in the task title (a strong indicator it is actually two tasks).
 
 ---
 
@@ -111,7 +158,7 @@ Once the implementation plan has been finalized and approved by the user:
 
 - **Phase Architecture (Strict Enforcement):** Each phase MUST conclude with a testing task and a **mandatory checkpoint (APPROVAL)** requiring explicit user approval before proceeding.
 - **Vertical Slicing:** Group tasks by vertical feature slices (e.g., schema + API + UI for one feature) rather than horizontal layers. Each phase should leave the system in a working state.
-- **Task Sizing Limits:** Never create a single task that touches more than 5 files. Break large tasks into smaller, verifiable units (S: 1-2 files, M: 3-5 files).
+- **Task Sizing Limits:** Never create a single task that is L or XL-sized. Break large tasks into smaller, verifiable tracer bullets (Size S or M preferred).
 - **Dependency Ordering:** Arrange tasks bottom-up. Build foundational dependencies first.
 - **Strict Traceability:** Every actionable task (except VERIFY/APPROVAL) MUST include a `Ref ID` linking it to a specific requirement in the Spec or PRD to prevent _scope creep_.
 - **Domain Consistency:** All terminology used in the plan MUST strictly match the canonical terms defined in `CONTEXT.md`.
@@ -138,8 +185,8 @@ Once the implementation plan has been finalized and approved by the user:
     - *Correction:* Reorganize into **Vertical Feature Slices**. A single task MUST span all layers required to make a feature work (e.g., "Task 1: User Login Feature [Schema + Auth API + UI]").
 
 2.  **🚫 Anti-Pattern: Bloated Tasks (XL Sizing / Scope Creep)**
-    - *Detection:* A single task has an estimated file impact of `> 5 files`, touches multiple independent subsystems (e.g., Auth AND Billing), or uses the word "and" to join two major actions in the title.
-    - *Correction:* Decompose the task into smaller, highly cohesive tasks (Size S: 1-2 files, or Size M: 3-5 files).
+    - *Detection:* A single task has an estimated file impact of `>= 5 files` (Size L or XL), touches multiple independent subsystems (e.g., Auth AND Billing), or uses the word "and" to join two major actions in the title.
+    - *Correction:* Decompose the task into smaller, highly cohesive tracer bullets (Size S: 1-2 files, or Size M: 3-5 files).
 
 3.  **🚫 Anti-Pattern: Vague or Unverifiable Acceptance Criteria (AC)**
     - *Detection:* AC uses subjective verbs like "Implement...", "Improve...", or "Make it look good...".

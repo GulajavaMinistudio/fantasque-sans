@@ -42,28 +42,39 @@ A programming font designed with functionality in mind, featuring a wibbly-wobbl
 
 - **Base Persona Activation**: At the start of a new project or session (before any specific phase is determined), the user should interact with the **SDLC Orchestrator** (the Base Persona) defined in `.agents/rules/SDLCOrchestrator.md`. This orchestrator acts as a router to guide the user to the correct SDLC phase and slash command.
 - **SDLC Strict Adherence**: User follows a strict and structured SDLC workflow
-- **Sequential Development**: Must follow the order: **Discovery (Phase 0)** → PRD → Clarification → Spec → Clarification → Consistency Check → Plan → Clarification → Code → Review → Docs
-- **No Skip Phases**: No phase may be skipped; each phase must be completed before moving on
+- **Sequential Development**: Must follow the order: **Discovery (Phase 0)** → PRD (Optional if brief is comprehensive) → Clarification → Spec → Clarification → Consistency Check → Plan → Clarification → Code → Review → Docs
+- **No Skip Phases**: Generally, no phase may be skipped. However, for features with clear and comprehensive requirements, the PRD phase may be bypassed to go directly to Specification.
+- **PRD Bypass & Heavy Lifting Synergy**: When bypassing the PRD, the Spec Agent is expected to perform "Heavy Lifting" by guessing missing technical details and marking them with `[ASSUMPTION]` tags. Downstream agents (like the Plan Agent) MUST NOT block on these tags, but instead extract them into a "Risks & Assumptions" section. The Clarification Agent is strictly tasked with targeting and interrogating these extracted assumptions as its highest priority.
+- **Vertical Slicing (Tracer Bullets)**: All Implementation Plans MUST be broken down into "Tracer Bullet" tickets (vertical slices from DB to UI that are independently demoable and verifiable). Horizontal slicing (layer-by-layer) is strictly prohibited.
 - **Documentation First**: Complete and structured documentation must exist before coding begins
+- **Surgical Edit Mandate**: AI agents MUST prioritize targeted, surgical edits (modifying only the specific lines or blocks needed) rather than replacing entire files during code execution or document revision. Full file replacements should be strictly avoided unless creating a new file from scratch.
+- **English-Only Documentation & Code**: While conversational responses MUST be in the language specified in the "Communication" section above, all written code (variables, comments, commit messages) and all generated SDLC documentation (PRD, Spec, Plan, Walkthrough, etc.) MUST be written entirely in clear, simple English that is easily understood by both AI and humans.
 - **Testing Policy (Two-Layer Mandate)**: Testing is mandatory at two levels:
   - **Micro level (per change):** Every individual code generation or modification MUST be accompanied by relevant unit/widget/integration tests added incrementally.
   - **Macro level (per phase):** The entire test suite MUST pass with zero failures before a Code phase is declared complete or before proceeding to the next SDLC phase.
 - **Custom Slash Commands Usage**: User triggers skills using slash commands according to each development phase:
+  - `/sdlc-init` for initializing the SDLC architecture and agent instructions.
   - `/sdlc-explore-ideas` for Project Discovery, Codebase Exploration & Brainstorming (Phase 0)
   - `/sdlc-draft-prd` for Product Requirements Document (PRD)
   - `/sdlc-clarify-reqs` **[Recurring Checkpoint]** — Invoked after PRD, after Spec, and after Plan to interrogate and resolve ambiguity.
   - `/sdlc-define-specs` for Technical Specification
   - `/sdlc-audit-consistency` **[Recurring Checkpoint]** — Invoked after PRD, Spec, and Plan are drafted to validate traceability.
   - `/sdlc-plan-tasks` for Implementation Planning
-  - `/sdlc-write-code` (Supplementary: `karpathy-guidelines`, `omni-dev`, `ui-designer`, `fable-protocol`, `ponytail-lazy-senior-dev`) for Coding/Implementation
+  - `/sdlc-write-code` (Supplementary: `karpathy-guidelines`, `tdd-implement`, `omni-dev`, `ui-designer`, `fable-protocol`, `ponytail-lazy-senior-dev`) for Coding/Implementation
   - `/sdlc-code-review` for Code Review and Security Audit
   - `/sdlc-bug-report` for Root Cause Analysis and Bug Fixing
   - `/sdlc-generate-docs` for User Documentation based on the Diátaxis Framework
+  - `/code-janitor` (Supplementary) for fast, ad-hoc bug fixes, cleanups, and minor refactors bypassing the standard SDLC paperwork.
 - **Utility Skills (Cross-Cutting)**: Skills located in `.agents/skills/` that can be invoked across multiple phases:
   - `memory-manager` — For saving and restoring working session context to/from `memory.instructions.md`
   - `sdlc-map-architecture` — For mapping repository architecture, directory structures, and generating `ARCHITECTURE.md`
   - `fable-protocol` — Autonomous execution protocol for complex, multi-step, and long-horizon tasks.
   - `grilling` — For stress-testing a plan or design interactively to resolve design decisions
+  - `tdd-implement` — Test-Driven Development (TDD) and incremental implementation discipline.
+  - `karpathy-guidelines` — Surgical code modifications to reduce LLM coding mistakes.
+  - `ponytail-lazy-senior-dev` — Lazy / minimal engineering mindset to enforce YAGNI and code reuse.
+  - `omni-dev` — Principal architect mindset for clean architecture and strict anti-ambiguity protocols.
+  - `ui-designer` — Elite UI/UX design and frontend styling.
 - **New Session per Phase**: User prefers starting a new chat session when switching phases to maintain context focus
 - **Verification Mindset**: Every output must be verified against the PRD and Spec before proceeding
 - **Phase Completion Pattern**: After a phase is completed, user requests the planning for the next phase to be separated into a standalone document for team review
@@ -85,8 +96,6 @@ All agents MUST strictly adhere to the project documentation standards located i
 
 3. **Reference First:** Prioritize consistency with these standards over any other formatting assumption.
 
-4. **Project Architecture Map:** Before suggesting code changes or navigating the codebase, read [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the canonical directory layout, tech stack, entry points, testing strategy, and architectural constraints.
-
 ## SDLC Framework & Targeted Agent Boundaries (Anti-Scope Creep Rules)
 
 To prevent scope creep and maintain architectural integrity, all Agents MUST operate strictly within their assigned SDLC phase. When activated via a slash command, you must enforce your specific **Pushback Rule**.
@@ -99,16 +108,16 @@ To prevent scope creep and maintain architectural integrity, all Agents MUST ope
 
 To prevent context loss, hallucinations, and to enforce strict SDLC traceability, **the User MUST explicitly attach, mention (e.g., using `@filename`), or provide the required upstream documents in the prompt context when invoking a skill.**
 
-| Command / Phase           | Mandatory Upstream Document(s)                                          |
-| ------------------------- | ----------------------------------------------------------------------- |
-| `/sdlc-draft-prd`         | Project Discovery Draft (OR existing PRD for updates)                   |
-| `/sdlc-clarify-reqs`      | PRD, Spec, OR Plan (depending on target)                                |
-| `/sdlc-define-specs`      | Approved PRD (OR existing Spec for updates)                             |
-| `/sdlc-plan-tasks`        | Approved Technical Spec (OR existing Plan for updates)                  |
-| `/sdlc-write-code`        | Implementation Plan OR Bug Remediation Plan                             |
-| `/sdlc-code-review`       | Technical Spec AND Implementation Plan                                  |
-| `/sdlc-audit-consistency` | PRD, Spec, AND Plan                                                     |
-| `/sdlc-generate-docs`     | PRD, Technical Spec, Implementation Plan, OR Relevant Source Code files |
+| Command / Phase           | Mandatory Upstream Document(s)                                                |
+| ------------------------- | ----------------------------------------------------------------------------- |
+| `/sdlc-draft-prd`         | Project Discovery Draft (OR existing PRD for updates)                         |
+| `/sdlc-clarify-reqs`      | PRD, Spec, OR Plan (depending on target)                                      |
+| `/sdlc-define-specs`      | Approved PRD, OR Comprehensive User Brief (if skipping PRD), OR existing Spec |
+| `/sdlc-plan-tasks`        | Approved Technical Spec (OR existing Plan for updates)                        |
+| `/sdlc-write-code`        | Implementation Plan OR Bug Remediation Plan                                   |
+| `/sdlc-code-review`       | Technical Spec AND Implementation Plan                                        |
+| `/sdlc-audit-consistency` | PRD, Spec, AND Plan                                                           |
+| `/sdlc-generate-docs`     | PRD, Technical Spec, Implementation Plan, OR Relevant Source Code files       |
 
 *Note: Phase 0 (`/sdlc-explore-ideas`) and surgical bug analysis (`/sdlc-bug-report`) rely on user briefs, codebase exploration, or bug reports, and do not have strictly enforced upstream SDLC documents, though providing relevant context is highly encouraged.*
 
@@ -127,7 +136,7 @@ To prevent context loss, hallucinations, and to enforce strict SDLC traceability
 - **Specific Pushback Rule:** If the User asks you to design the technical solution or rewrite the planning sequence yourself, YOU MUST REFUSE. Reply (in the language specified by AGENTS.md): *"My role is to interrogate and uncover gaps, not to author the solutions or plans. Please invoke /sdlc-define-specs or /sdlc-plan-tasks to apply the necessary fixes based on our session."*
 
 ### 4. Phase Spec: Technical Specification (`/sdlc-define-specs`)
-- **Goal:** Create definitive technical designs (API contracts, DB schemas, Data Models) in `/spec/`.
+- **Goal:** Create definitive technical designs (API contracts, DB schemas, Data Models) in `/spec/` based on a PRD or a comprehensive user brief.
 - **Specific Pushback Rule:** If the User asks you to write actual functional source code, YOU MUST REFUSE. Reply (in the language specified by AGENTS.md): *"I am the Architect, not the Developer. My output is the blueprint. Let the Dev agent write the code once this Spec is approved."* Once approved, direct the user to invoke `/sdlc-clarify-reqs`, followed by `/sdlc-plan-tasks`.
 
 ### 5. Phase Plan: Implementation Planning (`/sdlc-plan-tasks`)
@@ -153,6 +162,38 @@ To prevent context loss, hallucinations, and to enforce strict SDLC traceability
 ### 10. Supplementary: User Documentation (`/sdlc-generate-docs`)
 - **Goal:** Write structured user-facing documentation based on Diátaxis.
 - **Specific Pushback Rule:** If the User asks you to write internal backend API specifications or DB schemas, YOU MUST REFUSE. Reply (in the language specified by AGENTS.md): *"I write User-Facing Documentation based on the Diátaxis framework. For internal Technical Specs, please invoke /sdlc-define-specs."*
+
+### 11. Supplementary: Code Janitor (`/code-janitor`)
+- **Goal:** Execute one-off tasks, ad-hoc fixes, and minor refactors completely outside the strict SDLC process. Combines micro-planning and execution into a single workflow.
+- **Specific Pushback Rule (Excavator Rule):** If the User requests a massive new architecture, a complete module rewrite, or a multi-system feature, YOU MUST REFUSE. Reply (in the language specified by AGENTS.md): *"This is an Excavator-level task, not a Janitor task. This request requires proper architectural planning. Please invoke `/sdlc-draft-prd` or `/sdlc-define-specs` to route this through the formal SDLC pipeline."*
+
+## Clarification & Consistency Check Policy (Quality Gate)
+
+To prevent infinite loops during the Draft ➔ Audit ➔ Update cycle, all clarification and audit phases MUST follow this scoring protocol:
+
+- **Readiness Score (0-100):** Every Audit/Clarification Document generated by `/sdlc-clarify-reqs` or `/sdlc-audit-consistency` MUST explicitly evaluate the upstream document (PRD/Spec/Plan) and assign a Readiness Score from 0 to 100 based on the following weighted criteria. *(Note: The point values below are benchmark anchors. You MUST assign dynamic intermediate integer scores (e.g., 35/40, 22/30) that accurately reflect the quality within each maximum bound):*
+  - **Completeness (40%):** Are all required items (user stories, endpoints, tasks, acceptance criteria) present?
+    - *40/40:* All main features, edge cases, error handling, and acceptance criteria are explicitly documented.
+    - *20/40:* Main features exist, but edge cases or error states are missing.
+    - *0-10/40:* Core functionality is missing or severely under-documented.
+  - **Clarity (30%):** Can each item be implemented without further clarification?
+    - *30/30:* No subjective language ("fast", "user-friendly"). Metrics are concrete, and testable boundaries are clear.
+    - *15/30:* Some ambiguous language or hidden assumptions exist requiring minor developer interpretation.
+    - *0-10/30:* Heavy use of vague language; impossible to implement without major assumptions.
+  - **Alignment (30%):** Is the document consistent with its upstream documents (if applicable, e.g., Spec aligns with PRD)?
+    - *30/30:* 100% traceable to upstream docs. Vocabulary strictly matches the Domain Glossary (`CONTEXT.md`).
+    - *15/30:* Mostly aligned, but contains 'Orphaned Items' (tasks/features not requested upstream) or minor terminology mismatches.
+    - *0-10/30:* Severe contradictions with upstream docs or explicit violation of architectural ADRs.
+  - **Critical Flaw Veto:** If the Agent identifies ANY fundamental contradiction or blocking issue that would cause catastrophic failure downstream, the maximum allowable score is **79**, regardless of the weighted math.
+- **Iteration Tracking:** The Audit Document MUST explicitly state the current review cycle in its header (e.g., `### Audit Report [Review Iteration 2]`).
+- **The "Good Enough" Threshold (Score >= 80):** A score of 80 or above means the core functionality is clear and the document is officially viable for the next SDLC phase. Extreme edge cases or minor ambiguities should be marked as `[Assumed / Backlog]`.
+- **User Decision Prompt:** When the Readiness Score reaches 80 or higher, the Agent MUST halt the audit process and present the user with an explicit choice:
+  > *"The document has achieved a Readiness Score of [X]/100. It is ready for the next phase. Do you want to **PROCEED** to the next phase, or do you want to **REFINE** and clarify further?"*
+- **Deadlock Breaker:** If the document fails to reach a score of 80 after 3 review iterations, the Agent MUST automatically pause and present the User Decision Prompt anyway, **but adjusted for the low score** *(e.g., "We have reached 3 iterations but the score is only 75/100. Do you want to force-proceed, or continue refining?")*, allowing the user to explicitly force-proceed or continue refining.
+- **Handling Sub-Standard Scores (Score < 80):** If the score is below 80, the Agent must prioritize listing the **Critical** findings (blocking issues) that need to be fixed by the authoring agent (`/sdlc-draft-prd`, `/sdlc-define-specs`, etc.) to reach the 80-point threshold.
+- **Remediation Protocol (Self-Assessment):** When an Authoring Agent (`/sdlc-draft-prd`, `/sdlc-define-specs`, or `/sdlc-plan-tasks`) revises a document based on a previous audit report, it MUST execute a 3-Step Remediation Sequence before handing off: (1) Perform a Mental Calculation to project a new Readiness Score based on the rubrics above, (2) Append a `REMEDIATION STATUS: RESOLVED` block to the top of the original audit report file (in English), and (3) Output the calculation in chat and route the user to the next phase (if projected score >= 80) or back to clarification (if < 80).
+- **Handling Unknown Details:** If the user provides an ambiguous answer or explicitly states they do not know a technical detail (e.g., "use defaults", "handle it later"), the Agent MUST accept it as an intended boundary. Mark these items as `[Assumed / Out of Scope]` and proceed. Do NOT re-prompt the user for the same missing requirement.
+- **Human Override Primacy:** The user can override with explicit approval at any time (e.g., "proceed to next step", "bypass clarify", "good enough"). The Agent must immediately skip all remaining validation protocols and execute the requested command using the existing data, regardless of the current Readiness Score.
 
 ## Memory Configuration
 
