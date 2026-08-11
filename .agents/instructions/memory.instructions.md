@@ -179,3 +179,39 @@
   - `git diff Scripts/build.py Scripts/fontbuilder.py Scripts/features.py Makefile`: empty (CON-001 compliant)
 
 <!-- checkpoint-tail: Plan-refactor-code-review v1.0 fully executed (16 tasks, 3 phases, all complete). 5 CR findings addressed; 13/13 AC met; pytest 62/62; CON-001 preserved. Plan itself updated to v1.2 Complete. No new ADR needed. Next: /sdlc-code-review. -->
+
+---
+
+## 📝 Session Checkpoint: 2026-08-11 (Specification — Nerd Font Patcher Integration)
+
+- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
+- **Current SDLC Phase:** Specification (`/sdlc-define-specs`) — Nerd Font Patcher Integration
+- **Active Artifacts:**
+  - `docs/discovery-draft-20260811-1200-nerd-font-patcher.md` — Status: ✅ Complete (Phase 0)
+  - `docs/prd-20260811-1351-nerd-font-patcher.md` — Status: ✅ Finalized (approved; upstream input for this spec)
+  - `spec/spec-process-nerd-font-patcher.md` — Status: ✅ NEW v1.0 (created this session)
+  - `CONTEXT.md` — Status: ✅ Updated (new term: **Nerd Font Archive**)
+- **Achieved Milestones (this session):**
+  - **Spec v1.0 lengkap** (586 lines, 15 sections + Introduction) mengikuti Mandatory Specification Template; traceable ke PRD: REQ-001..010, CON-001..006, AC-101..114 ↔ GH-001..014
+  - **User mengonfirmasi ASSUMPTION-001 (Opsi A):** font staging via modifikasi `Scripts/packaging.sh` copy TTF/OTF ke `output/TTF` + `output/OTF` (di luar CON-001; satu mount existing)
+  - **Baseline pytest 62/62 PASS** (0.59s) — mengonfirmasi hanya 4 test mekanis 4-option yang perlu di-update ke 5-option (ASSUMPTION-009)
+  - **Domain Glossary diperbarui** (lazy creation): istilah `Nerd Font Archive` ditambahkan ke `CONTEXT.md`
+- **Decisions Made:**
+  - **File spec terpisah** (`spec-process-nerd-font-patcher.md`) — Modular Escalation; bukan append ke `spec-custom-build-workflow.md` v1.6 (file 27KB yang sudah approved)
+  - **`nerd_font_version` ditulis oleh workflow (jq)**, bukan `configure.py` — mengikuti pola `toolchain_versions.ttfautohint`; source of truth di YAML (ASSUMPTION-002)
+  - **`nerd_font_version` hanya saat patching sukses** (ASSUMPTION-003); base archive tidak pernah di-stamp (ASSUMPTION-004/CON-006)
+  - **Tidak ada ADR baru** — semua keputusan mengikuti ADR-0002 yang sudah diratifikasi; opsi baru reversible (triple-gate tidak terpenuhi)
+  - **`timeout-minutes` 30 → 45**; `WORKFLOW_VERSION` 1.3 → 1.4; `MANIFEST_VERSION` tetap 1.0
+- **Updated Files (this session):**
+  - `spec/spec-process-nerd-font-patcher.md` — NEW v1.0 (Nerd Font Patcher Integration, Stage 3)
+  - `CONTEXT.md` — tambah istilah `Nerd Font Archive` (_Avoid_: patched archive, icon archive, NF bundle)
+- **Next Action / Pending:**
+  - **PRIORITAS #1 (user, next session):** Buka chat session baru → invoke `/sdlc-clarify-reqs` pada `@spec/spec-process-nerd-font-patcher.md` (lampirkan juga `@docs/prd-20260811-1351-nerd-font-patcher.md`) untuk interogasi ambiguitas & hidden assumptions
+  - **PRIORITAS #2 (user, setelah clarify ≥80):** `/sdlc-plan-tasks` di sesi baru (lampirkan spec + PRD)
+  - **Assumptions yang wajib di-interogasi clarify:** ASSUMPTION-008 (urutan label release title: `Custom Build: NoLoopK, NerdFont` vs `(default), NerdFont`), ASSUMPTION-003 (`nerd_font_version` saat patching gagal), ASSUMPTION-009 (4 test mekanis di-update: `test_schema_has_four_boolean_properties`, `test_all_defaults`, `test_mixed_precedence_all_four_sources`, `test_emits_one_line_per_option`)
+- **Verification Snapshot:**
+  - pytest: 62/62 PASSED in 0.59s
+  - spec: 586 lines, 15 `## ` sections + `# Introduction`, tanpa placeholder markers
+  - Baseline green sebelum implementasi; implementasi (Code phase) belum dimulai
+
+<!-- checkpoint-tail: Specification phase complete untuk Nerd Font Patcher Integration. Spec v1.0 baru di spec/spec-process-nerd-font-patcher.md + CONTEXT.md updated (Nerd Font Archive). User confirmed font staging via packaging.sh copy ke output/. Next: /sdlc-clarify-reqs di sesi baru (attach spec + PRD). -->

@@ -1,30 +1,42 @@
 # Fantasque Sans Mono — Custom Build Context
 
-Glosarium istilah domain untuk fitur Custom Build pada proyek Fantasque Sans Mono. Mendefinisikan terminologi untuk mencegah ambiguitas di seluruh codebase dan dokumentasi.
+Domain glossary for the Custom Build feature in the Fantasque Sans Mono project. Defines terminology to prevent ambiguity across the codebase and documentation.
 
 ## Language
 
 **Custom Build**:
-Fitur yang memungkinkan pengguna GitHub menghasilkan varian font Fantasque Sans Mono yang dipersonalisasi langsung dari cloud tanpa toolchain build lokal.
+A feature that allows GitHub users to generate personalized variants of the Fantasque Sans Mono font directly from the cloud without a local build toolchain.
 
 **Variant**:
-Kombinasi dari satu atau lebih opsi build yang menghasilkan output font dengan karakteristik visual tertentu.
+A combination of one or more build options that produces a font output with specific visual characteristics.
 _Avoid_: configuration, preset, build option
 
 **Normal**:
-Varian Fantasque Sans Mono tanpa opsi build apa pun yang diaktifkan — hasil pipeline build tanpa modifikasi.
+A Fantasque Sans Mono variant with no build options enabled — the result of the un-modified build pipeline.
 _Avoid_: default variant, baseline, standard
 
 **Fork Owner**:
-Pengguna GitHub yang telah mem-fork repository upstream dan memiliki izin untuk memicu Custom Build di fork mereka sendiri.
+A GitHub user who has forked the upstream repository and has permission to trigger a Custom Build on their own fork.
 _Avoid_: fork maintainer, repo owner
 
 **Upstream**:
-Repository asli `belluzj/fantasque-sans` yang menjadi sumber utama dan acuan bagi seluruh fork komunitas.
+The original `belluzj/fantasque-sans` repository which serves as the primary source of truth for all community forks.
 _Avoid_: main repo, original repository, source of truth
 
 **Manifest**:
-File `manifest.json` yang disertakan dalam setiap arsip build, berisi metadata build (timestamp, opsi resolved, checksum, versi toolchain) untuk keperluan audit dan verifikasi.
+The `manifest.json` file included in every build archive, containing build metadata (timestamp, resolved options, checksum, toolchain versions) for auditing and verification purposes.
 
 **Workflow**:
-File GitHub Actions `.github/workflows/custom-build.yml` di repository upstream yang mendefinisikan pipeline otomatis untuk membangun varian font kustom.
+The `.github/workflows/custom-build.yml` GitHub Actions file in the upstream repository that defines the automated pipeline for building custom font variants.
+
+**Nerd Font Patcher**:
+A tool that injects developer-specific icons and symbols into a monospace font.
+_Avoid_: Icon patcher, font enhancer
+
+**Nerd Font Variant**:
+The font output that has gone through the Nerd Font Patcher process and contains 10,000+ additional icons.
+_Avoid_: Patched font, icon font
+
+**Nerd Font Archive**:
+The standalone deliverable containing all Nerd Font Variant font files plus the patcher-stamped manifest, packaged separately from the base build archives.
+_Avoid_: patched archive, icon archive, NF bundle
