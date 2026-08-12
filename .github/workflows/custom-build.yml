@@ -212,6 +212,7 @@ jobs:
       # 7.2 Patch fonts (Plan TASK-015, REQ-002, REQ-006, GUD-004).
       # Runs 10 patcher invocations (4 Mono x 2 formats + 1 Proportional x 2 formats)
       # with timeout 15m wrapper for hang prevention.
+      # Isolated per-file input directory prevents entrypoint argument duplication.
       # -----------------------------------------------------------------------
       - name: Patch fonts with Nerd Fonts glyphs
         id: nf_patch
@@ -235,14 +236,17 @@ jobs:
                 flags="--complete --adjust-line-height"
               fi
               echo "Patching ${fname} (${fmt})..."
+              mkdir -p "tmp-in-${fmt}"
+              rm -f "tmp-in-${fmt}"/*
+              cp "$font_file" "tmp-in-${fmt}/"
+
               timeout 15m docker run --rm \
-                -v "$(pwd)/output/${fmt}:/in" \
+                -v "$(pwd)/tmp-in-${fmt}:/in" \
                 -v "$(pwd)/nf-staging/${fmt}:/out" \
                 "${NF_TAG}" \
-                ${flags} \
-                --outputdir /out \
-                "/in/${fname}"
+                ${flags}
               rc=$?
+              rm -rf "tmp-in-${fmt}"
               if [ $rc -ne 0 ]; then
                 echo "::warning::Patching failed for ${fname} (exit code ${rc}). Skipping Nerd Font patching — base build unaffected."
                 patch_ok=false
