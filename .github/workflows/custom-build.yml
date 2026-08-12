@@ -181,20 +181,31 @@ jobs:
         id: nf_pull
         if: steps.nf_enable.outputs.nerd_font_patching == 'true'
         env:
-          NF_TAG: "nerdfonts/patcher:v3.5.0"
+          PRIMARY_TAG: "nerdfonts/patcher:latest"
+          FALLBACK_TAG: "ghcr.io/cdalvaro/docker-nerd-fonts-patcher:latest"
         run: |
-          echo "Pulling Nerd Fonts Patcher image: ${NF_TAG}"
           set +e
-          docker pull "${NF_TAG}"
+          echo "Pulling Nerd Fonts Patcher image: ${PRIMARY_TAG}"
+          docker pull "${PRIMARY_TAG}"
           exit_code=$?
+          USED_TAG="${PRIMARY_TAG}"
+
+          if [ $exit_code -ne 0 ]; then
+            echo "Primary pull failed. Trying fallback tag/registry: ${FALLBACK_TAG}"
+            docker pull "${FALLBACK_TAG}"
+            exit_code=$?
+            USED_TAG="${FALLBACK_TAG}"
+          fi
           set -e
+
           if [ $exit_code -eq 0 ]; then
             echo "pull_ok=true" >> "$GITHUB_OUTPUT"
-            echo "Successfully pulled ${NF_TAG}"
+            echo "used_tag=${USED_TAG}" >> "$GITHUB_OUTPUT"
+            echo "Successfully pulled ${USED_TAG}"
           else
             echo "pull_ok=false" >> "$GITHUB_OUTPUT"
             echo "nf_failure=image-pull" >> "$GITHUB_OUTPUT"
-            echo "::warning::Failed to pull ${NF_TAG} (Docker Hub down or rate-limited). Skipping Nerd Font patching — base build unaffected."
+            echo "::warning::Failed to pull Nerd Fonts Patcher image (Docker Hub down or rate-limited). Skipping Nerd Font patching — base build unaffected."
           fi
 
       # -----------------------------------------------------------------------
@@ -206,7 +217,7 @@ jobs:
         id: nf_patch
         if: steps.nf_pull.outputs.pull_ok == 'true'
         env:
-          NF_TAG: "nerdfonts/patcher:v3.5.0"
+          NF_TAG: ${{ steps.nf_pull.outputs.used_tag }}
         run: |
           mkdir -p nf-staging/TTF nf-staging/OTF
           set +e
