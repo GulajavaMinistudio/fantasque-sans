@@ -44,7 +44,7 @@ The repository now includes a **cloud-hosted Custom Build system** that allows u
 | **Cloud Config Layer** | Python 3.14 (`Scripts/configure.py`) on GitHub Actions host runner |
 | **Font Hinting** | `ttfautohint` (Freetype auto-hinter) |
 | **Web Font Conversion** | `sfnt2woff` (WOFF), `woff2_compress` (WOFF2 from Google) |
-| **Containerization** | Docker multi-stage: Stage 1 (ubuntu:26.04 + FontForge + `future` shim), Stage 2 (ubuntu:26.04 + deadsnakes Python 3.14), Stage 3 (nerdfonts/patcher:v3.5.0 containerized patcher invocations) |
+| **Containerization** | Docker multi-stage: Stage 1 (ubuntu:26.04 + FontForge + `future` shim), Stage 2 (ubuntu:26.04 + deadsnakes Python 3.14), Stage 3 (`nerdfonts/patcher:latest` or ghcr fallback containerized patcher invocations with isolated input directories) |
 | **CI/CD** | GitHub Actions (`.github/workflows/custom-build.yml`) |
 | **OS Packaging** | `fpm` (DEB/RPM) |
 | **Architectural Pattern** | Pipeline-based Build → Permutation Engine → Multi-format Output; cloud path: Configuration Layer → Container Build → Release Publishing |
@@ -111,7 +111,7 @@ flowchart LR
     subgraph Docker["Multi-Stage Docker & Containerized Patcher"]
         S1["Stage 1: builder-fontforge<br/>fontforge + python3-pip<br/>+ future shim"]
         S2["Stage 2: final<br/>Python 3.14 + ttfautohint<br/>+ woff-tools + packaging"]
-        S3["Stage 3: nerdfonts/patcher:v3.5.0<br/>10 patcher invocations<br/>(if NerdFontPatching=true)"]
+        S3["Stage 3: nerdfonts/patcher:latest<br/>10 patcher invocations with isolated input dirs<br/>(if NerdFontPatching=true)"]
     end
 
     subgraph Publish["Publishing"]
@@ -160,7 +160,7 @@ flowchart LR
 1. **Configuration Layer** — `configure.py` (Python 3.14, host runner) validates `config.json` against `config.schema.json`, resolves precedence (`workflow_dispatch` > `config.json` > defaults), and emits build args + manifest
 2. **Stage 1 (Font Compilation)** — `ubuntu:26.04` Docker, default `fontforge` with embedded Python 3 bindings + `future` shim; `custom_build_driver.py` compiles fonts under Python 3 via `past.builtins`
 3. **Stage 2 (Packaging)** — `ubuntu:26.04` + deadsnakes Python 3.14, `ttfautohint`, `sfnt2woff`, `woff2_compress`, `zip`/`tar` assembly; `packaging.sh` produces `.zip` + `.tar.gz` bundles
-4. **Stage 3 (Nerd Font Patching - Optional)** — When `NerdFontPatching` is enabled, host runner pulls pinned `nerdfonts/patcher:v3.5.0` Docker image (with `set +e` failure isolation), runs 10 patcher invocations over staged TTF/OTF fonts in `nf-staging/`, packages `fantasque-sans-nerd-font.zip`/`.tar.gz`, and stamps `nerd_font_version: "3.5.0"` into `manifest.json`
+4. **Stage 3 (Nerd Font Patching - Optional)** — When `NerdFontPatching` is enabled, host runner pulls `nerdfonts/patcher:latest` Docker image (with a fallback to `ghcr.io` and `set +e` failure isolation), runs 10 patcher invocations over staged TTF/OTF fonts in isolated `tmp-in-*/` directories, packages `fantasque-sans-nerd-font.zip`/`.tar.gz`, and stamps `nerd_font_version` into `manifest.json`
 5. **Release Publishing** — `gh release create` with exponential backoff retry (GUD-003), GitHub Release tagged `custom-build-YYYYMMDD-HHMMSS-{run_id}-{run_attempt}` attaching base archives and optional NF archives
 
 ### Variant Permutation Logic
@@ -303,7 +303,7 @@ fantasque-sans/
 | `Scripts/configure.py` | Configuration resolution (host runner) | Validates `config.json` against schema, resolves precedence, generates build args + manifest | Python 3.14; runs on GitHub Actions host (not in container); `WORKFLOW_VERSION = "1.3"` |
 | `Scripts/custom_build_driver.py` | Stage 1 font compilation driver | Parses build args, replicates `_build()` core loop, compiles single combination per `.sfdir` | Runs inside FontForge's Python 3 interpreter; MUST NOT modify `build.py`/`fontbuilder.py`/`features.py` (CON-001) |
 | `Scripts/packaging.sh` | Stage 2 packaging | ttfautohint, sfnt2woff, woff2_compress, zip/tar assembly, manifest.json handling, conditional font staging for Stage 3 | Runs inside Docker Stage 2; consumes `--build-arg` forwarded flags and `NERD_FONT_STAGING` env var |
-| `nf-staging/` | Stage 3 transient workspace | Temporary workspace directory used during Nerd Font patching (TTF/, OTF/, manifest.json) | Created dynamically on host runner during Stage 3; gitignored |
+| `nf-staging/` & `tmp-in-*/` | Stage 3 transient workspaces | Temporary workspace directories used during Nerd Font patching (TTF/, OTF/, manifest.json and isolated inputs) | Created dynamically on host runner during Stage 3; gitignored |
 | `Dockerfile` | Container definition | Multi-stage: Stage 1 (`builder-fontforge`), Stage 2 (`final`) | Both stages on `ubuntu:26.04`; PPA dropped; `pip3 install future` in Stage 1 |
 | `config.schema.json` | Configuration schema | JSON Schema draft-07: 5 boolean properties with defaults, `additionalProperties: true` | Root of repository; validated by `configure.py` |
 | `.github/workflows/custom-build.yml` | CI/CD pipeline | `workflow_dispatch` with 5 boolean inputs, Docker build, Stage 3 NF patching, artifact upload, release creation | `contents: write` + `actions: read` permissions; GUD-003 retry with exponential backoff; GUD-004 failure isolation |
