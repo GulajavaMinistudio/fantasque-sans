@@ -48,9 +48,9 @@ In the left sidebar, select **Custom Build**, then click the green
 (by design — it is a manual, on-demand build). There are no scheduled runs
 and no automatic builds on push.
 
-### 4. Adjust the four boolean inputs (optional)
+### 4. Adjust the five boolean inputs (optional)
 
-The Run workflow form shows four checkboxes:
+The Run workflow form shows five checkboxes:
 
 | Input                | Default | Effect                                                        |
 | -------------------- | ------- | ------------------------------------------------------------- |
@@ -58,13 +58,23 @@ The Run workflow form shows four checkboxes:
 | `no_loop_k`          | off     | Uses the straight, non-looped variant of lowercase `k`.       |
 | `no_calt`            | off     | Disables programming-ligature contextual alternates.          |
 | `use_hinted`         | on      | Runs `ttfautohint` on TTFs for screen rendering.              |
+| `nerd_font_patching` | off     | Patches generated fonts with 10,000+ developer icons from Nerd Fonts (Powerline, Font Awesome, Material Design, Octicons, etc.). Output is packaged in a separate archive. |
 
 You can leave the defaults for a `Normal` build, or tick the boxes that match
 the Variant you want.
 
-**Why:** These four flags map 1:1 to the four build Options. Defaults produce
+**Why:** These five flags map 1:1 to the five build Options. Defaults produce
 the `Normal` Variant with bytecode-hinted TTFs — equivalent to the legacy
 local `make` output.
+
+#### Nerd Fonts (Optional)
+
+When `nerd_font_patching` is enabled, the Custom Build workflow runs [Nerd Fonts Patcher](https://github.com/ryanoasis/nerd-fonts) v3.5.0 over the generated TTF and OTF fonts.
+
+* **Icon coverage:** `--complete` mode patches over 10,000 developer icons from Powerline, Font Awesome, Material Design, Octicons, Codicons, Devicons, and Weather Icons.
+* **Font types:** Mono fonts (`FantasqueSansMono-*`) are patched with `--mono --adjust-line-height` for terminal grid alignment. Proportional fonts (`FantasqueSans`) are patched with `--adjust-line-height`.
+* **Separate Archive:** Patched fonts are packaged into a separate `fantasque-sans-nerd-font.zip` and `.tar.gz` archive to preserve the base build's compact size.
+* **File Size:** Expect the Nerd Font archive size to increase to ~30–40 MB due to the high volume of added icon glyphs.
 
 ### 5. Download the result
 
@@ -90,16 +100,17 @@ control over their build options, or command-line triggering.
 
 ### `config.json` reference
 
-Create a `config.json` at the **root of your fork** with the four
+Create a `config.json` at the **root of your fork** with the five
 boolean Options. All keys are optional — omitted keys fall back to
-defaults (`false`, `false`, `false`, `true`).
+defaults (`false`, `false`, `false`, `true`, `false`).
 
 ```json
 {
   "LargeLineHeight": false,
   "NoLoopK": false,
   "NoCalt": false,
-  "UseHinted": true
+  "UseHinted": true,
+  "NerdFontPatching": false
 }
 ```
 
@@ -160,13 +171,14 @@ Suppose your fork's `config.json` is:
 
 Resulting release title: **`Custom Build: NoCalt (unhinted)`**
 
-| Active display flag | None?           | UseHinted? | `config_source` | Title suffix | Example title                              |
-| ------------------- | --------------- | ---------- | --------------- | ------------ | ------------------------------------------ |
-| —                   | none active     | `true`     | `defaults`      | `(default)`  | `Custom Build: Normal (default)`           |
-| —                   | none active     | `true`     | `form`          | *(none)*     | `Custom Build: Normal`                     |
-| —                   | none active     | `false`    | `config.json`   | `(unhinted)` | `Custom Build: Normal (unhinted)`          |
-| one or more         | any combination | `true`     | any             | *(none)*     | `Custom Build: NoLoopK`                    |
-| one or more         | any combination | `false`    | any             | `(unhinted)` | `Custom Build: NoCalt (unhinted)`          |
+| Active display flag | None?           | UseHinted? | NerdFontPatching? | `config_source` | Title suffix         | Example title                                      |
+| ------------------- | --------------- | ---------- | ----------------- | --------------- | -------------------- | -------------------------------------------------- |
+| —                   | none active     | `true`     | `false`           | `defaults`      | `(default)`          | `Custom Build: Normal (default)`                   |
+| —                   | none active     | `true`     | `false`           | `form`          | *(none)*             | `Custom Build: Normal`                             |
+| —                   | none active     | `false`    | `false`           | `config.json`   | `(unhinted)`         | `Custom Build: Normal (unhinted)`                  |
+| one or more         | any combination | `true`     | `false`           | any             | *(none)*             | `Custom Build: NoLoopK`                            |
+| one or more         | any combination | `false`    | `false`           | any             | `(unhinted)`         | `Custom Build: NoCalt (unhinted)`                  |
+| any                 | any combination | any        | `true`            | any             | `, NerdFont`         | `Custom Build: NoLoopK, NerdFont`                  |
 
 ### Triggering from the command line
 
@@ -178,7 +190,8 @@ gh workflow run custom-build.yml \
   -f large_line_height=false \
   -f no_loop_k=true \
   -f no_calt=true \
-  -f use_hinted=false
+  -f use_hinted=true \
+  -f nerd_font_patching=true
 ```
 
 The four `-f` flags are the same booleans as the form inputs. To see the

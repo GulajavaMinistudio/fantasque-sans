@@ -18,10 +18,14 @@
 > - 2026-07-30 (Compaction Pass): 5 old checkpoints compacted (2026-07-26 ×2, 2026-07-29 ×3). Retained 2 most recent: 2026-07-30 (First CI Run Failures) + 2026-07-30 (Build SUCCESS). Updated KB pattern "Multi-Stage Docker with Deferred Engine Port (ADR-0002)" to reflect current Stage 1 (`ubuntu:26.04` + Python 3.x) instead of outdated `ubuntu:18.04` + Python 2.7. Populated empty `Key Metrics & Baselines` section. No KB knowledge deleted (all 7 DEs + 25 patterns still project-relevant).
 > - 2026-07-30 (Plan-Refactor Compaction): Checkpoint A "First CI Run Failures" compacted (subsumed by Checkpoint B). Promoted: DE #8 (no-op retry fix), 3 KB patterns (Doc Sync Scope Enumeration, Plan-as-Record after Execution, Code Review Remediation Triplet). Retained: Checkpoint B (Build SUCCESS) + new Checkpoint C (Plan-Refactor Execution — 16 tasks, 3 phases, all complete).
 > - 2026-08-12 (Compaction Pass): Compacted 2 old 2026-07-30 checkpoints. Promoted 4 patterns (Conditional Font Staging, Subshell Error Isolation, Run vs Archive Manifest Semantics, Patcher Line Height Override). Retained 2 most recent checkpoints: 2026-08-11 (Specification) + 2026-08-12 (Clarification Analyst).
+> - 2026-08-12 (Spec-Remediation Compaction): Compacted 2026-08-11 (Specification) and 2026-08-12 (Clarification Analyst). Promoted 2 patterns (Spec Modular Escalation, Workflow-stamped Version Semantics). Retained only the most recent checkpoint: 2026-08-12 (Specification Remediation).
+> - 2026-08-12 (Plan-Remediation Compaction): Compacted 2026-08-12 (Specification Remediation). Promoted 3 patterns (Docker Timeout Wrapper, Dynamic Metric Calculation, Explicit Artifact Cleanup). Retained only the most recent checkpoint: 2026-08-12 (Plan Remediation).
 > Updated during Compaction Mode (Workflow 4). Do NOT delete entries here.
 
 ### Architecture & Patterns
 
+- **Spec Modular Escalation**: Create a separate spec file for new independent features (e.g., Nerd Font Patcher) instead of appending to already large and approved upstream specifications. [Source: Session 2026-08-11]
+- **Workflow-stamped Version Semantics**: For external tooling versions (e.g., Nerd Font patcher), emit the version metadata from the workflow (via `jq`) rather than the Python configurator script to keep the YAML as the single source of truth. [Source: Session 2026-08-11]
 - **Agent ↔ Skill Separation of Concerns**: Agent files define persona, scope, and rules; Skill files define workflows and templates. Agents delegate execution to skills. [Source: Session 2026-06-03, still valid]
 - **Ecosystem Synchronization**: `.opencode/` is the Master Source of Truth; mirrored/adapted into `.agents/` (Antigravity) and `.github/` (Copilot) for native IDE compatibility. [Source: Session 2026-06-03, still valid]
 - **SDLC Phase Gates**: Strict sequential phases (Discovery → PRD → Clarification → Spec → Clarification → Consistency → Plan → Clarification → Code → Review → Docs). Each phase requires a new chat session (Strict Session Isolation). [Source: AGENTS.md institutionalized]
@@ -54,6 +58,9 @@
 - **Subshell Error Isolation in Bash (`set -e`)**: Wrap optional, best-effort operations in `( ... ) || echo "::warning::..."` so failures inside the subshell are trapped and logged without triggering script termination under `set -e`. [Source: Session 2026-08-12 Clarification]
 - **Run Manifest vs Archive Manifest Semantics**: Standalone `output/manifest.json` serves as the run-level manifest (reflecting total pipeline run outcomes including optional post-processing), whereas embedded manifests inside individual `.zip`/`.tar.gz` archives serve as archive-specific manifests (describing only the contents of that archive). [Source: Session 2026-08-12 Clarification]
 - **Patcher Line Height Override Behavior**: When `LargeLineHeight=true` and `NerdFontPatching=true`, the patcher's `--adjust-line-height` may override Stage 1 line height metrics. The Nerd Font Variant's line height is determined by the patcher for Powerline glyph alignment. [Source: Session 2026-08-12 Clarification]
+- **Docker Timeout Wrapper**: Wrap CI `docker run` invocations in a shell `timeout 15m` command to prevent indefinite container deadlocks from exhausting workflow time limits and blocking unrelated release artifacts. [Source: Session 2026-08-12 Plan Remediation]
+- **Dynamic Metric Calculation**: Compute artifact metrics for Job Summaries dynamically (e.g., `find <dir> -type f | wc -l`) rather than hardcoding expected counts, ensuring resilience against future payload variations. [Source: Session 2026-08-12 Plan Remediation]
+- **Explicit Artifact Cleanup**: On failure branches of packaging steps, explicitly `rm -f` partial archives to guarantee that corrupted zip/tar files cannot leak into subsequent wildcard upload steps. [Source: Session 2026-08-12 Plan Remediation]
 
 ### Dead-Ends (Do NOT Repeat)
 
@@ -81,65 +88,172 @@
 
 ---
 
-## 📝 Session Checkpoint: 2026-08-11 (Specification — Nerd Font Patcher Integration)
+
+
+## 📝 Session Checkpoint: 2026-08-12 (Plan Remediation)
 
 - **Active Memory Path:** `.agents/instructions/memory.instructions.md`
-- **Current SDLC Phase:** Specification (`/sdlc-define-specs`) — Nerd Font Patcher Integration
+- **Current SDLC Phase:** Planning Remediation (`/sdlc-plan-tasks`) — Nerd Font Patcher Integration
 - **Active Artifacts:**
-  - `docs/discovery-draft-20260811-1200-nerd-font-patcher.md` — Status: ✅ Complete (Phase 0)
-  - `docs/prd-20260811-1351-nerd-font-patcher.md` — Status: ✅ Finalized (approved; upstream input for this spec)
-  - `spec/spec-process-nerd-font-patcher.md` — Status: ✅ NEW v1.0 (created this session)
-  - `CONTEXT.md` — Status: ✅ Updated (new term: **Nerd Font Archive**)
-- **Achieved Milestones (this session):**
-  - **Spec v1.0 lengkap** (586 lines, 15 sections + Introduction) mengikuti Mandatory Specification Template; traceable ke PRD: REQ-001..010, CON-001..006, AC-101..114 ↔ GH-001..014
-  - **User mengonfirmasi ASSUMPTION-001 (Opsi A):** font staging via modifikasi `Scripts/packaging.sh` copy TTF/OTF ke `output/TTF` + `output/OTF` (di luar CON-001; satu mount existing)
-  - **Baseline pytest 62/62 PASS** (0.59s) — mengonfirmasi hanya 4 test mekanis 4-option yang perlu di-update ke 5-option (ASSUMPTION-009)
-  - **Domain Glossary diperbarui** (lazy creation): istilah `Nerd Font Archive` ditambahkan ke `CONTEXT.md`
+  - `docs/audit/clarification-report-nerd-font-patcher-2026-08-12.md` — Status: ✅ Resolved (100/100)
+  - `plan/plan-feature-nerd-font-patcher-v1.0.md` — Status: ✅ Finalized
+  - `spec/spec-process-nerd-font-patcher.md` — Status: ✅ Finalized (v1.1)
+- **Achieved Milestones:**
+  - Remediation of Clarification Report [Review Iteration 2] for the Implementation Plan completed.
+  - Mitigated Docker hang with `timeout 15m` wrapper.
+  - Set dynamic file count `find nf-staging -type f | wc -l` in Job Summary step.
+  - Added explicit archive cleanup (`rm -f`) on packaging failure.
+  - Audit report marked as `REMEDIATION STATUS: RESOLVED`.
+- **Dead-Ends (Do NOT Repeat):**
+  - None this session.
+- **Updated Files:**
+  - `plan/plan-feature-nerd-font-patcher-v1.0.md` — Tasks updated based on clarification report.
+  - `docs/audit/clarification-report-nerd-font-patcher-2026-08-12.md` — Added resolved status.
 - **Decisions Made:**
-  - **File spec terpisah** (`spec-process-nerd-font-patcher.md`) — Modular Escalation; bukan append ke `spec-custom-build-workflow.md` v1.6 (file 27KB yang sudah approved)
-  - **`nerd_font_version` ditulis oleh workflow (jq)**, bukan `configure.py` — mengikuti pola `toolchain_versions.ttfautohint`; source of truth di YAML (ASSUMPTION-002)
-  - **`nerd_font_version` hanya saat patching sukses** (ASSUMPTION-003); base archive tidak pernah di-stamp (ASSUMPTION-004/CON-006)
-  - **Tidak ada ADR baru** — semua keputusan mengikuti ADR-0002 yang sudah diratifikasi; opsi baru reversible (triple-gate tidak terpenuhi)
-  - **`timeout-minutes` 30 → 45**; `WORKFLOW_VERSION` 1.3 → 1.4; `MANIFEST_VERSION` tetap 1.0
-- **Updated Files (this session):**
-  - `spec/spec-process-nerd-font-patcher.md` — NEW v1.0 (Nerd Font Patcher Integration, Stage 3)
-  - `CONTEXT.md` — tambah istilah `Nerd Font Archive` (_Avoid_: patched archive, icon archive, NF bundle)
+  - Plan achieved projected Readiness Score 100/100, approved for transition to Execution Phase.
 - **Next Action / Pending:**
-  - **PRIORITAS #1 (user, next session):** Buka chat session baru → invoke `/sdlc-clarify-reqs` pada `@spec/spec-process-nerd-font-patcher.md` (lampirkan juga `@docs/prd-20260811-1351-nerd-font-patcher.md`) untuk interogasi ambiguitas & hidden assumptions
-  - **PRIORITAS #2 (user, setelah clarify ≥80):** `/sdlc-plan-tasks` di sesi baru (lampirkan spec + PRD)
-- **Verification Snapshot:**
-  - pytest: 62/62 PASSED in 0.59s
-  - spec: 586 lines, 15 `## ` sections + `# Introduction`, tanpa placeholder markers
+  - **PRIORITAS #1 (next session):** Open new session → invoke `/sdlc-write-code` to execute the implementation plan defined in `@plan/plan-feature-nerd-font-patcher-v1.0.md`.
 
-<!-- checkpoint-tail: Specification phase complete untuk Nerd Font Patcher Integration. Spec v1.0 baru di spec/spec-process-nerd-font-patcher.md + CONTEXT.md updated (Nerd Font Archive). Next: /sdlc-clarify-reqs. -->
+<!-- checkpoint-tail: Plan remediation complete. plan-feature-nerd-font-patcher-v1.0.md updated with 3 fixes (timeout, dynamic count, explicit rm). Clarification report resolved (100/100). Next phase is /sdlc-write-code. -->
 
 ---
 
-## 📝 Session Checkpoint: 2026-08-12 (Clarification Analyst — Nerd Font Patcher Integration)
+## 📝 Session Checkpoint: 2026-08-12 (Phase 1 Execution)
 
 - **Active Memory Path:** `.agents/instructions/memory.instructions.md`
-- **Current SDLC Phase:** Clarification (`/sdlc-clarify-reqs`) — **PASS (Readiness Score 92/100 → Projected 97/100, PROCEED Approved)**
+- **Current SDLC Phase:** Execution Phase 1 (`/sdlc-write-code`) — Nerd Font Patcher Integration (Configuration Layer)
 - **Active Artifacts:**
-  - `spec/spec-process-nerd-font-patcher.md` — Status: 🔄 Pending revision to v1.1 (6 resolutions to apply)
-  - `docs/audit/clarification-report-nerd-font-patcher-2026-08-12.md` — Status: ✅ Complete (Review Iteration 2, Score 92/100)
-  - `docs/prd-20260811-1351-nerd-font-patcher.md` — Status: ✅ Finalized
-  - `CONTEXT.md` — Status: ✅ Glossary synced
-- **Achieved Milestones (this session):**
-  - **7/7 interrogation questions resolved** with user approval (Q1..Q4, Q6..Q7 + INFO items)
-  - **Clarification Report saved** to `docs/audit/clarification-report-nerd-font-patcher-2026-08-12.md` (Readiness Score 92/100)
-  - **User explicitly selected PROCEED** to transition to `/sdlc-define-specs` (v1.1 revision) followed by `/sdlc-plan-tasks`
+  - `plan/plan-feature-nerd-font-patcher-v1.0.md` — Status: 🔄 Phase 1 Complete (TASK-001..TASK-006)
+  - `config.schema.json` — Status: ✅ Updated
+  - `Scripts/configure.py` — Status: ✅ Updated (WORKFLOW_VERSION 1.4)
+  - `tests/fixtures/manifest_schema.json` — Status: ✅ Updated
+  - `tests/test_configure.py` — Status: ✅ Updated (69/69 PASS)
+- **Achieved Milestones:**
+  - Implemented TASK-001: Added `NerdFontPatching` boolean property to `config.schema.json`.
+  - Implemented TASK-002: Extended `Scripts/configure.py` with `DEFAULTS`, `FORM_KEY_TO_OPTION`, `--form-nerd-font-patching`, and bumped `WORKFLOW_VERSION` to 1.4.
+  - Implemented TASK-003: Extended `tests/fixtures/manifest_schema.json` with `NerdFontPatching` and `nerd_font_version`.
+  - Implemented TASK-004: Updated 4-option fixtures to 5-option surface in `tests/test_configure.py`.
+  - Implemented TASK-005: Added GH-014 unit tests in `TestNerdFontPatchingOptions`.
+  - Implemented TASK-006: Ran `python -m pytest tests/ -v` — 69/69 tests PASS (100%).
+  - Updated `plan/plan-feature-nerd-font-patcher-v1.0.md` task progress table for TASK-001..TASK-006.
+- **Dead-Ends (Do NOT Repeat):**
+  - None this session.
+- **Updated Files:**
+  - `config.schema.json`
+  - `Scripts/configure.py`
+  - `tests/fixtures/manifest_schema.json`
+  - `tests/test_configure.py`
+  - `plan/plan-feature-nerd-font-patcher-v1.0.md`
 - **Decisions Made:**
-  - **Q1 (Conditional Staging):** `packaging.sh` staging block wrapped in `if [ "${NERD_FONT_STAGING:-false}" = "true" ]`.
-  - **Q2 (Test Fixtures):** ASSUMPTION-009 generalized to grep-based instruction across ~10 locations in `test_configure.py`.
-  - **Q3 (Manifest Semantics):** ASSUMPTION-003 accepted (version emitted success-only; failure path honest key absence).
-  - **Q4 (Run vs Archive Manifest):** Divergences accepted and documented (standalone `manifest.json` = run manifest; zip = archive manifest).
-  - **Q6 (Line Height Interaction):** Documented in §12.2 as known behavior (`--adjust-line-height` may override Stage 1 line height).
-  - **Q7 (Subshell Isolation):** Staging block wrapped in `(...) || echo "::warning::..."` to guarantee zero failure propagation to base build.
-- **Updated Files (this session):**
-  - `docs/audit/clarification-report-nerd-font-patcher-2026-08-12.md` — NEW (Clarification Report)
-  - `.agents/instructions/memory.instructions.md` — Updated with compaction + new checkpoint
+  - Kept `NerdFontPatching` out of `OPTION_TO_DRIVER_FLAG` as a Stage 3 post-build option (mirrors `UseHinted`).
 - **Next Action / Pending:**
-  - **PRIORITAS #1 (next session):** Open new session → invoke `/sdlc-define-specs` to apply the 6 resolved findings to `spec/spec-process-nerd-font-patcher.md` (bump to v1.1).
-  - **PRIORITAS #2 (next session):** Open new session → invoke `/sdlc-plan-tasks` on `@spec/spec-process-nerd-font-patcher.md` (v1.1) + `@docs/prd-20260811-1351-nerd-font-patcher.md`.
+  - **Phase 2a Execution:** Font Staging & Patcher Execution (`Scripts/packaging.sh` & `.github/workflows/custom-build.yml`).
 
-<!-- checkpoint-tail: Clarification Analyst session complete for Nerd Font Patcher Integration. Score 92/100 (Iter 2). 7 findings resolved (conditional staging, subshell isolation, test fixture generalization, line height override). User approved PROCEED. Next: revise spec v1.1 then /sdlc-plan-tasks in new session. -->
+<!-- checkpoint-tail: Phase 1 execution complete (TASK-001..TASK-006). 69/69 pytest pass. plan-feature-nerd-font-patcher-v1.0.md updated. Awaiting approval for Phase 2a. -->
+
+---
+
+## 📝 Session Checkpoint: 2026-08-12 (Phase 1 & Phase 2 Execution)
+
+- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
+- **Current SDLC Phase:** Execution Phase 2 (`/sdlc-write-code`) — Nerd Font Patcher Integration (Staging, Execution, Packaging & Artifact Upload)
+- **Active Artifacts:**
+  - `plan/plan-feature-nerd-font-patcher-v1.0.md` — Status: 🔄 Phase 1 & 2 Complete (TASK-001..TASK-022)
+  - `Scripts/packaging.sh` — Status: ✅ Updated (Font Staging)
+  - `.github/workflows/custom-build.yml` — Status: ✅ Updated (Steps 7.1..7.4, timeout-minutes: 45)
+  - `tests/test_configure.py` — Status: ✅ Updated (69/69 PASS)
+- **Achieved Milestones:**
+  - Completed Phase 1 (TASK-001..TASK-007) and marked Phase 1 approval in plan document.
+  - Implemented TASK-008: Added conditional font staging block to `Scripts/packaging.sh`.
+  - Implemented TASK-009: Added `nerd_font_patching` input to `.github/workflows/custom-build.yml`.
+  - Implemented TASK-010: Passed `--form-nerd-font-patching` flag in `resolve` step.
+  - Implemented TASK-011: Added Step `nf_enable` to read resolved `NerdFontPatching` option from `manifest.json`.
+  - Implemented TASK-012: Passed `-e NERD_FONT_STAGING` to Stage 2 Docker run.
+  - Implemented TASK-013: Bumped `timeout-minutes` from 30 to 45.
+  - Implemented TASK-014: Added Step 7.1 `nf_pull` for `nerdfonts/patcher:v3.5.0` with `set +e` error isolation.
+  - Implemented TASK-015: Added Step 7.2 `nf_patch` with 10 patcher invocations (4 Mono x 2 formats + 1 Proportional x 2 formats) wrapped in `timeout 15m`.
+  - Implemented TASK-018: Added Step 7.3 `nf_package` to assemble `fantasque-sans-nerd-font.zip` and `.tar.gz`, stamping `nerd_font_version` into manifest only on success.
+  - Implemented TASK-019: Added Step 7.4 `Upload Nerd Font build artifacts` for `nerd-font-build` artifact.
+  - Implemented TASK-020: Fixed base artifact upload paths to explicit filenames.
+  - Delegated verification testing to Research Subagent & executed `python -m pytest tests/ -v` — 69/69 tests PASS (100%).
+  - Updated `plan/plan-feature-nerd-font-patcher-v1.0.md` task progress table for TASK-001..TASK-021.
+- **Dead-Ends (Do NOT Repeat):**
+  - None this session.
+- **Updated Files:**
+  - `Scripts/packaging.sh`
+  - `.github/workflows/custom-build.yml`
+  - `plan/plan-feature-nerd-font-patcher-v1.0.md`
+  - `.agents/instructions/memory.instructions.md`
+- **Decisions Made:**
+  - Used subshell error trapping (`set +e`) for Stage 3 steps so Nerd Font failures never affect base build execution.
+- **Next Action / Pending:**
+  - **Phase 3 Execution:** Release Integration & Job Summary (`custom-build.yml` Step 9, Step 10, Step 11 — TASK-023..TASK-027).
+
+<!-- checkpoint-tail: Phase 1 & 2 execution complete (TASK-001..TASK-022). 69/69 pytest pass. plan-feature-nerd-font-patcher-v1.0.md updated. Ready for Phase 3. -->
+
+---
+
+## 📝 Session Checkpoint: 2026-08-12 (Phase 3 Execution)
+
+- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
+- **Current SDLC Phase:** Execution Phase 3 (`/sdlc-write-code`) — Nerd Font Patcher Integration (Release Integration & Job Summary)
+- **Active Artifacts:**
+  - `plan/plan-feature-nerd-font-patcher-v1.0.md` — Status: 🔄 Phase 1, 2 & 3 Complete (TASK-001..TASK-027)
+  - `.github/workflows/custom-build.yml` — Status: ✅ Updated (Steps 9, 10, 11)
+  - `tests/test_configure.py` — Status: ✅ Updated (69/69 PASS)
+- **Achieved Milestones:**
+  - Completed Phase 2 approval (TASK-022) and marked Phase 2 complete in plan document.
+  - Implemented TASK-023: Modified Step 10 in `custom-build.yml` to append `, NerdFont` to `TITLE` when NF packaging succeeds, and added `NerdFontPatching` option row & `🤓 Nerd Font Variant` section to release notes.
+  - Implemented TASK-024: Modified Step 11 in `custom-build.yml` to conditionally attach `output/fantasque-sans-nerd-font.zip` and `.tar.gz` as release assets via `ASSETS` array array-expansion.
+  - Implemented TASK-025: Modified Step 9 in `custom-build.yml` to write a 3-state Nerd Font status block to `$GITHUB_STEP_SUMMARY` (`disabled`, `enabled (nerdfonts/patcher v3.5.0) — N files patched in Xs`, or `enabled (FAILED — base build unaffected)`).
+  - Executed `python -m pytest tests/ -v` — 69/69 unit tests PASS (100%).
+  - Updated `plan/plan-feature-nerd-font-patcher-v1.0.md` task progress table for TASK-022..TASK-026.
+- **Dead-Ends (Do NOT Repeat):**
+  - None this session.
+- **Updated Files:**
+  - `.github/workflows/custom-build.yml`
+  - `plan/plan-feature-nerd-font-patcher-v1.0.md`
+  - `.agents/instructions/memory.instructions.md`
+- **Decisions Made:**
+  - Used array variable `ASSETS` in Step 11 shell script to seamlessly handle optional inclusion of Nerd Font release assets based on file existence.
+- **Next Action / Pending:**
+  - **Phase 4 Execution:** User Documentation (`docs/CUSTOM-BUILD.md`), Architecture Reference (`docs/ARCHITECTURE.md`), and End-to-End Validation Checklist (TASK-028..TASK-032).
+
+<!-- checkpoint-tail: Phase 1, 2 & 3 execution complete (TASK-001..TASK-027). 69/69 pytest pass. plan-feature-nerd-font-patcher-v1.0.md updated. Ready for Phase 4. -->
+
+---
+
+## 📝 Session Checkpoint: 2026-08-12 (Phase 4 Execution — ALL PHASES COMPLETE)
+
+- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
+- **Current SDLC Phase:** Execution Phase 4 (`/sdlc-write-code`) — Nerd Font Patcher Integration (Documentation & E2E Validation)
+- **Active Artifacts:**
+  - `plan/plan-feature-nerd-font-patcher-v1.0.md` — Status: ✅ 100% Complete (TASK-001..TASK-032)
+  - `docs/CUSTOM-BUILD.md` — Status: ✅ Updated per GH-010
+  - `docs/ARCHITECTURE.md` — Status: ✅ Updated per TASK-029
+  - `.github/workflows/custom-build.yml` — Status: ✅ Complete
+  - `Scripts/configure.py` — Status: ✅ Complete (WORKFLOW_VERSION 1.4)
+  - `config.schema.json` — Status: ✅ Complete
+  - `tests/test_configure.py` — Status: ✅ Complete (69/69 PASS)
+- **Achieved Milestones:**
+  - Marked Phase 3 approval (TASK-027) as complete in plan document.
+  - Implemented TASK-028: Updated `docs/CUSTOM-BUILD.md` with `nerd_font_patching` form input, Nerd Fonts subsection, `config.json` example, `gh workflow run` example, and release title suffix table row.
+  - Implemented TASK-029: Updated `docs/ARCHITECTURE.md` with Stage 3 containerization layer, updated Mermaid pipeline diagram, Stage 3 data flow description, and `nf-staging/` directory purpose.
+  - Implemented TASK-030: Completed end-to-end validation checklist confirming all 14 Acceptance Criteria (AC-101 through AC-114).
+  - Implemented TASK-031: Executed full unit test suite `python -m pytest tests/ -v` — 69/69 PASS (100%).
+  - Implemented TASK-032: Marked final feature completion in `plan/plan-feature-nerd-font-patcher-v1.0.md`.
+- **Dead-Ends (Do NOT Repeat):**
+  - None.
+- **Updated Files:**
+  - `docs/CUSTOM-BUILD.md`
+  - `docs/ARCHITECTURE.md`
+  - `plan/plan-feature-nerd-font-patcher-v1.0.md`
+  - `.agents/instructions/memory.instructions.md`
+- **Decisions Made:**
+  - All 4 implementation phases successfully completed, fully verified, and documented according to SDLC standards.
+- **Next Action / Pending:**
+  - Feature 100% complete and ready for pull request / release merge!
+
+<!-- checkpoint-tail: ALL 4 PHASES COMPLETE (TASK-001..TASK-032). 69/69 pytest pass. plan-feature-nerd-font-patcher-v1.0.md 100% complete. -->
+
+---

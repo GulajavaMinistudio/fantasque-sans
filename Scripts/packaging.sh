@@ -168,5 +168,19 @@ zip -r "${OUTPUT_DIR}/${PACKAGE_BASENAME}.zip" \
 tar czf "${OUTPUT_DIR}/${PACKAGE_BASENAME}.tar.gz" \
     TTF OTF Webfonts LICENSE.txt README.md manifest.json
 
+# ---------------------------------------------------------------------------
+# 7. Font Staging for Stage 3 Nerd Font patching (conditional)
+# ---------------------------------------------------------------------------
+if [ "${NERD_FONT_STAGING:-false}" = "true" ]; then
+    echo "packaging: staging fonts for Stage 3 Nerd Font patching"
+    (
+        mkdir -p "${OUTPUT_DIR}/TTF" "${OUTPUT_DIR}/OTF"
+        shopt -s nullglob
+        for ttf in "${TTF_DIR}"/*.ttf; do cp "${ttf}" "${OUTPUT_DIR}/TTF/"; done
+        for otf in "${OTF_DIR}"/*.otf; do cp "${otf}" "${OUTPUT_DIR}/OTF/"; done
+        shopt -u nullglob
+    ) || echo "::warning::Font staging for Nerd Font patching failed. Stage 3 will be skipped."
+fi
+
 echo "packaging: done"
 ls -la "${OUTPUT_DIR}"

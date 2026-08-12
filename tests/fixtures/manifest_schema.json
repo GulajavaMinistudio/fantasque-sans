@@ -22,13 +22,15 @@
       "enum": ["defaults", "config.json", "form", "form_override"]
     },
     "workflow_version": { "type": "string" },
+    "nerd_font_version": { "type": "string" },
     "resolved_options": {
       "type": "object",
       "properties": {
         "LargeLineHeight": { "type": "boolean" },
         "NoLoopK": { "type": "boolean" },
         "NoCalt": { "type": "boolean" },
-        "UseHinted": { "type": "boolean" }
+        "UseHinted": { "type": "boolean" },
+        "NerdFontPatching": { "type": "boolean" }
       }
     },
     "toolchain_versions": {

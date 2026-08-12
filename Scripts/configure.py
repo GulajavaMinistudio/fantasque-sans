@@ -35,6 +35,8 @@ DEFAULTS = {
     "NoLoopK": False,
     "NoCalt": False,
     "UseHinted": True,
+    # Post-build option: controls Stage 3 (Nerd Font patching), not a Stage 1 driver flag (mirrors UseHinted). See spec-process-nerd-font-patcher §4.3.
+    "NerdFontPatching": False,
 }
 
 # Maps CLI form flag key (snake_case, matches workflow_dispatch input) to
@@ -44,6 +46,7 @@ FORM_KEY_TO_OPTION = {
     "no_loop_k": "NoLoopK",
     "no_calt": "NoCalt",
     "use_hinted": "UseHinted",
+    "nerd_font_patching": "NerdFontPatching",
 }
 
 # Maps option name (PascalCase) to Stage 1 driver CLI flag.
@@ -59,7 +62,7 @@ OPTION_TO_DRIVER_FLAG = {
 
 # Manifest top-level constants (Spec section 4.6).
 MANIFEST_VERSION = "1.0"
-WORKFLOW_VERSION = "1.3"
+WORKFLOW_VERSION = "1.4"
 SPDX_LICENSE = "OFL-1.1"
 
 # Python type name to JSON Schema primitive name (for the validation
@@ -382,6 +385,12 @@ def build_arg_parser():
         help="workflow_dispatch form input: use_hinted (true|false)",
     )
     parser.add_argument(
+        "--form-nerd-font-patching",
+        type=_parse_bool,
+        default=None,
+        help="workflow_dispatch form input: nerd_font_patching (true|false)",
+    )
+    parser.add_argument(
         "--output-args-file",
         type=Path,
         default=None,
@@ -428,6 +437,7 @@ def main(argv=None):
         "no_loop_k": args.form_no_loop_k,
         "no_calt": args.form_no_calt,
         "use_hinted": args.form_use_hinted,
+        "nerd_font_patching": args.form_nerd_font_patching,
     }
 
     # 3. Resolve and aggregate.

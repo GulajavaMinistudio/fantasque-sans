@@ -61,6 +61,7 @@ def empty_form():
         "no_loop_k": None,
         "no_calt": None,
         "use_hinted": None,
+        "nerd_font_patching": None,
     }
 
 
@@ -74,17 +75,25 @@ class TestSchemaFile:
     def test_schema_validates_as_draft_07(self, config_schema):
         jsonschema.Draft7Validator.check_schema(config_schema)
 
-    def test_schema_has_four_boolean_properties(self, config_schema):
+    def test_schema_has_five_boolean_properties(self, config_schema):
         props = config_schema["properties"]
         assert set(props.keys()) == {
             "LargeLineHeight",
             "NoLoopK",
             "NoCalt",
             "UseHinted",
+            "NerdFontPatching",
         }
         for name, spec in props.items():
             assert spec["type"] == "boolean", f"{name} must be boolean"
             assert "default" in spec, f"{name} must declare a default"
+
+    def test_defaults_match_schema_defaults(self, config_schema):
+        schema_defaults = {
+            name: spec["default"]
+            for name, spec in config_schema["properties"].items()
+        }
+        assert configure.DEFAULTS == schema_defaults
 
     def test_schema_allows_additional_properties(self, config_schema):
         assert config_schema.get("additionalProperties") is True
@@ -181,6 +190,7 @@ class TestResolveOptions:
             "NoLoopK": False,
             "NoCalt": False,
             "UseHinted": True,
+            "NerdFontPatching": False,
         }
         assert all(s == "defaults" for s in sources.values())
 
@@ -240,7 +250,7 @@ class TestResolveOptions:
         resolved, _ = configure.resolve_options({}, empty_form)
         assert resolved["UseHinted"] is True
 
-    def test_mixed_precedence_all_four_sources(
+    def test_mixed_precedence_all_five_sources(
         self, empty_form
     ):
         # Realistic mix: one default, one config.json, one form, one override.
@@ -250,6 +260,7 @@ class TestResolveOptions:
             "no_loop_k": None,           # config.json
             "no_calt": True,             # form (no config)
             "use_hinted": None,          # defaults
+            "nerd_font_patching": None,  # defaults
         }
         resolved, sources = configure.resolve_options(cfg, form)
         assert resolved == {
@@ -257,13 +268,53 @@ class TestResolveOptions:
             "NoLoopK": True,
             "NoCalt": True,
             "UseHinted": True,
+            "NerdFontPatching": False,
         }
         assert sources == {
             "LargeLineHeight": "form_override",
             "NoLoopK": "config.json",
             "NoCalt": "form",
             "UseHinted": "defaults",
+            "NerdFontPatching": "defaults",
         }
+
+
+class TestNerdFontPatchingOptions:
+    """GH-014 unit tests for NerdFontPatching option."""
+
+    def test_nerd_font_patching_in_defaults(self):
+        assert "NerdFontPatching" in configure.DEFAULTS
+        assert configure.DEFAULTS["NerdFontPatching"] is False
+
+    def test_nerd_font_patching_form_key_mapping(self):
+        assert configure.FORM_KEY_TO_OPTION["nerd_font_patching"] == "NerdFontPatching"
+
+    def test_nerd_font_patching_not_in_driver_flags(self):
+        assert "NerdFontPatching" not in configure.OPTION_TO_DRIVER_FLAG
+
+    def test_nerd_font_patching_precedence_config_json(self, empty_form):
+        cfg = {"NerdFontPatching": True}
+        resolved, sources = configure.resolve_options(cfg, empty_form)
+        assert resolved["NerdFontPatching"] is True
+        assert sources["NerdFontPatching"] == "config.json"
+
+    def test_nerd_font_patching_precedence_form_override(self):
+        cfg = {"NerdFontPatching": False}
+        form = {
+            "large_line_height": None,
+            "no_loop_k": None,
+            "no_calt": None,
+            "use_hinted": None,
+            "nerd_font_patching": True,
+        }
+        resolved, sources = configure.resolve_options(cfg, form)
+        assert resolved["NerdFontPatching"] is True
+        assert sources["NerdFontPatching"] == "form_override"
+
+    def test_nerd_font_patching_precedence_defaults(self, empty_form):
+        resolved, sources = configure.resolve_options({}, empty_form)
+        assert resolved["NerdFontPatching"] is False
+        assert sources["NerdFontPatching"] == "defaults"
 
 
 # ===========================================================================
@@ -371,14 +422,15 @@ class TestLogOptionSources:
             "NoLoopK": "config.json",
             "NoCalt": "defaults",
             "UseHinted": "form_override",
+            "NerdFontPatching": "defaults",
         }
         with caplog.at_level(logging.INFO, logger="configure"):
             configure.log_option_sources(sources)
         info_lines = [
             r.getMessage() for r in caplog.records if r.levelno == logging.INFO
         ]
-        # One log line per option (4 total).
-        assert len(info_lines) == 4
+        # One log line per option (5 total).
+        assert len(info_lines) == 5
 
 
 # ===========================================================================
@@ -392,6 +444,7 @@ class TestBuildDriverArgString:
             "NoLoopK": False,
             "NoCalt": False,
             "UseHinted": True,
+            "NerdFontPatching": False,
         }
         assert configure.build_driver_arg_string(resolved) == ""
 
@@ -402,6 +455,7 @@ class TestBuildDriverArgString:
             "NoLoopK": False,
             "NoCalt": False,
             "UseHinted": False,
+            "NerdFontPatching": True,
         }
         assert configure.build_driver_arg_string(resolved) == ""
 
@@ -588,6 +642,7 @@ class TestArgParser:
         assert ns.form_no_loop_k is None
         assert ns.form_no_calt is None
         assert ns.form_use_hinted is None
+        assert ns.form_nerd_font_patching is None
         assert ns.output_args_file is None
         assert ns.generate_manifest is None
 
