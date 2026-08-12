@@ -17,6 +17,7 @@
 > - 2026-07-30: Direct additions to KB (no compaction this session — entries are stable, project-validated). Added: DE #6 (apt→pip fallback for shim packages), DE #7 (read-only mount vs script writeback). Added KB patterns: Cross-tool Escape Hierarchy (bash vs jq backtick handling), Defense-in-Depth vs Script Intent in Docker Mounts. Updated DE #5 "Correct Solution" to reflect `pip3 install future` pattern (replaces obsolete `python3-future` apt install). All additions are project-validated through successful end-to-end CI build.
 > - 2026-07-30 (Compaction Pass): 5 old checkpoints compacted (2026-07-26 ×2, 2026-07-29 ×3). Retained 2 most recent: 2026-07-30 (First CI Run Failures) + 2026-07-30 (Build SUCCESS). Updated KB pattern "Multi-Stage Docker with Deferred Engine Port (ADR-0002)" to reflect current Stage 1 (`ubuntu:26.04` + Python 3.x) instead of outdated `ubuntu:18.04` + Python 2.7. Populated empty `Key Metrics & Baselines` section. No KB knowledge deleted (all 7 DEs + 25 patterns still project-relevant).
 > - 2026-07-30 (Plan-Refactor Compaction): Checkpoint A "First CI Run Failures" compacted (subsumed by Checkpoint B). Promoted: DE #8 (no-op retry fix), 3 KB patterns (Doc Sync Scope Enumeration, Plan-as-Record after Execution, Code Review Remediation Triplet). Retained: Checkpoint B (Build SUCCESS) + new Checkpoint C (Plan-Refactor Execution — 16 tasks, 3 phases, all complete).
+> - 2026-08-12 (Compaction Pass): Compacted 2 old 2026-07-30 checkpoints. Promoted 4 patterns (Conditional Font Staging, Subshell Error Isolation, Run vs Archive Manifest Semantics, Patcher Line Height Override). Retained 2 most recent checkpoints: 2026-08-11 (Specification) + 2026-08-12 (Clarification Analyst).
 > Updated during Compaction Mode (Workflow 4). Do NOT delete entries here.
 
 ### Architecture & Patterns
@@ -49,6 +50,10 @@
 - **Doc Sync Scope Enumeration (CR-F2 lesson)**: When CI debugging forces environment deviation, the doc sync must enumerate ALL affected sections, not just the obvious ones. Use `grep` (e.g., `grep -in "python2.7\|ubuntu:18.04"` across all relevant docs) to enumerate the actual surface area, not relying on the original finding's stated scope. For this project, the v1.0 plan said "Spec §4.5 only" but actual env drift required syncing 7 Spec sections (`REQ-004`, §1.1, §1.2, §4.4, §4.5, §7, §8.2) + ADR-0002 + 5 PRD sections + ARCHITECTURE.md. **Lesson**: fix scope must match actual drift surface, not assumed drift surface. [Source: Session 2026-07-30, plan-refactor-code-review TASK-103..TASK-106]
 - **Plan-as-Record after Execution**: After executing a refactor plan, update the plan file itself to reflect the actual state: (1) frontmatter status `Draft → Complete`, (2) version bump (e.g., 1.1 → 1.2), (3) date column on every task row, (4) revision note in Introduction footer, (5) `## 6. Execution Results` section. The plan becomes the historical record of work, not just the work instruction — future readers see both the plan and its execution outcomes in one document. [Source: Session 2026-07-30, plan-refactor-code-review closure]
 - **Code Review Remediation Triplet**: When code review surfaces env drift caused by CI debugging, address all three: (1) **Env sync** (Dockerfile, `.dockerignore`, base images), (2) **Code fixes** (workflow retry, version constants, stale comments), (3) **Doc sync** (plan, spec, ADR, PRD, ARCH). Missing any one = incomplete remediation. The triplet reflects the surface area that drift can affect: runtime config, code-level constants, and human-readable documentation. [Source: Session 2026-07-30, plan-refactor-code-review scope]
+- **Conditional Font Staging Pattern**: Wrap optional post-build staging in `if [ "${NERD_FONT_STAGING:-false}" = "true" ]` so zero side-effects occur when the feature is disabled (`NerdFontPatching=false`), keeping outputs byte-identical to base builds. [Source: Session 2026-08-12 Clarification]
+- **Subshell Error Isolation in Bash (`set -e`)**: Wrap optional, best-effort operations in `( ... ) || echo "::warning::..."` so failures inside the subshell are trapped and logged without triggering script termination under `set -e`. [Source: Session 2026-08-12 Clarification]
+- **Run Manifest vs Archive Manifest Semantics**: Standalone `output/manifest.json` serves as the run-level manifest (reflecting total pipeline run outcomes including optional post-processing), whereas embedded manifests inside individual `.zip`/`.tar.gz` archives serve as archive-specific manifests (describing only the contents of that archive). [Source: Session 2026-08-12 Clarification]
+- **Patcher Line Height Override Behavior**: When `LargeLineHeight=true` and `NerdFontPatching=true`, the patcher's `--adjust-line-height` may override Stage 1 line height metrics. The Nerd Font Variant's line height is determined by the patcher for Powerline glyph alignment. [Source: Session 2026-08-12 Clarification]
 
 ### Dead-Ends (Do NOT Repeat)
 
@@ -67,118 +72,12 @@
 
 <!-- Stable metrics that serve as reference points (test counts, coverage, performance baselines). -->
 - **Test Suite (configure.py)**: 62/62 pytest unit tests passing, 0.20s execution time. [Source: Session 2026-07-29 Phase 1; re-verified 2026-07-30 plan-refactor]
-- **Knowledge Base Size**: 8 Dead-Ends + 28 Architecture & Patterns (16 stable + 12 from latest sessions). [Source: Session 2026-07-30, post plan-refactor compaction]
+- **Knowledge Base Size**: 8 Dead-Ends + 32 Architecture & Patterns. [Source: Session 2026-08-12, post clarification compaction]
 - **Plan-Refactor Execution (2026-07-30)**: 16 tasks across 3 phases, all completed in single session; 13/13 acceptance criteria met; pytest 62/62 PASS; CON-001 preserved. [Source: Session 2026-07-30, plan-refactor-code-review v1.0]
 - **End-to-End Build**: 8 iteration cycles to first successful CI run (issues #1–#8). [Source: Session 2026-07-30, first end-to-end run 30520458083]
 - **GitHub Actions Actions Versions**: `actions/checkout@v7` + `actions/setup-python@v6` + `actions/upload-artifact@v4` (Node.js 24 LTS). [Source: Session 2026-07-30]
 - **Custom-build Release Tag Format**: `custom-build-YYYYMMDD-HHMMSS-{run_id}-{run_attempt}` (UTC). [Source: PRD v1.3, Plan v1.2 §TASK-040]
 - **CON-001 (Constraint)**: `Scripts/features.py` is FORBIDDEN to modify (legacy). All environment fixes go in `Dockerfile` or workflow YAML. Verified via `git diff --stat` on legacy files = empty. [Source: Plan v1.2 §CON-001, verified 2026-07-30 plan-refactor]
-
----
-
-## 📝 Session Checkpoint: 2026-07-30 (Code Phase Debugging — Build SUCCESS After 4 More Iterations)
-
-- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
-- **Previous Phase:** Code phase debugging (2026-07-30 morning) — 4 issues fixed locally, awaiting more iterations
-- **Current SDLC Phase:** Code phase — **first end-to-end CI run SUCCEEDED** after 4 more iteration cycles (issues #5, #6, #7, #8)
-- **Active Artifacts:**
-  - `Dockerfile` — Status: ✅ Ubuntu 26.04 + Python 3.x + `pip3 install --break-system-packages --no-cache-dir future` for shim
-  - `.github/workflows/custom-build.yml` — Status: ✅ Node 24 actions, no `:ro` on manifest mount, jq backticks corrected
-  - `Scripts/packaging.sh` — Status: ✅ Unchanged from original (no workaround needed after workflow fix)
-  - `plan/plan-feature-custom-build-workflow-v1.2.md` — Status: ✅ Unchanged (env deviation pending v1.3 bump)
-  - `spec/spec-custom-build-workflow.md` — Status: ✅ Unchanged (multi-stage contract preserved)
-  - `docs/prd-20260723-1130-custom-build-workflow.md` — Status: ✅ Unchanged
-  - **NEW: GitHub Release** — Status: ✅ `https://github.com/GulajavaMinistudio/fantasque-sans/releases` has new `custom-build-*` release with zip + tar.gz + manifest.json attached
-- **Achieved Milestones (this continuation session):**
-  - **Issue #5** — `ppa:fontforge/fontforge` 404 on `resolute` suite (Ubuntu 26.04). FIX: removed PPA entirely, removed `software-properties-common` and `add-apt-repository`. Use default Ubuntu 26.04 fontforge (Python 3 bindings embedded). [Continuation of DE #5]
-  - **Issue #6** — `python3-future` removed from Ubuntu 26.04 main repos (PEP 668 / minimalism trend). FIX: install `future` via pip with `--break-system-packages --no-cache-dir`. [PROMOTED to DE #6]
-  - **Issue #7** — `packaging.sh:151: Read-only file system` when script tried to write updated manifest to `/app/manifest.json`. ROOT CAUSE: workflow mounts manifest as `:ro` (defensive) but script's design intent is to writeback updated manifest to source path. FIX: removed `:ro` flag from manifest volume mount in workflow (custom-build.yml:152). Script unchanged. Trade-off: lost defense-in-depth in favor of clean build. [PROMOTED to DE #7]
-  - **Issue #8** — `jq: error: Invalid escape at line 1, column 4` at custom-build.yml:294. ROOT CAUSE: `\\\`` (backslash + backtick) in jq string, copied from bash context where backtick IS command substitution. Inside single-quoted bash string passed to jq, backticks are literal in jq — no escape needed. FIX: removed 4 `\\\`` pairs from jq string. Other 5 `\\\`` in workflow (lines 191, 192, 210, 303, 304) are in bash DOUBLE-quoted strings, where escape is correct. [PROMOTED to KB Pattern: Cross-tool Escape Hierarchy]
-  - **8/8 fixes committed** by user (manual `git commit` + `git push` per AGENTS.md workflow): `e4056a4`, `0422e16`, `b108eac`, `b890d6d`, `3ae66d7`, `01fc5f5`, `422f19b` (+ memory/AGENTS.md pending)
-  - **End-to-end CI build SUCCESS** — first successful run on user's fork; GitHub Release created with attached zip + tar.gz + manifest.json
-- **Decisions Made:**
-  - **Trade `:ro` for clean build**: defense-in-depth is nice, but build correctness > defense when the conflicting code is trusted (same image). Future: could be revisited via separate writable manifest mount (e.g., mount OUTPUT_DIR copy for script's writeback target).
-  - **Update DE #5**: DE #5 said "use `python3-future`" but that package is also removed from Ubuntu 26.04. Correction: use `pip3 install --break-system-packages future` instead. DE #5's "Correct Solution" column updated in this session.
-  - **Plan v1.3 bump needed**: Plan v1.2 §Phase 2 still references `python3-future` apt install. v1.3 bump needed (or post-v1.2 erratum) to reflect (a) base image `ubuntu:18.04` → `ubuntu:26.04`, (b) Python 2.7 → 3.x, (c) `python3-future` apt → `pip3 install future` pattern.
-  - **User does manual commits**: 8 individual commits per session iteration matches AGENTS.md "manual commit+push" rule. This pattern worked well for traceability — each fix is atomic and traceable to a specific error.
-- **Updated Files (this session, all committed except memory):**
-  - `Dockerfile` — Stage 1: `ppa:fontforge/fontforge` removed, `software-properties-common` removed, `python3-future` removed, `pip3 install --break-system-packages --no-cache-dir future` added
-  - `.github/workflows/custom-build.yml` — manifest mount `:ro` removed, jq string backticks unescaped (4 locations)
-  - `.agents/instructions/memory.instructions.md` — DE #5 update + DE #6 + DE #7 + 2 new KB patterns + this checkpoint (pending commit)
-  - `AGENTS.md` — `Last Recorded` to be re-confirmed as 2026-07-30 (already current per previous session)
-- **Dead-Ends (do NOT repeat):**
-  - **Attempted**: Install `python3-future` via `apt-get install` on Ubuntu 26.04. **Reason**: Package removed from Ubuntu 26.04 main repos (PEP 668 / minimalism). `apt-get install python3-future` returns `E: Unable to locate package python3-future`. **Solution**: For legacy Python 2/3 shim packages, use `pip3 install --break-system-packages --no-cache-dir <package>` instead of apt. Add `python3-pip` to apt-install list as bootstrap. [PROMOTED to DE #6]
-  - **Attempted**: Mount source manifest as `:ro` in workflow but have packaging script write updated manifest back to same path. **Reason**: `:ro` mount rejects all writes; script fails with `Read-only file system` error. The defensive `:ro` conflicts with script's clear design intent (update manifest in place for archive step). **Solution**: Either (a) remove `:ro` flag (chosen), (b) refactor script to use a different filename in /app/ (more complex, breaks manifest name in archive), or (c) copy script's writeback target to OUTPUT_DIR first and have script write there. [PROMOTED to DE #7]
-- **Lessons Learned (KB candidates for next compaction):**
-  - **Cross-tool escape hierarchy (bash → jq)**: When passing strings to tools like `jq`, `yq`, etc., be aware of escape context. In bash DOUBLE-quoted strings, backtick `` ` `` triggers command substitution → escape with `` \` ``. In bash SINGLE-quoted strings, backtick is literal (no escape). In jq/yq strings (inside bash single-quotes), backtick is also literal (no escape). The pattern `` \`\(.field)\` `` in a single-quoted bash → jq context is a copy-paste mistake from bash double-quoted context. Valid escapes inside jq double-quoted strings: `\\`, `\"`, `\/`, `\b`, `\f`, `\n`, `\r`, `\t`, `\uXXXX`. [PROMOTED to KB Pattern: Cross-tool Escape Hierarchy]
-  - **Defense-in-depth vs script intent in Docker mounts**: When a script's design intent is to write back to a mounted path, but the workflow mount is `:ro`, the workflow needs to grant the necessary write access. Either remove `:ro`, use a different mount path, or refactor the script. Defense-in-depth is good but should not block legitimate build behavior. [PROMOTED to KB Pattern: Defense-in-Depth vs Script Intent]
-- **Next Action / Pending:**
-  - **PRIORITAS #1 (user):** Commit memory updates → `git add .agents/instructions/memory.instructions.md AGENTS.md && git commit -m "docs(memory): checkpoint 2026-07-30 build success + DE #6 #7 + 2 KB patterns"` → `git push origin master`
-  - **PRIORITAS #2 (user, next session):** Open new chat session → invoke `/sdlc-code-review` for formal review of Dockerfile + custom-build.yml + packaging.sh
-  - **PRIORITAS #3 (user, next session):** Formally bump Plan v1.2 → v1.3 to reflect (a) base image `ubuntu:18.04` → `ubuntu:26.04`, (b) Python 2.7 → 3.x, (c) `python3-future` apt → pip install
-  - **PRIORITAS #4 (user, after CI confirms AC-001..AC-005 across multiple matrix values):** Mark TASK-060, TASK-061 (3/5 runtime), TASK-062 (runtime), TASK-063 ✅. Approve TASK-064.
-  - **PRIORITAS #5 (next session, after code review approval):** Invoke `/sdlc-generate-docs` for final user-facing documentation per Diátaxis framework
-  - **User explicit decision (per "Stop setelah save memory"):** Session ends after memory commit. Next SDLC phase (`/sdlc-code-review` or `/sdlc-generate-docs`) will be opened in a NEW session per Strict Session Isolation.
-- **Build Verification:**
-  - GitHub Actions run: `30520458083` (and possibly later runs) — all steps PASS
-  - GitHub Release: created with tag `custom-build-YYYYMMDD-HHMMSS-...` containing zip + tar.gz + manifest.json
-  - URL: `https://github.com/GulajavaMinistudio/fantasque-sans/releases`
-
-<!-- checkpoint-tail: Code phase: end-to-end CI build SUCCESS after 8 iteration cycles. 8 commits, 3 new dead-ends, 2 new KB patterns, Plan v1.3 bump pending. User chose "Stop setelah save memory" — session ends after memory commit. Next: commit memory + /sdlc-code-review + Plan v1.3. -->
-
-## 📝 Session Checkpoint: 2026-07-30 (Plan-Refactor Execution — Documentation Sync & Minor Fixes)
-
-- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
-- **Previous Phase:** Code phase — first end-to-end CI build SUCCESS (8 iterations, 2026-07-30 morning+afternoon); Code Review surfaced 5 findings (CR-F1..CR-F5)
-- **Current SDLC Phase:** Code Review remediation — `plan/plan-refactor-code-review-v1.0.md` v1.1 fully executed; plan itself bumped to v1.2 (Complete); ready for `/sdlc-code-review` next session
-- **Active Artifacts:**
-  - `plan/plan-refactor-code-review-v1.0.md` — Status: ✅ v1.1 → v1.2 (Complete + Execution Results section)
-  - `plan/plan-feature-custom-build-workflow-v1.2.md` → renamed to `v1.3.md` + content synced
-  - `spec/spec-custom-build-workflow.md` — Status: ✅ v1.5 → v1.6 (7 sections: REQ-004, §1.1, §1.2, §4.4, §4.5, §7, §8.2)
-  - `docs/adr/0002-multi-stage-docker-deferred-engine-port.md` — Status: ✅ env sync (Revision Note 2026-07-30)
-  - `docs/prd-20260723-1130-custom-build-workflow.md` — Status: ✅ 5 sections synced (§140, §253, §293, §308, §468)
-  - `docs/ARCHITECTURE.md` — Status: ✅ Tools table, Dockerfile note, EOL section synced
-  - `.github/workflows/custom-build.yml` — Status: ✅ GUD-003 retry fixed (`max_attempts=4` + 1s/5s/25s delays)
-  - `Scripts/configure.py` — Status: ✅ `WORKFLOW_VERSION = "1.3"`
-  - `Scripts/packaging.sh` — Status: ✅ `:ro` mount removed from manifest path
-  - `.dockerignore` — Status: ✅ NEW (9 entries: `.git/`, `__pycache__/`, `*.pyc`, `.pytest_cache/`, `output/`, `*.zip`, `*.tar.gz`, `.agents/`, `.github/`)
-- **Achieved Milestones (this session):**
-  - **5/5 code review findings addressed** (CR-F1 doc sync, CR-F2 full spec sync, CR-F3 GUD-003 fix, CR-F4 stale comment/version, CR-F5 .dockerignore)
-  - **13/13 acceptance criteria met** (8 Phase 1 + 5 Phase 2)
-  - **pytest 62/62 PASS** (regression test, no flakes, 0.20s)
-  - **CON-001 preserved** (`git diff Scripts/build.py Scripts/fontbuilder.py Scripts/features.py Makefile` = empty)
-  - **markdownlint 0 errors** on both plan files
-  - **All internal links resolve** in Plan v1.3 (spec, PRD, ADR, CONTEXT.md)
-  - **No new ADR needed** — existing ADR-0002 covers all architectural decisions; ADR-0001 retained as Superseded for historical reference
-- **Decisions Made:**
-  - **No new ADR for plan-refactor**: All architectural decisions (env migration, `future` shim, deferred engine port) already documented in ADR-0002. Adding ADRs for non-architectural changes (e.g., `.dockerignore` baseline, retry strategy, version constant bump) would violate the triple-gate criteria (hard to reverse / surprising / real trade-off).
-  - **ADR-0001 retained as Superseded**: Standard MADR practice — superseded ADRs are never deleted; they preserve historical decision context.
-  - **Plan itself updated to reflect completion**: v1.1 → v1.2 bump, status `Draft → Complete`, `## 6. Execution Results` section. The plan is the record of work, not just the work instruction.
-- **Updated Files (this session):**
-  - `plan/plan-refactor-code-review-v1.0.md` — v1.1 → v1.2, status Complete, Execution Results section
-  - `plan/plan-feature-custom-build-workflow-v1.2.md` → renamed to `v1.3.md` + content sync
-  - `spec/spec-custom-build-workflow.md` — v1.5 → v1.6
-  - `docs/adr/0002-multi-stage-docker-deferred-engine-port.md` — Revision Note 2026-07-30
-  - `docs/prd-20260723-1130-custom-build-workflow.md` — 5 sections synced
-  - `docs/ARCHITECTURE.md` — synced
-  - `.github/workflows/custom-build.yml` — GUD-003 retry fix
-  - `Scripts/configure.py` — `WORKFLOW_VERSION = "1.3"`
-  - `Scripts/packaging.sh` — `:ro` removed
-  - `.dockerignore` — NEW (9 entries)
-  - `.agents/instructions/memory.instructions.md` — this compaction + new KB entries
-- **Next Action / Pending:**
-  - **PRIORITAS #1 (user, next session):** Open new chat session → invoke `/sdlc-code-review` for formal Two-Axis review of Phase 2 changes (`.github/workflows/custom-build.yml`, `Scripts/configure.py`, `Scripts/packaging.sh`, `.dockerignore`).
-  - **PRIORITAS #2 (user):** Commit memory + plan updates → `git add .agents/instructions/memory.instructions.md plan/ && git commit -m "docs(memory+plan): checkpoint 2026-07-30 plan-refactor complete + DE #8 + 3 KB patterns"` → `git push`.
-  - **PRIORITAS #3 (user, optional):** Trigger CI re-run on fork with `workflow_dispatch` for smoke test (TEST-004 in plan).
-  - **PRIORITAS #4 (user, after code review):** Invoke `/sdlc-generate-docs` for user-facing documentation (Diátaxis framework).
-- **Verification Snapshot:**
-  - pytest: 62/62 PASSED in 0.20s
-  - markdownlint: 0 errors on `plan/plan-feature-custom-build-workflow-v1.3.md` and `plan/plan-refactor-code-review-v1.0.md`
-  - Internal links: 4/4 resolve in Plan v1.3 (spec, PRD, ADR, CONTEXT.md)
-  - `grep "python2.7"` and `grep "ubuntu:18.04"` in 4 target docs: 0 matches each
-  - `git diff Scripts/build.py Scripts/fontbuilder.py Scripts/features.py Makefile`: empty (CON-001 compliant)
-
-<!-- checkpoint-tail: Plan-refactor-code-review v1.0 fully executed (16 tasks, 3 phases, all complete). 5 CR findings addressed; 13/13 AC met; pytest 62/62; CON-001 preserved. Plan itself updated to v1.2 Complete. No new ADR needed. Next: /sdlc-code-review. -->
 
 ---
 
@@ -208,10 +107,39 @@
 - **Next Action / Pending:**
   - **PRIORITAS #1 (user, next session):** Buka chat session baru → invoke `/sdlc-clarify-reqs` pada `@spec/spec-process-nerd-font-patcher.md` (lampirkan juga `@docs/prd-20260811-1351-nerd-font-patcher.md`) untuk interogasi ambiguitas & hidden assumptions
   - **PRIORITAS #2 (user, setelah clarify ≥80):** `/sdlc-plan-tasks` di sesi baru (lampirkan spec + PRD)
-  - **Assumptions yang wajib di-interogasi clarify:** ASSUMPTION-008 (urutan label release title: `Custom Build: NoLoopK, NerdFont` vs `(default), NerdFont`), ASSUMPTION-003 (`nerd_font_version` saat patching gagal), ASSUMPTION-009 (4 test mekanis di-update: `test_schema_has_four_boolean_properties`, `test_all_defaults`, `test_mixed_precedence_all_four_sources`, `test_emits_one_line_per_option`)
 - **Verification Snapshot:**
   - pytest: 62/62 PASSED in 0.59s
   - spec: 586 lines, 15 `## ` sections + `# Introduction`, tanpa placeholder markers
-  - Baseline green sebelum implementasi; implementasi (Code phase) belum dimulai
 
-<!-- checkpoint-tail: Specification phase complete untuk Nerd Font Patcher Integration. Spec v1.0 baru di spec/spec-process-nerd-font-patcher.md + CONTEXT.md updated (Nerd Font Archive). User confirmed font staging via packaging.sh copy ke output/. Next: /sdlc-clarify-reqs di sesi baru (attach spec + PRD). -->
+<!-- checkpoint-tail: Specification phase complete untuk Nerd Font Patcher Integration. Spec v1.0 baru di spec/spec-process-nerd-font-patcher.md + CONTEXT.md updated (Nerd Font Archive). Next: /sdlc-clarify-reqs. -->
+
+---
+
+## 📝 Session Checkpoint: 2026-08-12 (Clarification Analyst — Nerd Font Patcher Integration)
+
+- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
+- **Current SDLC Phase:** Clarification (`/sdlc-clarify-reqs`) — **PASS (Readiness Score 92/100 → Projected 97/100, PROCEED Approved)**
+- **Active Artifacts:**
+  - `spec/spec-process-nerd-font-patcher.md` — Status: 🔄 Pending revision to v1.1 (6 resolutions to apply)
+  - `docs/audit/clarification-report-nerd-font-patcher-2026-08-12.md` — Status: ✅ Complete (Review Iteration 2, Score 92/100)
+  - `docs/prd-20260811-1351-nerd-font-patcher.md` — Status: ✅ Finalized
+  - `CONTEXT.md` — Status: ✅ Glossary synced
+- **Achieved Milestones (this session):**
+  - **7/7 interrogation questions resolved** with user approval (Q1..Q4, Q6..Q7 + INFO items)
+  - **Clarification Report saved** to `docs/audit/clarification-report-nerd-font-patcher-2026-08-12.md` (Readiness Score 92/100)
+  - **User explicitly selected PROCEED** to transition to `/sdlc-define-specs` (v1.1 revision) followed by `/sdlc-plan-tasks`
+- **Decisions Made:**
+  - **Q1 (Conditional Staging):** `packaging.sh` staging block wrapped in `if [ "${NERD_FONT_STAGING:-false}" = "true" ]`.
+  - **Q2 (Test Fixtures):** ASSUMPTION-009 generalized to grep-based instruction across ~10 locations in `test_configure.py`.
+  - **Q3 (Manifest Semantics):** ASSUMPTION-003 accepted (version emitted success-only; failure path honest key absence).
+  - **Q4 (Run vs Archive Manifest):** Divergences accepted and documented (standalone `manifest.json` = run manifest; zip = archive manifest).
+  - **Q6 (Line Height Interaction):** Documented in §12.2 as known behavior (`--adjust-line-height` may override Stage 1 line height).
+  - **Q7 (Subshell Isolation):** Staging block wrapped in `(...) || echo "::warning::..."` to guarantee zero failure propagation to base build.
+- **Updated Files (this session):**
+  - `docs/audit/clarification-report-nerd-font-patcher-2026-08-12.md` — NEW (Clarification Report)
+  - `.agents/instructions/memory.instructions.md` — Updated with compaction + new checkpoint
+- **Next Action / Pending:**
+  - **PRIORITAS #1 (next session):** Open new session → invoke `/sdlc-define-specs` to apply the 6 resolved findings to `spec/spec-process-nerd-font-patcher.md` (bump to v1.1).
+  - **PRIORITAS #2 (next session):** Open new session → invoke `/sdlc-plan-tasks` on `@spec/spec-process-nerd-font-patcher.md` (v1.1) + `@docs/prd-20260811-1351-nerd-font-patcher.md`.
+
+<!-- checkpoint-tail: Clarification Analyst session complete for Nerd Font Patcher Integration. Score 92/100 (Iter 2). 7 findings resolved (conditional staging, subshell isolation, test fixture generalization, line height override). User approved PROCEED. Next: revise spec v1.1 then /sdlc-plan-tasks in new session. -->

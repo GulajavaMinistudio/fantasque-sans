@@ -1,6 +1,6 @@
 ---
 title: Technical Specification — Nerd Font Patcher Integration (Stage 3)
-version: 1.0
+version: 1.1
 date_created: 2026-08-11
 owner: Fantasque Sans Mono Core Team
 tags: [spec, github-actions, custom-build, nerd-fonts, docker, post-build-patching]
@@ -69,7 +69,7 @@ The following are explicitly **out of scope** for this specification (mirroring 
 > **Release title suffix order.** The `NerdFont` label is appended to the fully-computed title (`Custom Build: <BASE><SUFFIX>`), producing e.g. `Custom Build: NoLoopK, NerdFont` and `Custom Build: Normal (default), NerdFont`. This follows the PRD example `Custom Build: NoLoopK, NerdFont`.
 
 > [!WARNING] ASSUMPTION-009
-> **Existing tests asserting the exact 4-option surface MUST be updated to 5 options.** `test_schema_has_four_boolean_properties`, `test_all_defaults`, `test_mixed_precedence_all_four_sources`, and `test_emits_one_line_per_option` hard-code the four-option dictionary/log-line counts and will fail after adding `NerdFontPatching`. This is a mechanical fixture update, not a behavioral regression; all semantically meaningful tests (validation, precedence semantics, manifest required fields) continue to pass unchanged. GH-011 ("no tests break") is interpreted as "no behavioral regression and no semantic test changes", consistent with GH-014 which explicitly requests new tests for the option.
+> **Existing tests asserting the exact 4-option surface MUST be updated to 5 options.** ALL tests and fixtures that hard-code the 4-option surface (dictionary keys, counts, log-line assertions) MUST be updated to 5 options. Use `grep -n` for `UseHinted` across `test_configure.py` to enumerate all affected locations (~10 at time of writing). Examples include `test_schema_has_four_boolean_properties` and `test_all_defaults`. This is a mechanical fixture update, not a behavioral regression; all semantically meaningful tests (validation, precedence semantics, manifest required fields) continue to pass unchanged. GH-011 ("no tests break") is interpreted as "no behavioral regression and no semantic test changes", consistent with GH-014 which explicitly requests new tests for the option.
 
 ## 2. Definitions
 
@@ -235,7 +235,7 @@ Contract rules:
 
 - `resolved_options.NerdFontPatching` is always present (boolean).
 - `nerd_font_version` (top-level, string, format `X.Y.Z`, no leading `v`) is present **if and only if** Nerd Font patching succeeded in this run (ASSUMPTION-003).
-- The manifest inside the **base archives** never contains `nerd_font_version` (CON-006).
+- The manifest inside the **base archives** never contains `nerd_font_version` (CON-006). This creates a deliberate distinction between the **"archive manifest"** (sealed in Stage 2, describing only the base archive) and the standalone **"run manifest"** (`output/manifest.json`, describing the entire workflow run including NF outcome).
 - The test fixture `tests/fixtures/manifest_schema.json` SHALL be extended with the optional `nerd_font_version` string property and the optional `NerdFontPatching` boolean property (no `required` changes).
 
 ### 4.5 `packaging.sh` Font Staging Contract (Stage 2 modification)
@@ -246,11 +246,15 @@ After archive assembly (step 6 of the existing script), `packaging.sh` SHALL cop
 
 ```bash
 # Stage 3 input staging: expose final TTF/OTF to the host runner.
-mkdir -p "${OUTPUT_DIR}/TTF" "${OUTPUT_DIR}/OTF"
-shopt -s nullglob
-for ttf in "${TTF_DIR}"/*.ttf; do cp "${ttf}" "${OUTPUT_DIR}/TTF/"; done
-for otf in "${OTF_DIR}"/*.otf; do cp "${otf}" "${OUTPUT_DIR}/OTF/"; done
-shopt -u nullglob
+if [ "${NERD_FONT_STAGING:-false}" = "true" ]; then
+  (
+    mkdir -p "${OUTPUT_DIR}/TTF" "${OUTPUT_DIR}/OTF"
+    shopt -s nullglob
+    for ttf in "${APP_DIR}/TTF"/*.ttf; do cp "${ttf}" "${OUTPUT_DIR}/TTF/"; done
+    for otf in "${APP_DIR}/OTF"/*.otf; do cp "${otf}" "${OUTPUT_DIR}/OTF/"; done
+    shopt -u nullglob
+  ) || echo "::warning::Font staging for Nerd Font patching failed. Stage 3 will be skipped."
+fi
 ```
 
 Rules:
@@ -272,6 +276,8 @@ Location: `.github/workflows/custom-build.yml` — inserted between Step 7 (Run 
 | **7.3 Package NF archives** | `patch_ok == 'true'` | Assembles `output/fantasque-sans-nerd-font.zip` + `.tar.gz` from `nf-staging` plus NF-stamped manifest, `LICENSE.txt`, `README.md`; sets `package_ok` | On failure: remove partial archives, `::warning::`, `package_ok=false`; exit 0. `output/manifest.json` is stamped with `nerd_font_version` ONLY after archives succeed (ASSUMPTION-004) |
 | **7.4 Upload NF artifact** | `package_ok == 'true'` | `actions/upload-artifact@v4`, name `nerd-font-build`, path `output/fantasque-sans-nerd-font.zip` + `output/fantasque-sans-nerd-font.tar.gz`, `if-no-files-found: error` | N/A (step skipped when not applicable) |
 
+**Step 7 modification (Stage 2 packaging):** The existing Step 7 `docker run` command MUST pass `-e NERD_FONT_STAGING=${{ steps.nf_enable.outputs.nerd_font_patching }}` to conditionally enable font staging.
+
 **Step 8 modification (base artifact upload):** the `path` list MUST be changed from the glob `output/*.zip` / `output/*.tar.gz` to **explicit** paths (`output/fantasque-sans-custom-build.zip`, `output/fantasque-sans-custom-build.tar.gz`, `output/manifest.json`, `output/LICENSE.txt`, `output/README.md`) so the Nerd Font archives are never captured by the base artifact. `if-no-files-found: error` stays.
 
 **Step 10/11 modifications (release):**
@@ -279,7 +285,7 @@ Location: `.github/workflows/custom-build.yml` — inserted between Step 7 (Run 
 - Step 10 (release metadata): when `resolved_options.NerdFontPatching == 'true'`, append `, NerdFont` to the computed `TITLE` (ASSUMPTION-008), e.g. `Custom Build: NoLoopK, NerdFont`; add a **Nerd Font Variant** section to the release notes mentioning the patcher version (read from `manifest.nerd_font_version` when present) and a short description of the included icon sets.
 - Step 11 (create release): add `output/fantasque-sans-nerd-font.zip` and `.tar.gz` to the `gh release create` asset list **only if they exist** (`[ -f ... ]` guard), so the release succeeds with or without Nerd Fonts.
 
-**Step 9 modification (job summary):** add a Nerd Font status block (FR-007):
+**Step 9 modification (job summary):** add a Nerd Font status block (FR-007). The `nf_failure` output from Step 7.1 can be used to distinguish failure modes if desired:
 
 ```text
 NerdFontPatching: disabled
@@ -346,7 +352,7 @@ Acceptance criteria map 1:1 to the PRD user stories (GH-001 … GH-014) and use 
 - **AC-108 (GH-008, job summary)**: Given any run, Then the job summary shows exactly one of the three FR-007 status lines; on success it additionally shows patched file count and duration.
 - **AC-109 (GH-009, release label)**: Given `NerdFontPatching=true` with success, Then the release title contains `NerdFont` and the notes describe the patcher version and icon sets; Given `false`, Then the title contains no `NerdFont` label.
 - **AC-110 (GH-010, documentation)**: Given the merged feature, Then `docs/CUSTOM-BUILD.md` includes the `Nerd Font Patching` options-table row (description and default `Off`), a Nerd Fonts explanation, a `config.json` example with `"NerdFontPatching": true`, a `gh workflow run` example with `--field nerd_font_patching=true`, the separate-archive explanation, and the size-increase note.
-- **AC-111 (GH-011, backward compatibility)**: Given `NerdFontPatching=false`, Then no new workflow step executes, output archives are byte-identical to V1 for the same option combination, existing `config.json` files without the key remain valid, and `NerdFontPatching` is NOT in `OPTION_TO_DRIVER_FLAG`. (The four mechanical 4-option test fixtures listed in ASSUMPTION-009 are updated to 5 options; all semantic tests pass unchanged.)
+- **AC-111 (GH-011, backward compatibility)**: Given `NerdFontPatching=false`, Then no new workflow step executes, output archives are byte-identical to V1 for the same option combination, existing `config.json` files without the key remain valid, and `NerdFontPatching` is NOT in `OPTION_TO_DRIVER_FLAG`. (All tests and fixtures that hard-code the 4-option surface are updated to 5 options per ASSUMPTION-009; all semantic tests pass unchanged.)
 - **AC-112 (GH-012, proportional variant)**: Given `NerdFontPatching=true`, Then `FantasqueSans.ttf`/`.otf` are patched without `--mono`, with `--complete` and `--adjust-line-height`, and included in the Nerd Font archive.
 - **AC-113 (GH-013, version pinning)**: Given any run with patching enabled, Then the workflow references `nerdfonts/patcher:v3.5.0` (never `latest`), the pinned version is documented in `custom-build.yml` and `docs/CUSTOM-BUILD.md`, and recorded as `nerd_font_version` on success.
 - **AC-114 (GH-014, unit tests)**: Then `tests/test_configure.py` verifies `NerdFontPatching` exists in `DEFAULTS` with `False`, `"nerd_font_patching"` maps to `"NerdFontPatching"` in `FORM_KEY_TO_OPTION`, the option is NOT in `OPTION_TO_DRIVER_FLAG`, the schema/defaults-sync test passes with the updated schema, and precedence tests cover the option flowing through config.json, form data, and CLI overrides.
@@ -555,6 +561,7 @@ Should a future change alter the stage architecture (e.g., moving the patcher in
 - **Large archives:** patched TTFs grow to ~3–4 MB each; the NF archive is ~30–40 MB. Documented; accepted (out of scope for mitigation).
 - **Filenames with spaces:** patcher emits e.g. `FantasqueSansMono Nerd Font-Regular.ttf`; all globs/paths are quoted; `zip`/`tar` handle them natively.
 - **`UseHinted=false`:** Stage 3 still patches unhinted TTFs; no re-hinting post-patch (out of scope).
+- **`LargeLineHeight=true` interaction:** When `LargeLineHeight=true`, the patcher's `--adjust-line-height` may override the Stage 1 line height adjustment. The Nerd Font Variant's line height is determined by the patcher, not by the `LargeLineHeight` option. This is accepted because `--adjust-line-height` is necessary for correct Powerline glyph rendering. Users can adjust line height in their terminal emulator settings.
 
 ## 13. Validation Criteria
 
@@ -583,4 +590,5 @@ Full compliance with this specification requires:
 
 | Version | Date | Author | Changes |
 | ------- | ---- | ------ | ------- |
-| 1.0 | 2026-08-11 | Specification Architect | Initial version based on approved PRD `docs/prd-20260811-1351-nerd-font-patcher.md`. User confirmed ASSUMPTION-001 (font staging via `packaging.sh` copy into `output/`).
+| 1.0 | 2026-08-11 | Specification Architect | Initial version based on approved PRD `docs/prd-20260811-1351-nerd-font-patcher.md`. User confirmed ASSUMPTION-001 (font staging via `packaging.sh` copy into `output/`). |
+| 1.1 | 2026-08-12 | Specification Architect | Remediation of Clarification Report [Review Iteration 2] (conditional staging, generalized test tracking, run manifest clarification, edge cases). |
