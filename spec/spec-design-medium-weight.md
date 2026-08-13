@@ -13,7 +13,9 @@ This document specifies the technical design for introducing a Medium (weight 50
 
 **Revision 1.1** — Remediated per gap analysis against PRD v1.1 (2026-08-13): added italic preservation, packaging, CI/CD, and visual QA acceptance criteria; clarified validation criteria and implementation boundaries.
 
-**Revision 1.2** — Remediated per Clarification Report [Review Iteration 2] (2026-08-13): corrected variant permutations enumeration to 4 (Normal, LargeLineHeight, NoLoopK, LargeLineHeight-NoLoopK) per `Scripts/build.py` option matrix; applied `counter_type="Retain"` per user decision (T-2) to preserve inner counters per PRD GH-006; clarified italic detection and preservation in §8 code sample (T-4).
+**Revision 1.2** — Remediated per Clarification Report [Review Iteration 2] (2026-08-13): corrected variant permutations enumeration to 4 (Normal, LargeLineHeight, NoLoopK, LargeLineHeight-NoLoopK) per `Scripts/build.py` option matrix; applied `counter_type="retain"` per user decision (T-2) to preserve inner counters per PRD GH-006; clarified italic detection and preservation in §8 code sample (T-4).
+
+**Revision 1.3** — Erratum applied during Phase 1 execution (2026-08-13): corrected `counter_type` spelling from `"Retain"` to `"retain"` (lowercase) in §1.2 and §8. FontForge's Python binding is case-sensitive and only accepts the lowercase spelling (`co_types` flaglist in `fontforge/python.cpp`); the capitalized form raises `ValueError: Unknown counter type` at runtime. Also documents the approved per-glyph cleanup deviation (`removeOverlap` → `intersect` → `round`) required to reach baseline-parity validation.
 
 ## 1. Purpose & Scope
 
@@ -33,7 +35,7 @@ The purpose of this specification is to define the exact behavior, inputs, and o
 > **ASSUMPTION:** The generated sources will be committed to version control. The generation script (`generate-medium-source.py`) is run manually once by the developer/maintainer and is not executed in the CI pipeline.
 
 > [!NOTE]
-> **RESOLVED DECISION (Clarification Iteration 2, 2026-08-13):** `counter_type="Retain"` (capitalized per FontForge official documentation) is used in the `changeWeight` call to preserve inner counters, aligning with PRD GH-006 counter-legibility AC (T-2).
+> **RESOLVED DECISION (Clarification Iteration 2, 2026-08-13; erratum 1.3):** `counter_type="retain"` (lowercase, per FontForge's case-sensitive Python binding) is used in the `changeWeight` call to preserve inner counters, aligning with PRD GH-006 counter-legibility AC (T-2).
 
 > [!WARNING]
 > **ASSUMPTION:** A stroke expansion of 34 em-units (within the PRD's suggested +30 to +40 range) is used as the reference value in this specification. Final tuning may occur after post-generation visual inspection.
@@ -146,8 +148,8 @@ def generate_medium(input_sfdir, output_sfdir):
     # ... set other names ...
 
     font.selection.all()
-    # Stroke expansion of 34 em-units; "Retain" preserves inner counters per PRD GH-006.
-    font.changeWeight(34, "LCG", 0, 0, "Retain")
+    # Stroke expansion of 34 em-units; "retain" preserves inner counters per PRD GH-006.
+    font.changeWeight(34, "LCG", 0, 0, "retain")
     font.removeOverlap()
     font.simplify()
     # Italic preservation (REQ-03): changeWeight does not modify font.italicangle or

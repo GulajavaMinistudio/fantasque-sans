@@ -1,0 +1,10 @@
+StartChar: Ydieresis
+Encoding: 376 376 310
+Width: 1060
+VWidth: 32
+Flags: HW
+LayerCount: 2
+Fore
+Refer: 173 168 S 1 0 0 1 54 316 2
+Refer: 48 89 N 1 0 0 1 0 0 3
+EndChar

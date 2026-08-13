@@ -1,0 +1,26 @@
+StartChar: uni04B4
+Encoding: 1204 1204 882
+Width: 1060
+Flags: HW
+LayerCount: 2
+Back
+SplineSet
+0 1434 m 1
+ 774 1434 l 1
+ 774 1282 l 1
+ 475 1282 l 1
+ 475 152 l 1
+ 889 152 l 1
+ 889 1434 l 1
+ 1059 1434 l 1
+ 1059 152 l 1
+ 1229 152 l 1
+ 1229 -289 l 1
+ 1085 -289 l 1
+ 1085 0 l 1
+ 305 0 l 1
+ 305 1282 l 1
+ 0 1282 l 1
+ 0 1434 l 1
+EndSplineSet
+EndChar

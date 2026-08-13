@@ -146,8 +146,8 @@ Use this workflow to persist progress after a significant milestone.
 - **Active Memory Path:** [path_to_this_file]
 - **Current SDLC Phase:** [e.g., Planning / Specification / Implementation / Review / Documentation]
 - **Active Artifacts:**
-  - `[path/to/prd-*.md]` — Status: ✅ Finalized
-  - `[path/to/spec.md]` — Status: 🔄 In Progress
+  - `[path/to/prd-*.md]` — Status: ✅ Finalized (Readiness Score: [XX]/100)
+  - `[path/to/spec.md]` — Status: 🔄 In Progress (Readiness Score: [XX]/100)
   - `[path/to/plan.md]` — Status: ⏳ Pending
 - **Achieved Milestones:**
   - [Concise description of what was accomplished]
@@ -268,4 +268,3 @@ Add a `## Memory Configuration` section to `AGENTS.md`. Place it after the `## C
 - **Promoting ephemeral state to Knowledge Base:** Do NOT promote in-progress metrics, session-specific file lists, or temporary blockers to the Knowledge Base. Only promote finalized, stable, and generalizable knowledge.
 - **Trusting AGENTS.md path without verification:** NEVER assume the recorded `Active Memory Path` in `AGENTS.md` is still valid. Always verify the file exists before locking the path. A stale path must trigger fallback to recursive search (Step 1).
 - **Modifying AGENTS.md without consent:** NEVER add, update, or remove the `## Memory Configuration` section in `AGENTS.md` without explicitly asking the user. The fast path is a convenience, not a silent side effect.
-

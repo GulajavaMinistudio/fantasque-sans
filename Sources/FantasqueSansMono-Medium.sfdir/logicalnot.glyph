@@ -1,0 +1,7 @@
+StartChar: logicalnot
+Encoding: 172 172 194
+Width: 1060
+VWidth: 6
+Flags: HW
+LayerCount: 2
+EndChar

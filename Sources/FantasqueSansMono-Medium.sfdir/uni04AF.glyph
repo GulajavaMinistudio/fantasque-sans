@@ -1,0 +1,21 @@
+StartChar: uni04AF
+Encoding: 1199 1199 877
+Width: 1060
+VWidth: 14
+Flags: HW
+LayerCount: 2
+Back
+SplineSet
+618 199 m 1
+ 641 199 l 1
+ 963 1024 l 1
+ 1141 1024 l 1
+ 700 -14 l 1
+ 700 -410 l 1
+ 537 -410 l 1
+ 537 -16 l 1
+ 88 1024 l 1
+ 276 1024 l 1
+ 618 199 l 1
+EndSplineSet
+EndChar

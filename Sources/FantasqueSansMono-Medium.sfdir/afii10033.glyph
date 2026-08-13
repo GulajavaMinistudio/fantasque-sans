@@ -1,0 +1,20 @@
+StartChar: afii10033
+Encoding: 1055 1055 767
+Width: 1060
+VWidth: 31
+Flags: HW
+LayerCount: 2
+Back
+SplineSet
+220 1141 m 1
+ 220 -5 l 1
+ 62 -5 l 1
+ 59 1292 l 1
+ 730 1291 l 1
+ 887 1291 l 1
+ 888 -5 l 1
+ 731 -5 l 1
+ 729 1141 l 5
+ 220 1141 l 1
+EndSplineSet
+EndChar

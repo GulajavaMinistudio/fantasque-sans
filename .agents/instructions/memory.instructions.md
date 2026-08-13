@@ -209,3 +209,40 @@
 <!-- checkpoint-tail: Plan v1.1 finalized (100/100) with feature-branch commit strategy. Audit reports marked resolved. Next: /sdlc-write-code. -->
 
 ---
+
+## 📝 Session Checkpoint: 2026-08-13 (Phase 1 Execution — Medium Font Weight)
+
+- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
+- **Current SDLC Phase:** Code Execution (`/sdlc-write-code`) — Medium Font Weight, Phase 1 complete, awaiting approval for Phase 2
+- **Active Artifacts:**
+  - `plan/plan-design-medium-weight-v1.1.md` — Status: ✅ Executing (Phase 1 done; erratum applied this session)
+  - `spec/spec-design-medium-weight.md` — Status: ✅ v1.2 + erratum `"Retain"` → `"retain"` applied this session
+  - `Scripts/generate-medium-source.py` — Status: ✅ Created + tested (81/81 pass)
+  - `Sources/FantasqueSansMono-Medium.sfdir/` — Status: ✅ Generated (1043 files, baseline-parity validation)
+- **Achieved Milestones:**
+  - TASK-001..TASK-004 complete: script, unit tests (12 new), Medium upright source generated and verified.
+  - FontForge environment verified: `D:/Aplikasi/FontForgeBuilds/bin/ffpython.exe` (Python 3.12.11) + `fontforge.exe` for `validate-font` PATH.
+  - Zero-touch verified: `git diff --stat` on CON-07 forbidden files is empty.
+  - Idempotency verified: only `font.props ModificationTime` differs between two runs (CON-05 permitted).
+- **Dead-Ends (Do NOT Repeat):**
+  - **Attempted:** Plan-mandated font-level cleanup only (`changeWeight` → `font.removeOverlap()` → `font.simplify()`).
+  - **Reason:** 252 glyphs remained `selfIntersects()`; `removeOverlap` only handles cross-contour overlap, not self-intersection within one contour. `counter_type="Retain"` (capitalized) is rejected by FontForge's case-sensitive `co_types` flaglist (`ValueError`).
+  - **Correct Solution:** `"retain"` lowercase + per-glyph `removeOverlap()` → `intersect()` → `round()` (user-approved deviation). Result: 0 self-intersects, validation profile = baseline parity (only inherited `Bad Glyph Name` on `slash_asterisk_asterisk_slash.liga`).
+- **Updated Files:**
+  - `Scripts/generate-medium-source.py` — created (REQ/CON/GUD compliant + approved cleanup deviation)
+  - `tests/test_generate_medium_source.py` — created (12 tests, mock `fontforge` via `sys.modules` + `spec_from_file_location` for hyphenated module name)
+  - `Sources/FantasqueSansMono-Medium.sfdir/` — generated from Regular
+  - `spec/spec-design-medium-weight.md` — erratum: `"Retain"` → `"retain"` (3 occurrences) + revision note
+  - `plan/plan-design-medium-weight-v1.1.md` — erratum: `"Retain"` → `"retain"` (4 occurrences) + revision note
+- **Decisions Made:**
+  - `counter_type="retain"` (lowercase) — verified against `fontforge/python.cpp` `co_types` flaglist (case-sensitive).
+  - Per-glyph `removeOverlap()` + `intersect()` + `round()` cleanup — user-approved minimal deviation for baseline-parity validation.
+  - `validate-font` "no `Error in`" gate is unachievable for ANY source (baseline Regular/Bold also fail on inherited `Bad Glyph Name` ligature) — documented as planning defect, not implementation failure.
+  - Nothing committed; git commit awaits explicit user instruction (Git Protocol).
+- **Next Action / Pending:**
+  - User decision: PROCEED to Phase 2 (TASK-006..TASK-009: Medium Italic + feature-branch commit) or REFINE Phase 1 first.
+  - Spec/Plan erratum could later be formalized via `/sdlc-define-specs` version bump if user wants full SDLC traceability.
+
+<!-- checkpoint-tail: Phase 1 Medium executed (81 tests, baseline-parity source, lowercase retain + per-glyph intersect/round cleanup); awaiting user approval for Phase 2. -->
+
+---

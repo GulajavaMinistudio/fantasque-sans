@@ -1,0 +1,10 @@
+StartChar: Udieresis
+Encoding: 220 220 132
+Width: 1060
+VWidth: -4
+Flags: HW
+LayerCount: 2
+Fore
+Refer: 173 168 S 1 0 0 1 78 337 2
+Refer: 44 85 N 1 0 0 1 0 0 3
+EndChar

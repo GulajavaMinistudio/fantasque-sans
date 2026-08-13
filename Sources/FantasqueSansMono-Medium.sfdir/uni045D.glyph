@@ -1,0 +1,13 @@
+StartChar: uni045D
+Encoding: 1117 1117 829
+Width: 1060
+VWidth: 0
+Flags: HW
+LayerCount: 2
+Back
+Refer: 322 768 S 1 0 0 1 56 -195 2
+Refer: 792 1080 N 1 0 0 1 0 0 2
+Fore
+Refer: 322 768 S 1 0 0 1 90 -195 2
+Refer: 792 1080 N 1 0 0 1 0 0 3
+EndChar
