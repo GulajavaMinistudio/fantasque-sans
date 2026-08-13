@@ -4,4 +4,12 @@ Width: 1060
 VWidth: -34
 Flags: HW
 LayerCount: 2
+Fore
+SplineSet
+423 1246 m 1
+ 423 1628 l 1
+ 616 1628 l 1
+ 616 1246 l 1
+ 423 1246 l 1
+EndSplineSet
 EndChar

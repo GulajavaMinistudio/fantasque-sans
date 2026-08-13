@@ -1,0 +1,10 @@
+StartChar: Ncommaaccent
+Encoding: 325 325 260
+Width: 1060
+VWidth: 32
+Flags: HW
+LayerCount: 2
+Fore
+Refer: 518 806 N 1 0 0 1 -75.373 -32 2
+Refer: 37 78 N 1 0 0 1 0 0 3
+EndChar

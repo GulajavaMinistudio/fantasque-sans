@@ -1,0 +1,10 @@
+StartChar: afii10084
+Encoding: 1090 1090 804
+Width: 1060
+VWidth: 4
+Flags: HW
+LayerCount: 2
+Fore
+Refer: 13 109 S 1 0 0 1 0 0 2
+Substitution2: "'locl' Macedonian/Serbian italic forms" afii10084.serbian
+EndChar

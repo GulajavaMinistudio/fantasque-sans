@@ -5,5 +5,12 @@ VWidth: 0
 Flags: HW
 LayerCount: 2
 Fore
+SplineSet
+330 1147 m 1
+ 330 1406 l 1
+ 599 1406 l 1
+ 599 1147 l 1
+ 330 1147 l 1
+EndSplineSet
 Refer: 177 305 N 1 0 0 1 0 0 2
 EndChar

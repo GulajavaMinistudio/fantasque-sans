@@ -1,0 +1,17 @@
+StartChar: threequarters
+Encoding: 190 190 203
+Width: 1060
+VWidth: 0
+Flags: HW
+LayerCount: 2
+Fore
+SplineSet
+168.510742188 692 m 1
+ 1130.13378906 692 l 1
+ 1096.62304688 517 l 1
+ 135 517 l 1
+ 168.510742188 692 l 1
+EndSplineSet
+Refer: 971 8324 N 1 0 0 1 0 0 2
+Refer: 197 179 N 1 0 0 1 0 0 2
+EndChar

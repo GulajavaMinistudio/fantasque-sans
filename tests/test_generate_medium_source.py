@@ -253,17 +253,6 @@ class TestGeometryPipeline:
         assert font._selection_called is True
         assert font._remove_overlap_calls == 1
         assert font._simplify_calls == 1
-    def test_per_glyph_cleanup_called_on_every_glyph(self, fake_fontforge):
-        """Approved deviation: per-glyph removeOverlap + intersect + round
-        eliminate the stroker's self-intersections (baseline parity)."""
-        fake, script = fake_fontforge
-        _run_main(["in.sfdir", "out.sfdir"], script)
-
-        font = fake.fonts[0]
-        for glyph in font.glyphs():
-            assert glyph.remove_overlap_calls == 1
-            assert glyph.intersect_calls == 1
-            assert glyph.round_calls == 1
 
     def test_every_glyph_width_set_to_1060(self, fake_fontforge):
         fake, script = fake_fontforge

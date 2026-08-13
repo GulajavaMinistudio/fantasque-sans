@@ -84,23 +84,20 @@ def generate_medium(input_sfdir, output_sfdir):
         STROKE_WIDTH, EMBOLDEN_TYPE, 0, 0, COUNTER_TYPE
     )
 
-    # Geometric cleanup (CON-03). The font-level operations alone are not
-    # sufficient: the LCG stroker produces contours that self-intersect in
-    # concave regions, and ``removeOverlap`` only removes overlap between
-    # separate contours. Per-glyph ``intersect`` cuts contour self-crossings
-    # and ``round`` snaps coordinates to integers. This cleanup deviates
-    # minimally from the plan sequence and was approved by the maintainer
-    # (2026-08-13) to reach baseline validation parity with Regular/Bold.
+    # Geometric cleanup (CON-03): font-level removeOverlap + simplify.
+    # NOTE (2026-08-13): a previously approved per-glyph `intersect()`
+    # cleanup was REVERTED — `glyph.intersect()` is a Boolean intersect
+    # that keeps only overlapping contour areas, which destroys the
+    # non-overlapping outer/inner contours of most glyphs. The plan-exact
+    # sequence below preserves all glyph geometry. Residual
+    # self-intersections from the LCG stroke are documented as a known
+    # limitation, deferred to Phase 4 visual QA (Spec §12).
     font.removeOverlap()
     font.simplify()
+
+    # Enforce the monospace grid on every glyph (CON-02).
     for glyph in font.glyphs():
-        try:
-            glyph.removeOverlap()
-            glyph.intersect()
-            glyph.round()
-        except Exception:
-            # Malformed/empty glyphs tolerate best-effort cleanup.
-            pass
+        glyph.width = MONOSPACE_WIDTH
 
     # Enforce the monospace grid on every glyph (CON-02).
     for glyph in font.glyphs():

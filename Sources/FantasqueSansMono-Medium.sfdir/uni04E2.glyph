@@ -13,6 +13,6 @@ SplineSet
 EndSplineSet
 Refer: 760 1048 N 1 0 0 1 0 0 3
 Fore
-Refer: 326 772 S 1 0 0 1 63 -96 2
+Refer: 326 772 S 1 0 0 1 63.0001 -96.4 2
 Refer: 760 1048 N 1 0 0 1 0 0 3
 EndChar

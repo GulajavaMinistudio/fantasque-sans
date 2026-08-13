@@ -1,0 +1,11 @@
+StartChar: kcommaaccent
+Encoding: 311 311 246
+Width: 1060
+VWidth: 32
+Flags: HW
+LayerCount: 2
+Fore
+Refer: 518 806 S 1 0 0 1 -24.3697 -33 2
+Refer: 11 107 N 1 0 0 1 0 0 3
+Substitution2: "'ss01' Style Set 1 - No loop k-1" kcommaaccent.noloop
+EndChar
