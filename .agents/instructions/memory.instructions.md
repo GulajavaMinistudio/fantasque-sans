@@ -82,12 +82,13 @@
 | 8 | **No-op retry fix (v1.0 → v1.1 lesson)**: Add `3) delay=25 ;;` to a `case $attempt in ... esac` loop where the loop runs only when `attempt < max_attempts` with `max_attempts=3` | The case structure has only 2 delay slots; with 3 attempts (1 initial + 2 retries), only 2 delays (1s, 5s) are needed. The new `3) delay=25 ;;` case never executes because the loop terminates at attempt 3 before reaching the new branch. Initial fix was a no-op — the case structure was unchanged in behavior. | Bump `max_attempts` to match the new delay tiers — e.g., `max_attempts=4` (1 initial + 3 retries) for 1s/5s/25s delays. **General lesson**: when adding a new branch to a loop/case structure, verify the structure actually reaches the new branch — count `attempts × delays` and ensure they match. If they don't, the fix is a no-op. |
 | 9 | **Assume versioned Docker tag exists on Docker Hub (`nerdfonts/patcher:v3.5.0`)** | Docker Hub repo `nerdfonts/patcher` does not publish version tags like `v3.5.0`; only `latest` is published. Pulling `v3.5.0` returned `manifest unknown: manifest unknown`. | Use `PRIMARY_TAG: "nerdfonts/patcher:latest"` with fallback to `FALLBACK_TAG: "ghcr.io/cdalvaro/docker-nerd-fonts-patcher:latest"`. Export `used_tag` output from pull step. |
 | 10 | **Pass explicit `/in/${fname}` argument to `docker run nerdfonts/patcher` when `/in` contains multiple font files** | The container entrypoint script `gotta-patch-em-all-font-patcher!.sh` automatically scans `/in` and appends every font file found to `font-patcher`. Passing `/in/${fname}` explicitly caused `font-patcher` to receive 2 positional file arguments, crashing with `font-patcher: error: unrecognized arguments: /in/<file>`. | Create an isolated per-file input directory (`tmp-in-${fmt}`) containing only 1 target font file per `docker run` invocation, mount it to `/in`, and omit explicit filename/outputdir arguments from `docker run`. |
+| 11 | **Use per-glyph `glyph.intersect()` to clean up self-intersections after `changeWeight`** | `glyph.intersect()` is a Boolean intersect — "Leaves the areas where the contours of a glyph overlap" (fontforge/python.cpp). For glyphs whose contours do NOT overlap (outer ring + inner counter), it empties the foreground entirely. Destroyed the outlines of 661 glyphs on the Medium sources; the resulting "clean" validation was false-green because empty glyphs produce zero validation flags. | Never use `intersect()` for cleanup. `removeOverlap()` and `simplify()` are the only plan-safe cleanup operations; residual self-intersections are a documented limitation of algorithmic `ChangeWeight` deferred to visual QA. Verify any font-generating pipeline with a **foreground-preservation audit**: count glyphs where `len(glyph.foreground)==0 AND len(glyph.references)==0` and compare against the source baseline (flag profiles alone cannot detect emptied glyphs). |
 
 ### Key Metrics & Baselines
 
 <!-- Stable metrics that serve as reference points (test counts, coverage, performance baselines). -->
 - **Test Suite (configure.py)**: 69/69 pytest unit tests passing. [Source: Session 2026-08-12 Phase 4 E2E validation; previously 62/62 at 2026-07-30]
-- **Knowledge Base Size**: 10 Dead-Ends + 37 Architecture & Patterns. [Source: Session 2026-08-13, PRD remediation compaction]
+- **Knowledge Base Size**: 11 Dead-Ends + 37 Architecture & Patterns. [Source: Session 2026-08-13, DE #11 added]
 - **Plan-Refactor Execution (2026-07-30)**: 16 tasks across 3 phases, all completed in single session; 13/13 acceptance criteria met; pytest 62/62 PASS; CON-001 preserved. [Source: Session 2026-07-30, plan-refactor-code-review v1.0]
 - **Nerd Font Patcher Integration (2026-08-12)**: 32 tasks across 4 phases, all complete; 14/14 acceptance criteria (AC-101..AC-114); `configure.py` WORKFLOW_VERSION 1.4. Feature ready for PR/release merge. [Source: Session 2026-08-12 Phase 4]
 - **End-to-End Build**: 8 iteration cycles to first successful CI run (issues #1–#8). [Source: Session 2026-07-30, first end-to-end run 30520458083]
@@ -244,5 +245,39 @@
   - Spec/Plan erratum could later be formalized via `/sdlc-define-specs` version bump if user wants full SDLC traceability.
 
 <!-- checkpoint-tail: Phase 1 Medium executed (81 tests, baseline-parity source, lowercase retain + per-glyph intersect/round cleanup); awaiting user approval for Phase 2. -->
+
+---
+
+## 📝 Session Checkpoint: 2026-08-13 (Phase 2 Execution — Medium Italic Done, Paused Before TASK-007)
+
+- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
+- **Current SDLC Phase:** Code Execution (`/sdlc-write-code`) — Medium Font Weight Phase 2, paused before TASK-007 per user instruction
+- **Active Artifacts:**
+  - `plan/plan-design-medium-weight-v1.1.md` — Status: ✅ Updated to match implementation (Execution Update block; TASK-001..TASK-006 marked ✅ 2026-08-13)
+  - `spec/spec-design-medium-weight.md` — Status: ⚠️ Revision 1.3 note still describes the REVERTED per-glyph cleanup deviation — needs correction by `/sdlc-define-specs` or user override
+  - `Scripts/generate-medium-source.py` — Status: ✅ Plan-exact pipeline (reverted from broken per-glyph intersect cleanup)
+  - `tests/test_generate_medium_source.py` — Status: ✅ 11 tests, total suite 80/80 passing
+  - `Sources/FantasqueSansMono-Medium.sfdir/` — Status: ✅ Regenerated (1043 files, geometry preserved)
+  - `Sources/FantasqueSansMono-MediumItalic.sfdir/` — Status: ✅ Generated (1047 files, italicangle -11.0 preserved)
+- **Achieved Milestones:**
+  - TASK-006 complete: Medium Italic generated with correct SFNT metadata (Family/SubFamily/Fullname/PostScriptName per Spec §4.2), `os2_weight == 500`, `italicangle == -11.0` preserved from Italic source.
+  - CRITICAL correction: the previously approved per-glyph `intersect()` cleanup destroyed 661 glyph outlines (Boolean intersect semantics) — reverted to plan-exact pipeline and both sources regenerated. See KB Dead-End #11.
+  - Foreground-preservation audits pass: truly-empty glyphs match baseline exactly (upright: 3 = space/uni00A0/uni0310; italic: 6 = +uniE0E2/uniE0E3/uniE0E4).
+  - Width audit: 0 glyphs with `width != 1060` on both sources. TTF smoke check compiles both sources.
+- **Dead-Ends (Do NOT Repeat):**
+  - See KB Dead-End #11 (per-glyph intersect destroys non-overlapping contours).
+- **Updated Files:**
+  - `Scripts/generate-medium-source.py` — reverted to plan-exact: `changeWeight(34, "LCG", 0, 0, "retain")` → font-level `removeOverlap()` + `simplify()` → width 1060
+  - `tests/test_generate_medium_source.py` — removed per-glyph cleanup test; 80/80 passing
+  - `Sources/FantasqueSansMono-Medium.sfdir/` + `Sources/FantasqueSansMono-MediumItalic.sfdir/` — regenerated with corrected script
+  - `plan/plan-design-medium-weight-v1.1.md` — Execution Update block + task completion marks
+- **Decisions Made:**
+  - Residual self-intersections (252 upright / 465 italic glyphs via fresh `selfIntersects()`) are a documented limitation of algorithmic `ChangeWeight` on this font — deferred to Phase 4 visual QA (TASK-016) per Spec §12 risk model.
+  - MediumItalic TTF compilation emits `Internal Error: Attempt to output -35153 into a 16-bit field` — flagged for visual QA attention.
+- **Next Action / Pending:**
+  - USER DECISION REQUIRED on TASK-007 (create temporary feature branch + commit script/tests/sources/docs).
+  - After TASK-007: TASK-008 verification gate, then TASK-009 approval before Phase 3 (CI verification via test fork).
+
+<!-- checkpoint-tail: Phase 2 paused at TASK-007: MediumItalic generated + intersect deviation reverted (KB DE #11), both sources regenerated with preserved geometry, 80/80 tests; waiting user confirmation to create feature branch and commit. -->
 
 ---
