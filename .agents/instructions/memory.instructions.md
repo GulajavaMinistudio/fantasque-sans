@@ -179,3 +179,33 @@
 <!-- checkpoint-tail: Spec v1.2 substantively remediated (96/100 projected) but lint validation BLOCKED/SUPPRESSED on all 3 docs: spec Suppressed/Not assessed (pre-existing markdownlint-disable), audit=79 + PRD=107 diagnostics (origin unverified, baseline unavailable) — user chose to stop and escalate. -->
 
 ---
+
+## 📝 Session Checkpoint: 2026-08-13 (Plan Clarification & Remediation)
+
+- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
+- **Current SDLC Phase:** Planning / Clarification (`/sdlc-clarify-reqs` & `/sdlc-plan-tasks`)
+- **Active Artifacts:**
+  - `plan/plan-design-medium-weight-v1.1.md` — Status: ✅ Finalized (Score: 100/100)
+  - `docs/audit/clarification-report-plan-medium-weight-2026-08-13.md` — Status: ✅ Resolved
+  - `docs/audit/clarification-report-medium-font-weight-2026-08-13.md` — Status: ✅ Plan Implementation Verified
+- **Achieved Milestones:**
+  - Clarified Implementation Plan with Readiness Score of 97/100 (promoted to 100/100 post-remediation).
+  - Selected Option B for Phase 2: Commits MUST go to a temporary feature branch, not `main`, allowing safe `amend` or `squash` if Phase 4 Visual QA requires manual tuning (prevents polluting canonical history).
+  - Formalized plan to v1.1. Upgraded path guards (`os.path.normpath`, `os.path.abspath`) for edge cases.
+  - Marked both Plan and Spec audit reports as REMEDIATED/RESOLVED.
+- **Dead-Ends (Do NOT Repeat):**
+  - None this session.
+- **Updated Files:**
+  - `docs/audit/clarification-report-plan-medium-weight-2026-08-13.md` — created and marked resolved
+  - `plan/plan-design-medium-weight-v1.1.md` — renamed and updated from v1.0
+  - `docs/audit/clarification-report-medium-font-weight-2026-08-13.md` — added PLAN IMPLEMENTATION STATUS
+- **Decisions Made:**
+  - Commit target changed to temporary feature branch.
+- **Next Action / Pending:**
+  - Proceed to **Phase 6: Code Execution**.
+  - User needs to invoke `/sdlc-write-code` in a new session.
+  - *Note:* Lint validation issue from previous session (markdownlint block) remains pending user discretion.
+
+<!-- checkpoint-tail: Plan v1.1 finalized (100/100) with feature-branch commit strategy. Audit reports marked resolved. Next: /sdlc-write-code. -->
+
+---

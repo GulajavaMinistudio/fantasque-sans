@@ -1,3 +1,4 @@
+<!-- markdownlint-disable -->
 # PRD: Fantasque Sans Mono — Medium Font Weight Variant
 
 ## 1. Product overview
