@@ -114,6 +114,22 @@ The feature introduces a Medium (CSS weight 500) and Medium Italic variant to th
 | TASK-017 | **Final macro-level gate**: (a) `python -m pytest tests/ -v` — 0 failures. (b) `Scripts/validate-font` on both Medium sources — no `Error in ...` output beyond the documented baseline/artifact profile (see TEST-003; maintainer exception precedent TASK-004(b)/TASK-008(a)). (c) Advance-width check: all glyphs == `1060` on both sources. (d) Fresh `make clean && make` completes successfully with all 4 Variant subdirectories populated.                                                                                                                       | -      | AC-001, AC-002, AC-003                                                                                                                                                                                                                                                                                                                                                            | TASK-016 | -      |           |      |
 | TASK-018 | **APPROVAL**: Final user sign-off. Feature is complete.                                                                                                                                                                                                                                                                                                                                                                                           | -      | -                                                                                                                                                                                                                                                                                                                                                                                 | TASK-017 | -      |           |      |
 
+### Execution Results (2026-08-14)
+
+Authoritative completion record for Phase 3/4. The per-phase tables above keep the plan's original `Completed` column (blank in source for Phase 3/4); this table is the definitive sign-off.
+
+| Task | Completed | Date | Evidence / Caveat |
+| --- | --- | --- | --- |
+| TASK-010 | ✅ | 2026-08-14 | `build-make.yml` `make clean && make` green — AC-003 (4 permutations) |
+| TASK-011 | ✅ | 2026-08-14 | CSS declarations verified — AC-004 |
+| TASK-012 | ✅ | 2026-08-14 | Variant archives verified — AC-005 |
+| TASK-013 | ✅ | 2026-08-14 | `custom-build` dispatch green — AC-006 |
+| TASK-014 | ✅ | 2026-08-14 | zero-touch (CON-07) + pytest 81/81 + CI evidence |
+| TASK-015 | ✅ | 2026-08-14 | Approval (explicit user confirmation) |
+| TASK-016 | ✅ | 2026-08-14 | Visual QA sign-off (maintainer, FontForge) — AC-007 |
+| TASK-017 | ✅ | 2026-08-14 | Final gate; `validate-font` accepted via documented exception |
+| TASK-018 | ✅ | 2026-08-14 | Final approval (explicit user) |
+
 ## 3. Alternatives
 
 - **ALT-001: `interpolateFonts()` between Regular and Bold masters**: Rejected. The Regular and Bold sources have non-matching point/contour topology (e.g., lowercase `a`: 20 points in Regular vs 19 in Bold), which rules out interpolation between masters (Spec §10).
