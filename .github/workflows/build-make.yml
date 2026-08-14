@@ -15,6 +15,10 @@
 #            imports `from past.builtins import xrange` via fontbuilder.py)
 #   Stage 2: ttfautohint, woff-tools (sfnt2woff), woff2 (woff2_compress),
 #            zip, tar
+#
+# The unit-test (macro) gate runs first: pytest + jsonschema on the host
+# runner, mirroring custom-build.yml. A failing suite aborts before any
+# font work.
 name: Standard Build (make)
 
 "on":
@@ -49,7 +53,13 @@ jobs:
             woff2 \
             zip \
             tar
-          pip3 install --break-system-packages --no-cache-dir future
+          # sudo: the runner user is non-root and pip is PEP 668 externally
+          # managed; --break-system-packages + root installs to system
+          # site-packages (visible to fontforge's embedded Python).
+          sudo pip3 install --break-system-packages --no-cache-dir pytest jsonschema future
+
+      - name: Run unit tests (macro gate)
+        run: python3 -m pytest tests/ -v
 
       - name: Build all variants (make)
         run: |
