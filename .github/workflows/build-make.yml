@@ -1,0 +1,65 @@
+---
+# Fantasque Sans Mono — Standard Makefile build verification.
+#
+# Runs the real `make clean && make` pipeline — the zero-touch path that
+# AC-003/004/005 are defined against — and uploads the full `Variants/`
+# tree as an artifact. Added 2026-08-14 (user decision, Option 1) because
+# the `custom-build` workflow exercises `custom_build_driver.py` (a single
+# selected variant, no CSS declaration), which cannot evidence AC-003
+# (4 permutations via the Makefile wildcard), AC-004 (CSS via
+# `generate-css-decl`), or AC-005 (all-variant archives via
+# `zip-all-variants`).
+#
+# Toolchain mirrors Dockerfile Stage 1 + Stage 2 (identical apt packages):
+#   Stage 1: fontforge, make, python3-pip + `future` (legacy build.py
+#            imports `from past.builtins import xrange` via fontbuilder.py)
+#   Stage 2: ttfautohint, woff-tools (sfnt2woff), woff2 (woff2_compress),
+#            zip, tar
+name: Standard Build (make)
+
+"on":
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: make-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build all variants via make
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Install build toolchain
+        run: |
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            fontforge \
+            make \
+            python3-pip \
+            ttfautohint \
+            woff-tools \
+            woff2 \
+            zip \
+            tar
+          pip3 install --break-system-packages --no-cache-dir future
+
+      - name: Build all variants (make)
+        run: |
+          make clean
+          make
+
+      - name: Upload Variants
+        uses: actions/upload-artifact@v4
+        with:
+          name: standard-build-variants-${{ github.run_id }}-${{ github.run_attempt }}
+          path: Variants/
+          if-no-files-found: error
+          retention-days: 90
