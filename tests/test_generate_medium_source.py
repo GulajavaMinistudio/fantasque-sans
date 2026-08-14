@@ -8,7 +8,7 @@ Covers:
     * Input == output path guard (CON-06)
     * Metadata mapping for upright and italic inputs (Spec v1.2 section 4.2)
     * ``changeWeight(34, "LCG", 0, 0, "retain")`` invocation (CON-01, GUD-01)
-    * ``removeOverlap`` / ``simplify`` invocation (CON-03)
+    * ``removeOverlap`` / ``simplify`` invocation and runtime order (CON-03)
     * Advance-width enforcement to 1060 on every glyph (CON-02)
     * ``save`` target is the output path, never the input path (CON-06)
 
@@ -94,15 +94,20 @@ class FakeFont:
         self._change_weight_calls = []
         self._remove_overlap_calls = 0
         self._simplify_calls = 0
+        # Chronological log of geometry operations for order assertions.
+        self._operation_log = []
 
     def changeWeight(self, *args):
         self._change_weight_calls.append(args)
+        self._operation_log.append(("changeWeight", args))
 
     def removeOverlap(self):
         self._remove_overlap_calls += 1
+        self._operation_log.append(("removeOverlap",))
 
     def simplify(self):
         self._simplify_calls += 1
+        self._operation_log.append(("simplify",))
 
     def glyphs(self):
         return self._glyphs
@@ -253,6 +258,15 @@ class TestGeometryPipeline:
         assert font._selection_called is True
         assert font._remove_overlap_calls == 1
         assert font._simplify_calls == 1
+
+    def test_geometry_operations_run_in_plan_order(self, fake_fontforge):
+        """CON-03: embolden must precede font-level cleanup at runtime."""
+        fake, script = fake_fontforge
+        _run_main(["in.sfdir", "out.sfdir"], script)
+
+        font = fake.fonts[0]
+        ops = [op for op, *_ in font._operation_log]
+        assert ops == ["changeWeight", "removeOverlap", "simplify"]
 
     def test_every_glyph_width_set_to_1060(self, fake_fontforge):
         fake, script = fake_fontforge

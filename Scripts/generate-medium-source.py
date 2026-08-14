@@ -99,10 +99,6 @@ def generate_medium(input_sfdir, output_sfdir):
     for glyph in font.glyphs():
         glyph.width = MONOSPACE_WIDTH
 
-    # Enforce the monospace grid on every glyph (CON-02).
-    for glyph in font.glyphs():
-        glyph.width = MONOSPACE_WIDTH
-
     font.save(output_sfdir)
     font.close()
 
