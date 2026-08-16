@@ -6,7 +6,7 @@ Unit tests for ``Scripts/generate-medium-source.py`` (Medium Font Weight).
 Covers:
     * CLI argument contract (zero / one / three arguments -> non-zero exit)
     * Input == output path guard (CON-06)
-    * Metadata mapping for upright and italic inputs (Spec v1.2 section 4.2)
+    * Metadata mapping for upright and italic inputs (Spec v1.6 section 4.2)
     * ``changeWeight(34, "LCG", 0, 0, "retain")`` invocation (CON-01, GUD-01)
     * ``removeOverlap`` / ``simplify`` invocation and runtime order (CON-03)
     * Advance-width enforcement to 1060 on every glyph (CON-02)
@@ -74,6 +74,7 @@ class FakeFont:
 
     def __init__(self):
         self.os2_weight = None
+        self.weight = None
         self.familyname = None
         self.fontname = None
         self.fullname = None

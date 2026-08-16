@@ -88,7 +88,7 @@
 - **CON-001 (Constraint)**: `Scripts/features.py` is FORBIDDEN to modify (legacy). All environment fixes go in `Dockerfile` or workflow YAML. Verified via `git diff --stat` on legacy files = empty. [Source: Plan v1.2 §CON-001, verified 2026-07-30 plan-refactor]
 - **Variant Permutation Count (build.py)**: 4 actual permutations — Normal, LargeLineHeight, NoLoopK, LargeLineHeight-NoLoopK — the full matrix of the 2 active `Scripts/build.py` options. [Source: Session 2026-08-13 Spec Clarification]
 - **Advance Width Baseline (Monospace Grid)**: 1060 em-units for every glyph (1042 glyphs in `Sources/FantasqueSansMono-Regular.sfdir`). FontForge `ChangeWeight` may drift widths — always re-enforce 1060 after emboldening. [Source: Session 2026-08-13 PRD Remediation]
-- **Medium Weight Remediation (2026-08-16)**: `plan-refactor-medium-weight-v1.0.md` Complete — 23/23 tasks, 4 phases. Doc versions after sync: Spec v1.6, PRD v1.3, plan-design v1.1 (Complete). All changes uncommitted on `feat/medium-font-weight` at session end.
+- **Medium Weight Remediation (2026-08-16)**: `plan-refactor-medium-weight-v1.0.md` Complete — 22/23 tasks, 1 externally blocked (TASK-207 AC-007 PR reference pending on PR open; "23/23" claim corrected in the v1.1 round — plan-as-record honesty fix, B-12). Doc versions after sync: Spec v1.6, PRD v1.3, plan-design v1.1 (Complete). All changes uncommitted on `feat/medium-font-weight` at session end.
 
 ### Retired Knowledge (2026-08-16)
 
@@ -136,5 +136,44 @@
   - Optional: `custom-build` dispatch with `NerdFontPatching=true` to close the Spec §13 caveat.
 
 <!-- checkpoint-tail: plan-refactor-medium-weight-v1.0.md COMPLETE (23/23, 2026-08-16): SFNT naming evidenced, docs synced (PRD 1.3 / Spec 1.6), workflow hardened, scaffolding cleaned; uncommitted on feat/medium-font-weight; next = /sdlc-code-review in new session. -->
+
+---
+
+## 📝 Session Checkpoint: 2026-08-16 (Refactor v1.1 — Phases 1-2 Approved, Phase 3 Deferred)
+
+- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
+- **Current SDLC Phase:** Code Execution (`/sdlc-write-code`) — `plan/plan-refactor-medium-weight-v1.1.md` fully executed & closed (status `Complete`)
+- **Active Artifacts:**
+  - `plan/plan-refactor-medium-weight-v1.1.md` — Status: ✅ Complete (Phase 1–2 executed & approved; Phase 3 deferred-closed; Execution Status block recorded)
+  - `plan/plan-refactor-medium-weight-v1.0.md` — Status: ✅ Complete, amended to honest 22/23 + 1 externally blocked (TASK-207 PR reference pending)
+  - `plan/plan-design-medium-weight-v1.1.md` — Status: ✅ Complete (two "23/23" quotes amended; TASK-207 ⏳ row intact)
+  - `tests/test_generate_medium_source.py` — Status: ✅ 83/83 green (docstring Spec v1.6; `FakeFont.weight = None` init)
+  - `.github/workflows/build-make.yml` — Status: ✅ comment precision only (DOC-103/104; no logic change)
+  - `Scripts/generate-medium-source.py` — Status: ✅ WHY comment only (PRN-102; no logic change)
+- **Achieved Milestones:**
+  - Phase 1 (REQ-101, B-12): plan-as-record honesty — v1.0 plan "23/23 tasks ✅" corrected to "22/23 complete + 1 externally blocked"; TASK-207 checkbox `[x]`→`[ ]` with "blocked on PR open" annotation; CON-003 dropped from the closed-remediation list; design plan's two "23/23" quotes amended; both plans agree TASK-207 is pending.
+  - Phase 2 (DOC-101..104, PRN-101/102): test module docstring Spec v1.2→v1.6; `FakeFont.weight = None` so a dropped script assignment fails with a clean assertion, not `AttributeError`; TASK-103 wording corrected (upright LangName SubFamily slot stays empty; FontForge derives name IDs 2/3 from `font.weight` — TASK-104 dump evidence); workflow comments sharpened (`pytest`/`jsonschema` local vs `future` CI-only; pin lineages — checkout v7.0.1 release-prep 2026-07-17, upload-artifact v4-lineage merge 2025-03-19); script WHY comment on `os2_weight` precedence.
+  - Phase 3 (OPTIONAL, SEC-101/A-16): **deferred** via TASK-302 decline branch — maintainer declined the CI re-validation cost; `--require-hashes`/`requirements-make.txt` NOT implemented (TASK-301/302 left `[ ]`); deferral recorded in the plan Execution Status; version pins + documented rationale remain the accepted middle tier (ALT-104).
+  - Verification gates: pytest 83/83 after all changes (A-14 init safe); `yaml.safe_load` OK; markdownlint 0 issues on touched plan files; CON-07 zero-touch diff empty; `.sfdir` trees untouched; diff limited to 5 modified files + 1 new plan file.
+  - Plan v1.1 frontmatter/badge `Planned`→`Complete`; Execution Status block added with a Task-ID disambiguation note (v1.1 TASK-207 ≠ v1.0 TASK-207).
+- **Dead-Ends (Do NOT Repeat):**
+  - None new this session. Watch item (caused finding B-12): two plan files reuse identical task IDs (TASK-207 in both v1.0 and v1.1) — always qualify task IDs with file scope when recording status across plans.
+- **Updated Files:**
+  - `plan/plan-refactor-medium-weight-v1.0.md` — TASK-207 pending + Execution Status honesty + TASK-103 wording (DOC-102)
+  - `plan/plan-design-medium-weight-v1.1.md` — "23/23" → "22/23 + 1 externally blocked" (two quotes)
+  - `plan/plan-refactor-medium-weight-v1.1.md` — NEW file: execution record, status Complete, Execution Status block
+  - `tests/test_generate_medium_source.py` — docstring v1.6 + `FakeFont.weight = None`
+  - `.github/workflows/build-make.yml` — comment precision (install step + pin lineages)
+  - `Scripts/generate-medium-source.py` — WHY comment above the `os2_weight` assignment
+- **Decisions Made:**
+  - Phase 3 deferred (OPTIONAL, A-16) — explicit user choice; deferral recorded in-plan rather than force-implementing hash pinning.
+  - Keep `plan-refactor-medium-weight-v1.1.md` as the round's record (untracked so far) — to be committed together with the round.
+  - KB metric corrected inline: "23/23" → "22/23 + 1 externally blocked" (same honesty fix as the plans).
+- **Next Action / Pending:**
+  - Stage & commit all changes (5 modified + 1 new plan file) — awaits explicit user instruction (Git protocol); suggested message: `docs(plan): finalize refactor v1.1 — phases 1-2 approved, phase 3 deferred`.
+  - Handoff: invoke `/sdlc-code-review` for the final consistency audit in a NEW session (strict session isolation).
+  - When the `feat/medium-font-weight` PR opens: attach the AC-007 review reference (v1.0 plan TASK-207 pending row; design plan Execution Results `⏳` row).
+
+<!-- checkpoint-tail: refactor v1.1 COMPLETE (2026-08-16): phases 1-2 executed & approved (plan-as-record honesty + doc/test precision NITs), phase 3 (hash pinning) deferred per maintainer choice; pytest 83/83, CON-07 zero-touch; uncommitted; next = commit on request, then /sdlc-code-review in new session, attach AC-007 PR ref when PR opens. -->
 
 ---

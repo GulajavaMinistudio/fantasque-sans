@@ -39,8 +39,9 @@ jobs:
 
     steps:
       - name: Checkout repository
-        # Pinned to commit SHA (tag v7, 2026-07-17) — supply-chain hygiene
-        # per plan-refactor-medium-weight-v1.0.md SEC-001 (finding A-01).
+        # Pinned to commit SHA — resolved lineage: v7.0.1 release-prep
+        # (2026-07-17) — supply-chain hygiene per
+        # plan-refactor-medium-weight-v1.0.md SEC-001 (finding A-01).
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: Install build toolchain
@@ -64,8 +65,10 @@ jobs:
           # sudo: the runner user is non-root and pip is PEP 668 externally
           # managed; --break-system-packages + root installs to system
           # site-packages (visible to fontforge's embedded Python).
-          # pip packages are version-pinned (SEC-001, finding A-02); versions
-          # match the local macro-gate environment as of 2026-08-16.
+          # pip packages are version-pinned (SEC-001, finding A-02);
+          # pytest/jsonschema match the local macro-gate environment as of
+          # 2026-08-16; `future` is CI-only (legacy `past.builtins` import,
+          # not present locally).
           sudo pip3 install --break-system-packages --no-cache-dir \
             pytest==9.1.1 \
             jsonschema==4.26.0 \
@@ -80,7 +83,8 @@ jobs:
           make
 
       - name: Upload Variants
-        # Pinned to commit SHA (tag v4, 2025-03-19) — SEC-001 (finding A-01).
+        # Pinned to commit SHA — resolved lineage: v4-lineage merge
+        # (2025-03-19) — SEC-001 (finding A-01).
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: standard-build-variants-${{ github.run_id }}-${{ github.run_attempt }}

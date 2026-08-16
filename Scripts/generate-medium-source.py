@@ -70,6 +70,9 @@ def generate_medium(input_sfdir, output_sfdir):
     names = ITALIC_NAMES if is_italic else UPRIGHT_NAMES
 
     # Weight and family metadata (CON-04, Spec section 4.2).
+    # WHY: os2_weight must be set before weight — the inherited
+    # OS2_WeightWidthSlopeOnly flag keeps the numeric class authoritative;
+    # the TASK-104 dump proved no ID 16/17 side effects.
     font.os2_weight = MEDIUM_WEIGHT
     font.weight = MEDIUM_WEIGHT_NAME
     font.familyname = FAMILY_NAME
