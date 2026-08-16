@@ -10,19 +10,7 @@
 ## 🧠 Knowledge Base
 
 > This section accumulates cross-session knowledge that must survive compaction.
-> Compaction history:
-> - 2026-08-13: Session 2026-08-12 (Phase 4 Execution) compacted per user request after Medium Font Weight PRD remediation. Promoted: test metric 62/62 → 69/69, Nerd Font Patcher completion baseline. Retained: 2026-08-13 (PRD Remediation). Also repaired a duplicated file header block.
-> - 2026-08-13 (Plan Compaction): 3 Medium Font Weight checkpoints (PRD Remediation, Spec Remediation, Spec Clarification) compacted after plan creation. Promoted: 3 patterns (Spec Self-Audit, validate-font output inspection, changeWeight counter_type semantics) + 2 metrics (variant permutation count, advance width baseline). Retained: 2026-08-13 (Plan Creation).
-> - 2026-07-24: Sessions 1–8 compacted; Dead-End #4 promoted. Only Session 9 (Plan v1.0) retained.
-> - 2026-07-26: Session 2026-07-24 (Plan v1.0) compacted after re-audit cycle completion. Promoted: Re-audit Pattern, Single Audit Report Pattern, Delta Verification Pattern, Plan File Rename+Version Bump Protocol, User Override Priority. Retained: 2026-07-26 (Plan v1.0 Clarification), 2026-07-26 (Consistency Audit), 2026-07-26 (Re-Audit PASS Clean).
-> - 2026-07-29: Session 2026-07-26 (Plan v1.0 Clarification) + 2026-07-24 (Plan v1.0 one-liner) compacted after Plan v1.2 Section 9 addition. Promoted: 4 Clarification methodology patterns (PRD anchor inclusion, targeted re-read, iterative re-analysis, literal scope adherence). Retained: 2026-07-26 (Consistency Audit), 2026-07-26 (Re-Audit PASS Clean), 2026-07-29 (Section 9 Added).
-> - 2026-07-30: Direct additions to KB (no compaction this session — entries are stable, project-validated). Added: DE #6 (apt→pip fallback for shim packages), DE #7 (read-only mount vs script writeback). Added KB patterns: Cross-tool Escape Hierarchy (bash vs jq backtick handling), Defense-in-Depth vs Script Intent in Docker Mounts. Updated DE #5 "Correct Solution" to reflect `pip3 install future` pattern (replaces obsolete `python3-future` apt install). All additions are project-validated through successful end-to-end CI build.
-> - 2026-07-30 (Compaction Pass): 5 old checkpoints compacted (2026-07-26 ×2, 2026-07-29 ×3). Retained 2 most recent: 2026-07-30 (First CI Run Failures) + 2026-07-30 (Build SUCCESS). Updated KB pattern "Multi-Stage Docker with Deferred Engine Port (ADR-0002)" to reflect current Stage 1 (`ubuntu:26.04` + Python 3.x) instead of outdated `ubuntu:18.04` + Python 2.7. Populated empty `Key Metrics & Baselines` section. No KB knowledge deleted (all 7 DEs + 25 patterns still project-relevant).
-> - 2026-07-30 (Plan-Refactor Compaction): Checkpoint A "First CI Run Failures" compacted (subsumed by Checkpoint B). Promoted: DE #8 (no-op retry fix), 3 KB patterns (Doc Sync Scope Enumeration, Plan-as-Record after Execution, Code Review Remediation Triplet). Retained: Checkpoint B (Build SUCCESS) + new Checkpoint C (Plan-Refactor Execution — 16 tasks, 3 phases, all complete).
-> - 2026-08-12 (Compaction Pass): Compacted 2 old 2026-07-30 checkpoints. Promoted 4 patterns (Conditional Font Staging, Subshell Error Isolation, Run vs Archive Manifest Semantics, Patcher Line Height Override). Retained 2 most recent checkpoints: 2026-08-11 (Specification) + 2026-08-12 (Clarification Analyst).
-> - 2026-08-12 (Spec-Remediation Compaction): Compacted 2026-08-11 (Specification) and 2026-08-12 (Clarification Analyst). Promoted 2 patterns (Spec Modular Escalation, Workflow-stamped Version Semantics). Retained only the most recent checkpoint: 2026-08-12 (Specification Remediation).
-> - 2026-08-12 (Plan-Remediation Compaction): Compacted 2026-08-12 (Specification Remediation). Promoted 3 patterns (Docker Timeout Wrapper, Dynamic Metric Calculation, Explicit Artifact Cleanup). Retained only the most recent checkpoint: 2026-08-12 (Plan Remediation).
-> - 2026-08-12 (Feature Execution Compaction): Compacted 4 intermediate execution checkpoints (Plan Remediation, Phase 1, Phase 2, Phase 3). Promoted DE #9 (Docker Hub latest tag fallback) and DE #10 (Docker entrypoint argument isolation). Retained 1 final checkpoint: 2026-08-12 (Phase 4 Execution — ALL PHASES COMPLETE).
+> Compaction history (condensed 2026-08-16): all sessions from 2026-07-24 through 2026-08-13 were compacted in multiple passes; all knowledge was promoted to this Knowledge Base at the time. The detailed per-pass log was removed in the 2026-08-16 cleanup (user request).
 > Updated during Compaction Mode (Workflow 4). Do NOT delete entries here.
 
 ### Architecture & Patterns
@@ -50,7 +38,6 @@
 - **YAML `on:` Boolean Coercion Gotcha**: In YAML 1.1, bareword `on` is parsed as boolean `True`. Many parsers (PyYAML) store under `True` key. GitHub Actions parser is generally lenient but quoting (`"on":`) is best practice for cross-tool compatibility. [Source: Session 2026-07-30]
 - **Dockerfile Backslash Line Continuation Rules**: A backslash `\` must be IMMEDIATELY followed by a newline to be a line continuation. Any content between `\` and newline (including spaces or `# comment`) makes `\` a literal backslash, breaking the multi-line instruction and causing "Unknown instruction" errors for the next line. [Source: Session 2026-07-30]
 - **CRLF in Dockerfiles on Windows**: Windows edit tools (and Git `core.autocrlf=true`) can convert LF to CRLF. CRLF in Dockerfiles is usually fine for Docker on Linux, but hadolint may warn. Always normalize to LF for cross-platform consistency. [Source: Session 2026-07-30]
-- **Node.js 20 Deprecation in GitHub Actions**: As of late 2025, GitHub deprecated Node.js 20 on Actions runners. Actions `actions/checkout@v4` and `actions/setup-python@v5` (and other @v4/v5 actions) are being forced to Node.js 24 via shim, generating warnings. Upgrade: `actions/checkout@v7`, `actions/setup-python@v6+`. Always check action versions against Node.js target. [Source: Session 2026-07-30]
 - **Legacy Python 2/3 Shim Package Deprecation**: The `future` package (which provides `past.builtins` for Py2/3 compat shims like `from past.builtins import xrange`) is no longer in Ubuntu 26.04 main repos (`python3-future` was removed). When migrating legacy code to modern Ubuntu, apt-installable shim packages are increasingly unavailable. **Fix pattern**: Install via `pip` instead of `apt`, using `python3-pip` (apt) as bootstrap. Use `--break-system-packages` for PEP 668 compliance (Ubuntu 24.04+) and `--no-cache-dir` to keep image small. Example: `pip3 install --break-system-packages --no-cache-dir future`. [Source: Session 2026-07-30, third Dockerfile iteration]
 - **Cross-tool Escape Hierarchy (bash → jq/yq)**: When passing strings to subprocesses like `jq`, `yq`, `python -c`, etc., be aware of escape context. **In bash DOUBLE-quoted strings** (`"..."`): backtick `` ` `` triggers command substitution → escape with `` \` ``. **In bash SINGLE-quoted strings** (`'...'`): backtick is literal (no escape needed). **In jq/yq strings** (inside bash single-quotes): backtick is also literal (no escape needed). The pattern `` \`\(.field)\` `` in a single-quoted bash → jq context is a **copy-paste mistake** from bash double-quoted context. **Valid escapes inside jq double-quoted strings**: `\\`, `\"`, `\/`, `\b`, `\f`, `\n`, `\r`, `\t`, `\uXXXX`. Rule of thumb: escape sequence belongs to the tool that is **currently parsing** the string; when switching contexts (bash → jq), backslash escapes from the previous context often become invalid literals in the new context. [Source: Session 2026-07-30, release notes generation step]
 - **Defense-in-Depth vs Script Intent in Docker Volume Mounts**: When a CI workflow mounts a file with `:ro` (read-only) but a script in the container is designed to write back to that path, the build fails with `Read-only file system`. The defensive `:ro` conflicts with the script's clear design intent. **Decision framework**: (1) If the script's writeback is legitimate (e.g., updating an artifact in place), **remove `:ro`** — defense-in-depth should not block trusted code. (2) If the writeback is accidental or a refactor opportunity, **change the mount path or script target**. (3) If neither is acceptable, **use a separate writable mount** for the writeback target. Generalization: when mounting volumes in CI/Docker, audit each mount against the trusted code's intent. Mismatches are a common source of "works locally, fails in CI" bugs. [Source: Session 2026-07-30, packaging step read-only filesystem error]
@@ -66,7 +53,11 @@
 - **Explicit Artifact Cleanup**: On failure branches of packaging steps, explicitly `rm -f` partial archives to guarantee that corrupted zip/tar files cannot leak into subsequent wildcard upload steps. [Source: Session 2026-08-12 Plan Remediation]
 - **Spec Self-Audit Against PRD + Codebase Before Handoff**: Before handing a spec to the Plan phase, verify every integration claim (Makefile wildcard, script interfaces, metadata readers) against the actual code files, not just the PRD — applies Dead-End #4 lesson at the spec level. [Source: Session 2026-08-13 Spec Remediation]
 - **Validate-font Output Inspection**: `Scripts/validate-font` hardcodes `exit 0` before `exit $error`, so its exit code is always 0. Treat `Error in ...` lines in its output as the real failure signal in all validation gates. [Source: Session 2026-08-13 Spec Remediation]
-- **FontForge changeWeight Counter Type Semantics**: `font.changeWeight(stroke_width, type, serif_height, serif_fuzz, counter_type)` — counter_type `"Retain"` (capitalized) preserves inner counters (chosen per PRD GH-006), `"squish"` compresses them, `"Auto"` balances. Signature verified against official FontForge docs. [Source: Session 2026-08-13 Spec Clarification]
+- **FontForge changeWeight Counter Type Semantics**: `font.changeWeight(stroke_width, type, serif_height, serif_fuzz, counter_type)` — counter_type `"retain"` (lowercase per FontForge's case-sensitive `co_types` flaglist) preserves inner counters (chosen per PRD GH-006), `"squish"` compresses them, `"Auto"` balances. Signature verified against official FontForge docs. [Source: Session 2026-08-13 Spec Clarification]
+- **SFNT Weight-String Persistence (finding B-04)**: Generated sources inherit `Weight: Regular` / `Weight: Book` from their inputs unless `font.weight` is set explicitly — FontForge derives SFNT name IDs 3/16/17 from the weight string when explicit records are absent. Always assert `font.weight` in unit tests AND dump the name table from the BUILT binary (not just the `.sfdir` source) to prove SubFamily/Fullname/PostScriptName + `os2_weight` on the shipped artifact. Watch for preferred-family records (ID 16/17) appearing as a side effect of the assignment. [Source: Session 2026-08-16, refactor Phase 1]
+- **GitHub Actions Supply-Chain Hygiene**: Pin `uses:` to full commit SHAs (resolve via GitHub API `<repo>/commits/<tag>`, keep tag+date in a comment). Pin pip installs (`pkg==x.y.z`, matched to the local macro-gate environment); for apt prefer documented baseline acceptance (rolling `ubuntu-latest` + Dockerfile-mirrored lists make apt pins fragile) and always add `rm -rf /var/lib/apt/lists/*` per Dockerfile convention. [Source: Session 2026-08-16, refactor Phase 3]
+- **Sub-Agent Doc-Sync Delegation**: For multi-document syncs, brief each sub-agent with exact old/new text per hunk, forbid unrelated reformatting, and require per-file verification gates (markdownlint exit 0, scoped `git diff`, grep readback). Independently re-verify the diffs after completion — trust but verify. [Source: Session 2026-08-16]
+- **Post-Build SFNT Evidence Record**: Record name-table dumps of built binaries verbatim (License/Copyright boilerplate summarized) in the plan's Execution Results so GH-004-type acceptance criteria are evidenced in-repo. During later doc syncs, leave dated historical rows untouched (plan-as-record). [Source: Session 2026-08-16, refactor Phases 1–2]
 
 ### Dead-Ends (Do NOT Repeat)
 
@@ -87,197 +78,63 @@
 ### Key Metrics & Baselines
 
 <!-- Stable metrics that serve as reference points (test counts, coverage, performance baselines). -->
-- **Test Suite (configure.py)**: 69/69 pytest unit tests passing. [Source: Session 2026-08-12 Phase 4 E2E validation; previously 62/62 at 2026-07-30]
-- **Knowledge Base Size**: 11 Dead-Ends + 37 Architecture & Patterns. [Source: Session 2026-08-13, DE #11 added]
+- **Test Suite**: 83/83 pytest — 69 existing + 14 in `tests/test_generate_medium_source.py` (12 original + 2 `font.weight` tests added in refactor Phase 1). [Source: Session 2026-08-16, verified after every refactor phase]
+- **Knowledge Base Size**: 11 Dead-Ends + 40 Architecture & Patterns (1 retired). [Source: Session 2026-08-16 cleanup]
 - **Plan-Refactor Execution (2026-07-30)**: 16 tasks across 3 phases, all completed in single session; 13/13 acceptance criteria met; pytest 62/62 PASS; CON-001 preserved. [Source: Session 2026-07-30, plan-refactor-code-review v1.0]
 - **Nerd Font Patcher Integration (2026-08-12)**: 32 tasks across 4 phases, all complete; 14/14 acceptance criteria (AC-101..AC-114); `configure.py` WORKFLOW_VERSION 1.4. Feature ready for PR/release merge. [Source: Session 2026-08-12 Phase 4]
 - **End-to-End Build**: 8 iteration cycles to first successful CI run (issues #1–#8). [Source: Session 2026-07-30, first end-to-end run 30520458083]
-- **GitHub Actions Actions Versions**: `actions/checkout@v7` + `actions/setup-python@v6` + `actions/upload-artifact@v4` (Node.js 24 LTS). [Source: Session 2026-07-30]
+- **GitHub Actions Pins (build-make.yml)**: `actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1` (tag v7, 2026-07-17) + `actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02` (tag v4, 2025-03-19); pip `pytest==9.1.1`, `jsonschema==4.26.0`, `future==1.0.0`. `custom-build.yml` remains tag-based (baseline). [Source: Session 2026-08-16, refactor Phase 3]
 - **Custom-build Release Tag Format**: `custom-build-YYYYMMDD-HHMMSS-{run_id}-{run_attempt}` (UTC). [Source: PRD v1.3, Plan v1.2 §TASK-040]
 - **CON-001 (Constraint)**: `Scripts/features.py` is FORBIDDEN to modify (legacy). All environment fixes go in `Dockerfile` or workflow YAML. Verified via `git diff --stat` on legacy files = empty. [Source: Plan v1.2 §CON-001, verified 2026-07-30 plan-refactor]
 - **Variant Permutation Count (build.py)**: 4 actual permutations — Normal, LargeLineHeight, NoLoopK, LargeLineHeight-NoLoopK — the full matrix of the 2 active `Scripts/build.py` options. [Source: Session 2026-08-13 Spec Clarification]
 - **Advance Width Baseline (Monospace Grid)**: 1060 em-units for every glyph (1042 glyphs in `Sources/FantasqueSansMono-Regular.sfdir`). FontForge `ChangeWeight` may drift widths — always re-enforce 1060 after emboldening. [Source: Session 2026-08-13 PRD Remediation]
+- **Medium Weight Remediation (2026-08-16)**: `plan-refactor-medium-weight-v1.0.md` Complete — 23/23 tasks, 4 phases. Doc versions after sync: Spec v1.6, PRD v1.3, plan-design v1.1 (Complete). All changes uncommitted on `feat/medium-font-weight` at session end.
+
+### Retired Knowledge (2026-08-16)
+
+- **Node.js 20 Deprecation in GitHub Actions** *(retired — action completed)*: the repo already runs `actions/checkout@v7` / `setup-python@v6`, and `build-make.yml` actions are now pinned to commit SHAs; the historical deprecation warning is no longer actionable. [Retired from active patterns on 2026-08-16]
 
 ---
 
-## 📝 Session Checkpoint: 2026-08-13 (Plan Creation — Medium Font Weight)
+## 📝 Session Checkpoint: 2026-08-16 (Code-Review Remediation — All 4 Phases Complete)
 
 - **Active Memory Path:** `.agents/instructions/memory.instructions.md`
-- **Current SDLC Phase:** Planning (`/sdlc-plan-tasks`) — Medium Font Weight feature
+- **Current SDLC Phase:** Code Execution (`/sdlc-write-code`) — `plan-refactor-medium-weight-v1.0.md` fully executed
 - **Active Artifacts:**
-  - `plan/plan-design-medium-weight-v1.0.md` — Status: ✅ Created (18 tasks, 4 phases, 9 sections)
-  - `spec/spec-design-medium-weight.md` — Status: ✅ v1.2 Approved (upstream, untouched)
-  - `docs/prd-20260813-0921-medium-font-weight.md` — Status: ✅ v1.2 Approved (upstream, untouched)
+  - `plan/plan-refactor-medium-weight-v1.0.md` — Status: ✅ Complete (23/23 tasks across 4 phases; TASK-404 final sign-off recorded)
+  - `spec/spec-design-medium-weight.md` — Status: ✅ v1.6 (Revision 1.6 documents the remediation sync)
+  - `docs/prd-20260813-0921-medium-font-weight.md` — Status: ✅ v1.3 (`accepted-deviation` markers on GH-001 AC3 / GH-003 AC3)
+  - `plan/plan-design-medium-weight-v1.1.md` — Status: ✅ Complete (Execution Updates + refactor Evidence rows added)
+  - `.github/workflows/build-make.yml` — Status: ✅ SEC-001 hardened (actions pinned to SHAs, pip version-pinned)
 - **Achieved Milestones:**
-  - Full codebase verification before planning: Makefile wildcard, `custom_build_driver.py` `find_sfdirs()`, `generate-css-decl` (os2_weight + italicangle), `zip-all-variants`, `generate-font-variants`, `custom-build.yml`, `packaging.sh` — all zero-touch integration claims validated against real code.
-  - Extracted 2 Spec `[ASSUMPTION]` tags into plan Risks & Assumptions (committed generated sources; 34 em-unit stroke) and flagged dependent tasks (TASK-003, TASK-006, TASK-007, TASK-016) as High Risk.
-  - Unit-test strategy resolved: mock `fontforge` via `sys.modules` injection (CI host runner lacks fontforge).
-  - Memory compaction executed: 3 old Medium Font Weight checkpoints removed after KB promotion.
+  - Phase 1 (SEC-002): `MEDIUM_WEIGHT_NAME = "Medium"` + `font.weight` persisted in the committed sources; SFNT name-table dump of the BUILT TTFs recorded as evidence (SubFamily `Medium` / `Medium Italic`, `os2_weight 500`; RISK-002 clean — no ID 16/17 records).
+  - Phase 2: PRD → v1.3, Spec → v1.6, plan version citations refreshed; Nerd Font §13 caveat `not executed` (option b, user-confirmed); idempotency evidence row added; AC-007 trail recorded as pending (PR not yet opened).
+  - Phase 3 (SEC-001): `build-make.yml` — checkout/upload-artifact pinned to commit SHAs; `pytest==9.1.1` / `jsonschema==4.26.0` / `future==1.0.0`; apt acceptance documented; `rm -rf /var/lib/apt/lists/*` added.
+  - Phase 4 (PRN-001/002): dead `FakeGlyph` scaffolding removed; `_selection_called` deduped into `_operation_log`.
+  - Spec + design-plan doc sync performed via parallel sub-agents (exact-hunk briefs) and verified by the orchestrator.
+  - Test suite 83/83 pytest after every phase; CON-07 zero-touch diff empty throughout.
 - **Dead-Ends (Do NOT Repeat):**
-  - None this session.
+  - None this session. Reuse KB DE #11 (per-glyph `intersect()`) — the plan-exact pipeline was kept untouched.
 - **Updated Files:**
-  - `plan/plan-design-medium-weight-v1.0.md` — created (v1.0, Planned)
-  - `.agents/instructions/memory.instructions.md` — checkpoint saved; 3 old checkpoints compacted per user request
+  - `Scripts/generate-medium-source.py` — `MEDIUM_WEIGHT_NAME` + `font.weight`; spec citations → v1.6
+  - `tests/test_generate_medium_source.py` — +2 weight tests, order test extended, scaffolding removed (14 script tests)
+  - `Sources/FantasqueSansMono-Medium.sfdir/font.props` + `Sources/FantasqueSansMono-MediumItalic.sfdir/font.props` — `Weight: Medium` (regenerated, metadata-only diff)
+  - `docs/prd-20260813-0921-medium-font-weight.md` — v1.3
+  - `spec/spec-design-medium-weight.md` — v1.6
+  - `plan/plan-design-medium-weight-v1.1.md` — Execution Updates + Evidence rows
+  - `plan/plan-refactor-medium-weight-v1.0.md` — Complete (23/23)
+  - `.github/workflows/build-make.yml` — SEC-001 hardening
 - **Decisions Made:**
-  - Plan phasing: 4 tracer-bullet phases (Script+Medium → Italic+Commit → Integration verification → Visual QA+final gate); all tasks sized S (1–2 files); Ref IDs mapped to Spec REQ/CON/GUD + PRD GH-001..GH-008.
-  - Rollback = remove the sources commit (zero-touch pipeline returns to the 4-weight state automatically).
+  - apt installs left version-unpinned (mirrors Dockerfile Stages 1/2; `ubuntu-latest` rolling) with documented acceptance — pip pinned instead.
+  - Nerd Font evidence gap closed via Spec §13 caveat (dispatch deferred; external).
+  - AC-007 external trail = pending PR reference (user choice).
+  - Memory cleanup: 5 old 2026-08-13 checkpoints deleted; KB history condensed; 1 outdated pattern retired (user request).
 - **Next Action / Pending:**
-  - User to choose (new session required): `/sdlc-clarify-reqs` on `@plan/plan-design-medium-weight-v1.0.md`, or direct `/sdlc-write-code` execution (Human Override).
-  - Carryover: Nerd Font Patcher feature 100% complete, ready for PR/release merge.
+  - Handoff: invoke `/sdlc-code-review` in a NEW session (strict session isolation) to review the remediation.
+  - All changes UNCOMMITTED on `feat/medium-font-weight` — commit awaits explicit user instruction.
+  - When the PR opens: attach the AC-007 review reference (Execution Results row `⏳`).
+  - Optional: `custom-build` dispatch with `NerdFontPatching=true` to close the Spec §13 caveat.
 
-<!-- checkpoint-tail: Plan medium-font-weight v1.0 created (4 phases, 18 tasks); zero-touch pipeline verified; next: clarify plan or write code in new session. -->
-
----
-
-## 📝 Session Checkpoint: 2026-08-13 (Spec Remediation Round 2 + Lint Validation Block)
-
-- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
-- **Current SDLC Phase:** Specification (`/sdlc-define-specs`) — Substantively remediated, BLOCKED for lint validation
-- **Active Artifacts:**
-  - `spec/spec-design-medium-weight.md` — Status: ⚠️ v1.2 Substantively remediated (5 surgical edits + §1.2 callout fix); lint validation **Suppressed/Not assessed** (pre-existing `<!-- markdownlint-disable -->`; content NOT verified by markdownlint — do NOT interpret as lint-clean)
-  - `docs/audit/clarification-report-medium-font-weight-2026-08-13.md` — Status: ⚠️ Updated (consolidated marker + line 22/36/146/154 consistency fixes); lint validation **BLOCKED, origin unverified** (79 diagnostics, exit 1; baseline unavailable for "pre-existing" claim)
-  - `docs/prd-20260813-0921-medium-font-weight.md` — Status: ⚠️ v1.2 (substantive content from prior session, untouched in this session); lint validation **BLOCKED, origin unverified** (107 diagnostics, exit 1; baseline unavailable for "entirely pre-existing" claim)
-  - `plan/plan-design-medium-weight-v1.0.md` — Status: ✅ Created in separate session (4 phases, 18 tasks)
-- **Achieved Milestones:**
-  - Spec v1.1 → v1.2: 5 surgical edit blocks (T-1 variant permutations, T-2 `counter_type="Retain"`, T-4 italic detection via `os.path.basename().startswith()`)
-  - §1.2 callout fix: separated 2nd ASSUMPTION into its own `> [!WARNING]` block (was leaking into NOTE block)
-  - Audit report consistency: 4 lines updated (22, 36, 146, 154) to remove internal contradictions
-  - Consolidated "ALL FINDINGS RESOLVED" block added at top of audit report
-  - Lint verification executed properly: `markdownlint` with `set -o pipefail` + explicit status capture
-- **Dead-Ends (Do NOT Repeat):**
-  - **Attempted:** Claim "Final Handoff — Valid" based on grep-only validation
-    - **Reason:** Grep only checks for keyword presence; doesn't validate markdown structure (line length, blockquote blanks, emphasis style)
-    - **Correct Solution:** Use `markdownlint` (or equivalent) for all Markdown artifacts. Always propagate exit code properly with explicit status capture (`cmd; status=$?`), not pipeline final command.
-  - **Attempted:** Claim "pre-existing lint issues" without baseline
-    - **Reason:** Files are untracked in git (`??` status); no previous commit to diff against
-    - **Correct Solution:** When claiming pre-existing, establish baseline via git, saved snapshot, or explicit reconstruction. Otherwise retract the claim.
-  - **Attempted:** Use `| head -100; echo "---EXIT: $?---"` to check lint exit code
-    - **Reason:** `$?` captures exit code of `echo` (= 0), not the lint tool
-    - **Correct Solution:** Use `cmd > file 2>&1; status=$?` pattern, or `set -o pipefail` with explicit `exit "$status"` at the end.
-  - **Attempted:** Propose `<!-- markdownlint-disable -->` to make audit/PRD lint-clean
-    - **Reason:** User advisory: "itu hanya menyembunyikan error dan tidak memenuhi mandat 'artefak harus lolos lint'"
-    - **Correct Solution:** Either fix the lines to comply, or create explicit `.markdownlint.json` config (not hide via per-file disable).
-- **Updated Files:**
-  - `spec/spec-design-medium-weight.md` — v1.1 → v1.2 (5 surgical edits + §1.2 fix)
-  - `docs/audit/clarification-report-medium-font-weight-2026-08-13.md` — Top consolidated block + line 22/36/146/154 updates
-  - `.agents/instructions/memory.instructions.md` — new checkpoint entry (this)
-- **Decisions Made:**
-  - Spec projected score 96/100 (Completeness 37/40, Clarity 29/30, Alignment 30/30)
-  - `counter_type="Retain"` (capitalized per FontForge docs) for ChangeWeight
-  - Italic detection via `os.path.basename(input_sfdir).startswith("FantasqueSansMono-Italic")` (replaces substring heuristic)
-  - Audit report consistency: changed "Spec author: fix" to "Subsequent remediation ... resolved in PRD/Spec v1.2"
-  - **User decision (escalation):** Stop lint cleanup, save to memory, escalate to user for discretion
-- **Next Action / Pending:**
-  - Lint validation BLOCKED:
-    - spec: **Suppressed/Not assessed** (0 diagnostics reported due to pre-existing `<!-- markdownlint-disable -->` — content NOT verified by markdownlint; do NOT interpret as lint-clean)
-    - audit: **lint validation BLOCKED, origin unverified** (79 diagnostics, exit 1; baseline unavailable for "pre-existing" claim; MD013 + MD028 + MD041 + MD049 + MD024 reported)
-    - PRD: **lint validation BLOCKED, origin unverified** (107 diagnostics, exit 1; baseline unavailable for "entirely pre-existing" claim; not edited in this session)
-  - Files untracked in git; baseline unavailable for definitive pre-existing claim
-  - **User chose Opsi 4:** Stop, save progress, escalate to user for discretion
-  - User discretion needed: (a) create `.markdownlint.json` with relaxed rules, (b) reformat all pre-existing content, (c) accept lint FAIL, (d) override via `Human Override Primacy` AGENTS.md Rule #1
-  - Carryover: Nerd Font Patcher feature (2026-08-12) 100% complete, menunggu PR/release merge
-
-<!-- checkpoint-tail: Spec v1.2 substantively remediated (96/100 projected) but lint validation BLOCKED/SUPPRESSED on all 3 docs: spec Suppressed/Not assessed (pre-existing markdownlint-disable), audit=79 + PRD=107 diagnostics (origin unverified, baseline unavailable) — user chose to stop and escalate. -->
-
----
-
-## 📝 Session Checkpoint: 2026-08-13 (Plan Clarification & Remediation)
-
-- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
-- **Current SDLC Phase:** Planning / Clarification (`/sdlc-clarify-reqs` & `/sdlc-plan-tasks`)
-- **Active Artifacts:**
-  - `plan/plan-design-medium-weight-v1.1.md` — Status: ✅ Finalized (Score: 100/100)
-  - `docs/audit/clarification-report-plan-medium-weight-2026-08-13.md` — Status: ✅ Resolved
-  - `docs/audit/clarification-report-medium-font-weight-2026-08-13.md` — Status: ✅ Plan Implementation Verified
-- **Achieved Milestones:**
-  - Clarified Implementation Plan with Readiness Score of 97/100 (promoted to 100/100 post-remediation).
-  - Selected Option B for Phase 2: Commits MUST go to a temporary feature branch, not `main`, allowing safe `amend` or `squash` if Phase 4 Visual QA requires manual tuning (prevents polluting canonical history).
-  - Formalized plan to v1.1. Upgraded path guards (`os.path.normpath`, `os.path.abspath`) for edge cases.
-  - Marked both Plan and Spec audit reports as REMEDIATED/RESOLVED.
-- **Dead-Ends (Do NOT Repeat):**
-  - None this session.
-- **Updated Files:**
-  - `docs/audit/clarification-report-plan-medium-weight-2026-08-13.md` — created and marked resolved
-  - `plan/plan-design-medium-weight-v1.1.md` — renamed and updated from v1.0
-  - `docs/audit/clarification-report-medium-font-weight-2026-08-13.md` — added PLAN IMPLEMENTATION STATUS
-- **Decisions Made:**
-  - Commit target changed to temporary feature branch.
-- **Next Action / Pending:**
-  - Proceed to **Phase 6: Code Execution**.
-  - User needs to invoke `/sdlc-write-code` in a new session.
-  - *Note:* Lint validation issue from previous session (markdownlint block) remains pending user discretion.
-
-<!-- checkpoint-tail: Plan v1.1 finalized (100/100) with feature-branch commit strategy. Audit reports marked resolved. Next: /sdlc-write-code. -->
-
----
-
-## 📝 Session Checkpoint: 2026-08-13 (Phase 1 Execution — Medium Font Weight)
-
-- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
-- **Current SDLC Phase:** Code Execution (`/sdlc-write-code`) — Medium Font Weight, Phase 1 complete, awaiting approval for Phase 2
-- **Active Artifacts:**
-  - `plan/plan-design-medium-weight-v1.1.md` — Status: ✅ Executing (Phase 1 done; erratum applied this session)
-  - `spec/spec-design-medium-weight.md` — Status: ✅ v1.2 + erratum `"Retain"` → `"retain"` applied this session
-  - `Scripts/generate-medium-source.py` — Status: ✅ Created + tested (81/81 pass)
-  - `Sources/FantasqueSansMono-Medium.sfdir/` — Status: ✅ Generated (1043 files, baseline-parity validation)
-- **Achieved Milestones:**
-  - TASK-001..TASK-004 complete: script, unit tests (12 new), Medium upright source generated and verified.
-  - FontForge environment verified: `D:/Aplikasi/FontForgeBuilds/bin/ffpython.exe` (Python 3.12.11) + `fontforge.exe` for `validate-font` PATH.
-  - Zero-touch verified: `git diff --stat` on CON-07 forbidden files is empty.
-  - Idempotency verified: only `font.props ModificationTime` differs between two runs (CON-05 permitted).
-- **Dead-Ends (Do NOT Repeat):**
-  - **Attempted:** Plan-mandated font-level cleanup only (`changeWeight` → `font.removeOverlap()` → `font.simplify()`).
-  - **Reason:** 252 glyphs remained `selfIntersects()`; `removeOverlap` only handles cross-contour overlap, not self-intersection within one contour. `counter_type="Retain"` (capitalized) is rejected by FontForge's case-sensitive `co_types` flaglist (`ValueError`).
-  - **Correct Solution:** `"retain"` lowercase + per-glyph `removeOverlap()` → `intersect()` → `round()` (user-approved deviation). Result: 0 self-intersects, validation profile = baseline parity (only inherited `Bad Glyph Name` on `slash_asterisk_asterisk_slash.liga`).
-- **Updated Files:**
-  - `Scripts/generate-medium-source.py` — created (REQ/CON/GUD compliant + approved cleanup deviation)
-  - `tests/test_generate_medium_source.py` — created (12 tests, mock `fontforge` via `sys.modules` + `spec_from_file_location` for hyphenated module name)
-  - `Sources/FantasqueSansMono-Medium.sfdir/` — generated from Regular
-  - `spec/spec-design-medium-weight.md` — erratum: `"Retain"` → `"retain"` (3 occurrences) + revision note
-  - `plan/plan-design-medium-weight-v1.1.md` — erratum: `"Retain"` → `"retain"` (4 occurrences) + revision note
-- **Decisions Made:**
-  - `counter_type="retain"` (lowercase) — verified against `fontforge/python.cpp` `co_types` flaglist (case-sensitive).
-  - Per-glyph `removeOverlap()` + `intersect()` + `round()` cleanup — user-approved minimal deviation for baseline-parity validation.
-  - `validate-font` "no `Error in`" gate is unachievable for ANY source (baseline Regular/Bold also fail on inherited `Bad Glyph Name` ligature) — documented as planning defect, not implementation failure.
-  - Nothing committed; git commit awaits explicit user instruction (Git Protocol).
-- **Next Action / Pending:**
-  - User decision: PROCEED to Phase 2 (TASK-006..TASK-009: Medium Italic + feature-branch commit) or REFINE Phase 1 first.
-  - Spec/Plan erratum could later be formalized via `/sdlc-define-specs` version bump if user wants full SDLC traceability.
-
-<!-- checkpoint-tail: Phase 1 Medium executed (81 tests, baseline-parity source, lowercase retain + per-glyph intersect/round cleanup); awaiting user approval for Phase 2. -->
-
----
-
-## 📝 Session Checkpoint: 2026-08-13 (Phase 2 Execution — Medium Italic Done, Paused Before TASK-007)
-
-- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
-- **Current SDLC Phase:** Code Execution (`/sdlc-write-code`) — Medium Font Weight Phase 2, paused before TASK-007 per user instruction
-- **Active Artifacts:**
-  - `plan/plan-design-medium-weight-v1.1.md` — Status: ✅ Updated to match implementation (Execution Update block; TASK-001..TASK-006 marked ✅ 2026-08-13)
-  - `spec/spec-design-medium-weight.md` — Status: ⚠️ Revision 1.3 note still describes the REVERTED per-glyph cleanup deviation — needs correction by `/sdlc-define-specs` or user override
-  - `Scripts/generate-medium-source.py` — Status: ✅ Plan-exact pipeline (reverted from broken per-glyph intersect cleanup)
-  - `tests/test_generate_medium_source.py` — Status: ✅ 11 tests, total suite 80/80 passing
-  - `Sources/FantasqueSansMono-Medium.sfdir/` — Status: ✅ Regenerated (1043 files, geometry preserved)
-  - `Sources/FantasqueSansMono-MediumItalic.sfdir/` — Status: ✅ Generated (1047 files, italicangle -11.0 preserved)
-- **Achieved Milestones:**
-  - TASK-006 complete: Medium Italic generated with correct SFNT metadata (Family/SubFamily/Fullname/PostScriptName per Spec §4.2), `os2_weight == 500`, `italicangle == -11.0` preserved from Italic source.
-  - CRITICAL correction: the previously approved per-glyph `intersect()` cleanup destroyed 661 glyph outlines (Boolean intersect semantics) — reverted to plan-exact pipeline and both sources regenerated. See KB Dead-End #11.
-  - Foreground-preservation audits pass: truly-empty glyphs match baseline exactly (upright: 3 = space/uni00A0/uni0310; italic: 6 = +uniE0E2/uniE0E3/uniE0E4).
-  - Width audit: 0 glyphs with `width != 1060` on both sources. TTF smoke check compiles both sources.
-- **Dead-Ends (Do NOT Repeat):**
-  - See KB Dead-End #11 (per-glyph intersect destroys non-overlapping contours).
-- **Updated Files:**
-  - `Scripts/generate-medium-source.py` — reverted to plan-exact: `changeWeight(34, "LCG", 0, 0, "retain")` → font-level `removeOverlap()` + `simplify()` → width 1060
-  - `tests/test_generate_medium_source.py` — removed per-glyph cleanup test; 80/80 passing
-  - `Sources/FantasqueSansMono-Medium.sfdir/` + `Sources/FantasqueSansMono-MediumItalic.sfdir/` — regenerated with corrected script
-  - `plan/plan-design-medium-weight-v1.1.md` — Execution Update block + task completion marks
-- **Decisions Made:**
-  - Residual self-intersections (252 upright / 465 italic glyphs via fresh `selfIntersects()`) are a documented limitation of algorithmic `ChangeWeight` on this font — deferred to Phase 4 visual QA (TASK-016) per Spec §12 risk model.
-  - MediumItalic TTF compilation emits `Internal Error: Attempt to output -35153 into a 16-bit field` — flagged for visual QA attention.
-- **Next Action / Pending:**
-  - USER DECISION REQUIRED on TASK-007 (create temporary feature branch + commit script/tests/sources/docs).
-  - After TASK-007: TASK-008 verification gate, then TASK-009 approval before Phase 3 (CI verification via test fork).
-
-<!-- checkpoint-tail: Phase 2 paused at TASK-007: MediumItalic generated + intersect deviation reverted (KB DE #11), both sources regenerated with preserved geometry, 80/80 tests; waiting user confirmation to create feature branch and commit. -->
+<!-- checkpoint-tail: plan-refactor-medium-weight-v1.0.md COMPLETE (23/23, 2026-08-16): SFNT naming evidenced, docs synced (PRD 1.3 / Spec 1.6), workflow hardened, scaffolding cleaned; uncommitted on feat/medium-font-weight; next = /sdlc-code-review in new session. -->
 
 ---

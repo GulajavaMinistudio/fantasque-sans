@@ -2,7 +2,7 @@ SplineFontDB: 3.2
 FontName: FantasqueSansMono-MediumItalic
 FullName: Fantasque Sans Mono Medium Italic
 FamilyName: Fantasque Sans Mono
-Weight: Book
+Weight: Medium
 Copyright: Created by Jany Belluz with FontForge 2.0 (http://fontforge.sf.net)
 UComments: "2013-9-13: Created."
 Version: 1.8.0
@@ -22,7 +22,7 @@ OS2Version: 3
 OS2_WeightWidthSlopeOnly: 1
 OS2_UseTypoMetrics: 1
 CreationTime: 1379052706
-ModificationTime: 1786612415
+ModificationTime: 1786862193
 PfmFamily: 49
 TTFWeight: 500
 TTFWidth: 5

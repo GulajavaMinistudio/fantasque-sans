@@ -48,22 +48,15 @@ generate_medium_source = _load_script()
 
 
 class FakeGlyph:
-    """Minimal stand-in for a ``fontforge.glyph``."""
+    """Minimal stand-in for a ``fontforge.glyph``.
+
+    The script only writes ``glyph.width`` on each glyph; the per-glyph
+    ``removeOverlap``/``intersect``/``round`` scaffolding was removed with
+    the reverted cleanup approach (plan-refactor PRN-001).
+    """
 
     def __init__(self, width=1000):
         self.width = width
-        self.remove_overlap_calls = 0
-        self.intersect_calls = 0
-        self.round_calls = 0
-
-    def removeOverlap(self):
-        self.remove_overlap_calls += 1
-
-    def intersect(self):
-        self.intersect_calls += 1
-
-    def round(self):
-        self.round_calls += 1
 
 
 class _FakeSelection:
@@ -73,7 +66,7 @@ class _FakeSelection:
         self._font = font
 
     def all(self):
-        self._font._selection_called = True
+        self._font._operation_log.append(("selection.all",))
 
 
 class FakeFont:
@@ -90,7 +83,6 @@ class FakeFont:
         # A stable glyph list: the script must mutate these exact instances.
         self._glyphs = [FakeGlyph() for _ in range(3)]
         self.selection = _FakeSelection(self)
-        self._selection_called = False
         self._change_weight_calls = []
         self._remove_overlap_calls = 0
         self._simplify_calls = 0
@@ -201,6 +193,18 @@ class TestUprightGeneration:
             "FantasqueSansMono-Medium",
         ) in font.sfnt_names
 
+    def test_weight_name_set_for_upright_input(self, fake_fontforge):
+        """SEC-002: the upright output must not inherit ``Weight: Regular``."""
+        fake, script = fake_fontforge
+        _run_main(
+            [
+                "Sources/FantasqueSansMono-Regular.sfdir",
+                "Sources/FantasqueSansMono-Medium.sfdir",
+            ],
+            script,
+        )
+        assert fake.fonts[0].weight == "Medium"
+
 
 class TestItalicDetection:
     """REQ-03: italic input is detected by basename prefix."""
@@ -229,6 +233,18 @@ class TestItalicDetection:
             "FantasqueSansMono-MediumItalic",
         ) in font.sfnt_names
 
+    def test_weight_name_set_for_italic_input(self, fake_fontforge):
+        """SEC-002: the italic output must not inherit ``Weight: Book``."""
+        fake, script = fake_fontforge
+        _run_main(
+            [
+                "Sources/FantasqueSansMono-Italic.sfdir",
+                "Sources/FantasqueSansMono-MediumItalic.sfdir",
+            ],
+            script,
+        )
+        assert fake.fonts[0].weight == "Medium"
+
     def test_italic_detection_uses_normpath_basename(self, fake_fontforge):
         fake, script = fake_fontforge
         assert (
@@ -255,18 +271,23 @@ class TestGeometryPipeline:
 
         font = fake.fonts[0]
         assert font._change_weight_calls == [(34, "LCG", 0, 0, "retain")]
-        assert font._selection_called is True
+        assert ("selection.all",) in font._operation_log
         assert font._remove_overlap_calls == 1
         assert font._simplify_calls == 1
 
     def test_geometry_operations_run_in_plan_order(self, fake_fontforge):
-        """CON-03: embolden must precede font-level cleanup at runtime."""
+        """CON-03: selection must precede embolden, then font-level cleanup."""
         fake, script = fake_fontforge
         _run_main(["in.sfdir", "out.sfdir"], script)
 
         font = fake.fonts[0]
         ops = [op for op, *_ in font._operation_log]
-        assert ops == ["changeWeight", "removeOverlap", "simplify"]
+        assert ops == [
+            "selection.all",
+            "changeWeight",
+            "removeOverlap",
+            "simplify",
+        ]
 
     def test_every_glyph_width_set_to_1060(self, fake_fontforge):
         fake, script = fake_fontforge

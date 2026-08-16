@@ -39,10 +39,16 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        # Pinned to commit SHA (tag v7, 2026-07-17) — supply-chain hygiene
+        # per plan-refactor-medium-weight-v1.0.md SEC-001 (finding A-01).
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
 
       - name: Install build toolchain
         run: |
+          # apt packages stay version-unpinned: the list mirrors the Dockerfile
+          # toolchain (Stages 1/2, itself unpinned) and the runner image
+          # (ubuntu-latest) is rolling, so pinned apt versions would go stale.
+          # SEC-001 acceptance: baseline-consistent (TASK-302).
           sudo apt-get update
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
             fontforge \
@@ -53,10 +59,17 @@ jobs:
             woff2 \
             zip \
             tar
+          # Cache cleanup convention matches Dockerfile Stages 1/2.
+          sudo rm -rf /var/lib/apt/lists/*
           # sudo: the runner user is non-root and pip is PEP 668 externally
           # managed; --break-system-packages + root installs to system
           # site-packages (visible to fontforge's embedded Python).
-          sudo pip3 install --break-system-packages --no-cache-dir pytest jsonschema future
+          # pip packages are version-pinned (SEC-001, finding A-02); versions
+          # match the local macro-gate environment as of 2026-08-16.
+          sudo pip3 install --break-system-packages --no-cache-dir \
+            pytest==9.1.1 \
+            jsonschema==4.26.0 \
+            future==1.0.0
 
       - name: Run unit tests (macro gate)
         run: python3 -m pytest tests/ -v
@@ -67,7 +80,8 @@ jobs:
           make
 
       - name: Upload Variants
-        uses: actions/upload-artifact@v4
+        # Pinned to commit SHA (tag v4, 2025-03-19) — SEC-001 (finding A-01).
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: standard-build-variants-${{ github.run_id }}-${{ github.run_attempt }}
           path: Variants/

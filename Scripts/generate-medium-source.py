@@ -4,9 +4,9 @@
 This standalone script emboldens an existing ``.sfdir`` source via FontForge's
 ``ChangeWeight`` API and writes the result to a new output directory. It is run
 manually once by the maintainer and is never executed inside the CI pipeline
-(Spec v1.2 ASSUMPTION-001).
+(Spec v1.6 ASSUMPTION-001).
 
-Contract (Spec v1.2 section 4):
+Contract (Spec v1.6 section 4):
     python generate-medium-source.py <input.sfdir> <output.sfdir>
 
 Requirements covered: REQ-01, REQ-02, REQ-03
@@ -31,11 +31,16 @@ COUNTER_TYPE = "retain"
 MONOSPACE_WIDTH = 1060
 # Target CSS weight for the Medium variant (CON-04).
 MEDIUM_WEIGHT = 500
+# FontForge weight name for the Medium variant (Spec section 4.2).
+# FontForge derives SFNT name IDs 3/16/17 from this string when the
+# explicit name records are absent; the upright source would otherwise
+# keep inheriting "Weight: Regular" from its input.
+MEDIUM_WEIGHT_NAME = "Medium"
 
 FAMILY_NAME = "Fantasque Sans Mono"
 ITALIC_PREFIX = "FantasqueSansMono-Italic"
 
-# SFNT name metadata per Spec v1.2 section 4.2.
+# SFNT name metadata per Spec v1.6 section 4.2.
 UPRIGHT_NAMES = {
     "fontname": "FantasqueSansMono-Medium",
     "fullname": "Fantasque Sans Mono Medium",
@@ -66,6 +71,7 @@ def generate_medium(input_sfdir, output_sfdir):
 
     # Weight and family metadata (CON-04, Spec section 4.2).
     font.os2_weight = MEDIUM_WEIGHT
+    font.weight = MEDIUM_WEIGHT_NAME
     font.familyname = FAMILY_NAME
     font.fontname = names["fontname"]
     font.fullname = names["fullname"]

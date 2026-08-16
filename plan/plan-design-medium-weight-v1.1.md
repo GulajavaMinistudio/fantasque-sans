@@ -2,7 +2,7 @@
 goal: Medium Font Weight — Generate, commit, and verify Medium (500) and Medium Italic sources through the zero-touch build pipeline
 version: 1.1
 date_created: 2026-08-13
-last_updated: 2026-08-14
+last_updated: 2026-08-16
 owner: Planner Architect
 status: Complete
 tags: [font, design, medium-weight, python, fontforge, build]
@@ -21,7 +21,10 @@ tags: [font, design, medium-weight, python, fontforge, build]
 > **Execution Update (2026-08-14, Phase 2 close):** TASK-008 gate (a) granted explicit maintainer exception: `validate-font` `Error in` profile = inherited ligature glyph-name (baseline) + documented `ChangeWeight` artifacts deferred to TASK-016 (Spec §12). Hygiene fixes applied: duplicate 1060-width enforcement loop removed; runtime geometry-operation order test added. Suite: 81/81 pytest PASS (explicit exit-code capture). **Git note (deviation):** the Medium `.sfdir` sources were committed to `master` historically (commits `064ce5ae`/`8c99b0be`, prior session) — a deviation from Option B (temporary feature branch) left un-rewritten. Only new commits from this session (hygiene fixes `121476e4`, plan-record commits) are on the temporary feature branch `feat/medium-font-weight`; `origin/master` was not rewritten (no force-push). **Plan-as-Record:** document synced 2026-08-14 to the implemented state (task status columns, test counts, execution notes).
 > **Execution Update (2026-08-14, feature complete):** All 18 tasks across Phases 1–4 complete. AC-001..AC-007 closed: Medium + Medium Italic sources generated (`os2_weight=500`, `italicangle=-11.0` preserved), unit suite 81/81, AC-006 via `custom-build`, AC-003/004/005 via `build-make.yml` (standard `make`), visual QA signed off by maintainer. Persistent documented caveats: `validate-font` profile (inherited ligature + `ChangeWeight` artifacts) accepted by maintainer exception (TASK-004(b)/TASK-008(a)/TASK-017(b)); TASK-007 sources committed to `master` (Option B deviation, left un-rewritten); residual self-intersections (252 upright / 465 italic) visually accepted.
 
-This plan implements the **Medium Font Weight** feature as defined in the approved Technical Specification `spec/spec-design-medium-weight.md` (v1.2) and PRD `docs/prd-20260813-0921-medium-font-weight.md` (v1.2).
+> **Execution Update (2026-08-16, code-review remediation Phases 1–2):** `plan-refactor-medium-weight-v1.0.md` Phases 1–2 executed. Phase 1 (SEC-002): `font.weight = "Medium"` persisted in the committed sources — stale `Weight: Regular` / `Weight: Book` inheritance eliminated (finding B-04 closed); SFNT name-table dump of the built TTFs recorded in the Execution Results below (GH-004 AC1/AC3; RISK-002 clean). Phase 2: PRD → v1.3 with `accepted-deviation` markers (GH-001 AC3, GH-003 AC3), Spec → v1.6 (AC-006 wording, §13 Nerd Font caveat `not executed`, §1.1 canonical CON-07 list), version citations refreshed. Test suite now 83/83 (14 script tests).
+> **Execution Update (2026-08-16, code-review remediation Phases 3–4 — complete):** Phase 3 (SEC-001): `build-make.yml` supply chain hardened — `actions/checkout@v7` and `actions/upload-artifact@v4` pinned to commit SHAs (with tag/date comments), `pytest`/`jsonschema`/`future` version-pinned (`9.1.1` / `4.26.0` / `1.0.0`), apt list kept baseline-unpinned (mirrors Dockerfile Stages 1/2) with documented acceptance + `rm -rf /var/lib/apt/lists/*` cache cleanup. Phase 4 (PRN-001/002): dead `FakeGlyph` scaffolding from the reverted `intersect()` approach removed; `_selection_called` boolean replaced by `_operation_log`-based assertion. All 23/23 refactor tasks complete (TASK-404 final sign-off recorded); plan status `Complete`.
+
+This plan implements the **Medium Font Weight** feature as defined in the approved Technical Specification `spec/spec-design-medium-weight.md` (v1.6) and PRD `docs/prd-20260813-0921-medium-font-weight.md` (v1.3).
 
 The feature introduces a Medium (CSS weight 500) and Medium Italic variant to the Fantasque Sans Mono family. A single standalone Python script (`Scripts/generate-medium-source.py`) algorithmically emboldens the existing Regular and Italic sources via FontForge's `ChangeWeight` API. The resulting `.sfdir` sources are committed directly to the repository, after which the existing Makefile wildcard, variant builder, CSS declaration generator, packaging scripts, and CI/CD pipeline compile and distribute the new variants with **zero modifications** to the core build infrastructure.
 
@@ -129,6 +132,52 @@ Authoritative completion record for Phase 3/4. The per-phase tables above are sy
 | TASK-016 | ✅ | 2026-08-14 | Visual QA sign-off (maintainer, FontForge) — AC-007 |
 | TASK-017 | ✅ | 2026-08-14 | Final gate; `validate-font` accepted via documented exception |
 | TASK-018 | ✅ | 2026-08-14 | Final approval (explicit user) |
+| TASK-104 (refactor v1.0) | ✅ | 2026-08-16 | SFNT name-table dump on built TTFs — GH-004 AC1/AC3 (subsection below) |
+| TASK-202 (refactor v1.0) | ✅ | 2026-08-16 | Nerd Font evidence gap closed via option (b): Spec §13 caveat `not executed` (P2 optional, TASK-013(c)) |
+| TASK-203 (refactor v1.0) | ✅ | 2026-08-16 | Idempotency re-verified: TASK-103 regeneration diff changed only `Weight:` + `ModificationTime` lines in `font.props`; zero `.glyph` files touched |
+| TASK-207 (refactor v1.0) | ⏳ | 2026-08-16 | AC-007 external trail **pending**: PR review/approval reference will be attached when the PR for `feat/medium-font-weight` is opened (visual QA sign-off: maintainer, FontForge, 2026-08-14) |
+| Refactor v1.0 (final) | ✅ | 2026-08-16 | All 4 phases complete, 23/23 tasks: Phase 3 pinned actions/pip in `build-make.yml` (SEC-001); Phase 4 removed dead test scaffolding (PRN-001/002). See `plan-refactor-medium-weight-v1.0.md` (status `Complete`). |
+
+### SFNT Name-Table Dump Evidence (2026-08-16)
+
+Post-build verification for `plan-refactor-medium-weight-v1.0.md` TASK-104
+(GH-004 AC1/AC3, SEC-002). Both TTFs were exported from the regenerated
+`.sfdir` sources with FontForge (`ffpython.exe`, Python 3.12.11) and
+re-opened for the dump. Copyright and License records are unchanged
+inherited boilerplate and are therefore summarized, not reproduced.
+
+Built `FantasqueSansMono-Medium.ttf`:
+
+```text
+os2_weight: 500
+('English (US)', 'Family', 'Fantasque Sans Mono')
+('English (US)', 'SubFamily', 'Medium')
+('English (US)', 'UniqueID', 'FontForge 2.0 : Fantasque Sans Mono Medium : 16-8-2026')
+('English (US)', 'Fullname', 'Fantasque Sans Mono Medium')
+('English (US)', 'Version', 'Version 1.8.0')
+('English (US)', 'PostScriptName', 'FantasqueSansMono-Medium')
+('English (US)', 'Designer', 'Jany Belluz')
+('English (US)', 'License URL', 'http://scripts.sil.org/OFL')
+```
+
+Built `FantasqueSansMono-MediumItalic.ttf`:
+
+```text
+os2_weight: 500
+('English (US)', 'Family', 'Fantasque Sans Mono')
+('English (US)', 'SubFamily', 'Medium Italic')
+('English (US)', 'UniqueID', 'FontForge 2.0 : Fantasque Sans Mono Medium Italic : 16-8-2026')
+('English (US)', 'Fullname', 'Fantasque Sans Mono Medium Italic')
+('English (US)', 'Version', 'Version 1.8.0')
+('English (US)', 'PostScriptName', 'FantasqueSansMono-MediumItalic')
+('English (US)', 'Designer', 'Jany Belluz')
+('English (US)', 'License URL', 'http://scripts.sil.org/OFL')
+```
+
+GH-004 AC1: `os2_weight == 500` and SubFamily `Medium` / `Medium Italic`
+verified on the built binaries. GH-004 AC3: Family, Fullname, and
+PostScriptName all correct. No Preferred Family/Styles (name ID 16/17)
+records are present, so RISK-002 did not materialize.
 
 ## 3. Alternatives
 
@@ -159,11 +208,11 @@ Authoritative completion record for Phase 3/4. The per-phase tables above are sy
 
 ### Micro-Level (Per-Change Unit Tests)
 
-- **TEST-001**: `tests/test_generate_medium_source.py` — CLI argument contract (REQ-02), input/output path guard (CON-06), metadata mapping for upright and italic (Spec §4.2), `changeWeight(34, "LCG", 0, 0, "retain")` call, `removeOverlap`/`simplify` invocation and runtime order (CON-03), width enforcement to 1060 (CON-02), save-target correctness. Runs without a real `fontforge` (mock module injection).
+- **TEST-001**: `tests/test_generate_medium_source.py` — CLI argument contract (REQ-02), input/output path guard (CON-06), metadata mapping for upright and italic incl. `font.weight == "Medium"` (Spec §4.2), `changeWeight(34, "LCG", 0, 0, "retain")` call, `removeOverlap`/`simplify` invocation and runtime order incl. `selection.all()` (CON-03), width enforcement to 1060 (CON-02), save-target correctness. Runs without a real `fontforge` (mock module injection).
 
 ### Macro-Level (Full Suite Gate)
 
-- **TEST-002**: `python -m pytest tests/ -v` — ALL tests (69 existing + 12 new = 81) pass with 0 failures before each phase is declared complete.
+- **TEST-002**: `python -m pytest tests/ -v` — ALL tests (69 existing + 14 new = 83) pass with 0 failures before each phase is declared complete.
 
 ### Validation & Integration
 
@@ -173,7 +222,7 @@ Authoritative completion record for Phase 3/4. The per-phase tables above are sy
 - **TEST-006**: `make clean && make` — all 4 Variant permutations compile, including WOFF/WOFF2 (AC-003).
 - **TEST-007**: CSS declaration assertions — `font-weight: 500`, correct `font-style`, `.woff2`/`.woff` in `src` (AC-004).
 - **TEST-008**: Archive contents — `unzip -l` shows Medium TTF/OTF/WOFF/WOFF2 in all 4 Variant archives (AC-005).
-- **TEST-009**: Workflow dispatch on a test fork — release artifact contains Medium files; optional Nerd Font patching yields "Nerd Font Medium" naming (AC-006, FR-09).
+- **TEST-009**: Workflow dispatch on a test fork — release artifact contains Medium files; optional Nerd Font patching yields "Nerd Font Medium" naming (AC-006, FR-09). Nerd Font patching remains `not executed` (P2 optional, TASK-013(c)) — see Spec §13 caveat.
 - **TEST-010**: Visual QA sign-off — maintainer approval recorded on the PR (AC-007).
 
 ## 7. Risks & Assumptions
@@ -198,8 +247,8 @@ Authoritative completion record for Phase 3/4. The per-phase tables above are sy
 
 ## 8. Related Specifications / Further Reading
 
-- [Technical Specification — Medium Font Weight](../spec/spec-design-medium-weight.md) (v1.2)
-- [PRD — Medium Font Weight Variant](../docs/prd-20260813-0921-medium-font-weight.md) (v1.2)
+- [Technical Specification — Medium Font Weight](../spec/spec-design-medium-weight.md) (v1.6)
+- [PRD — Medium Font Weight Variant](../docs/prd-20260813-0921-medium-font-weight.md) (v1.3)
 - [Clarification Report — Medium Font Weight](../docs/audit/clarification-report-medium-font-weight-2026-08-13.md)
 - [Clarification Report — Plan Medium Font Weight](../docs/audit/clarification-report-plan-medium-weight-2026-08-13.md)
 - [ADR 0002 — Multi-Stage Docker Build with Deferred Engine Port](../docs/adr/0002-multi-stage-docker-deferred-engine-port.md)

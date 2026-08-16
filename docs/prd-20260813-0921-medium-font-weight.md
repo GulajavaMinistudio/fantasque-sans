@@ -6,8 +6,9 @@
 ### 1.1 Document title and version
 
 - PRD: Fantasque Sans Mono — Medium Font Weight Variant
-- Version: 1.2
+- Version: 1.3
 - Revision: 1.2 — Remediated per Clarification Report (Review Iteration 2, 2026-08-13): resolved PRD findings T-1 (FR-04, GH-007 AC3) and T-3 (§8.1).
+- Revision: 1.3 — Remediated per Code Review remediation plan (`plan/plan-refactor-medium-weight-v1.0.md`, 2026-08-16): recorded the maintainer-accepted deviations as `accepted-deviation` markers — residual self-intersections deferred to visual QA (GH-001 AC3, Spec §12) and the `validate-font` `Error in` baseline profile accepted (FR-08, §7.3, GH-003 AC3, Spec §13).
 
 ### 1.2 Product summary
 
@@ -186,6 +187,7 @@ Devina opens her VS Code workspace on a Monday morning. She has recently switche
   - [ ] Running `python Scripts/generate-medium-source.py Sources/FantasqueSansMono-Regular.sfdir Sources/FantasqueSansMono-Medium.sfdir` produces a valid `.sfdir` directory.
   - [ ] All generated glyphs have an advance width of exactly 1060 em units.
   - [ ] No self-intersecting splines exist in the output (all glyphs pass `removeOverlap` and `simplify`).
+    - **Status: `accepted-deviation`** — residual self-intersections (252 upright / 465 italic) are a documented limitation of algorithmic `ChangeWeight`, deferred to visual QA (GH-006) and visually accepted by the maintainer. Reference: Spec §12. See Revision 1.3 note.
   - [ ] The output font's OS/2 weight class is set to 500.
   - [ ] The script is functionally idempotent — running it twice produces identical contour geometry and metrics.
 
@@ -207,6 +209,7 @@ Devina opens her VS Code workspace on a Monday morning. She has recently switche
   - [ ] Running `make` with Medium `.sfdir` sources present in `Sources/` produces TTF, OTF, and web font (WOFF, WOFF2) output files for Medium and Medium Italic in the appropriate `Variants/` subdirectories.
   - [ ] No modifications to `Makefile`, `config.schema.json`, `configure.py`, or `custom_build_driver.py` are required.
   - [ ] `Scripts/validate-font` passes for both Medium and Medium Italic sources.
+    - **Status: `accepted-deviation`** — the `Error in` baseline profile (inherited `Bad Glyph Name` on the ligature glyph + `ChangeWeight` artifacts) is accepted by maintainer exception; a zero-`Error in` run is unachievable for any source in this family. Reference: Spec §13. See Revision 1.3 note.
   - [ ] All existing font variants (Regular, Bold, Italic, BoldItalic) continue to build identically (zero regression).
 
 ### 10.4. Correct SFNT metadata for Medium weight

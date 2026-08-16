@@ -1,8 +1,8 @@
 ---
 title: Fantasque Sans Mono - Medium Font Weight Technical Specification
-version: 1.5
+version: 1.6
 date_created: 2026-08-13
-last_updated: 2026-08-14
+last_updated: 2026-08-16
 owner: Specification Architect
 tags: [font, build, medium-weight, python, fontforge]
 ---
@@ -18,6 +18,7 @@ This document specifies the technical design for introducing a Medium (weight 50
 **Revision 1.3** — Erratum applied during Phase 1 execution (2026-08-13): corrected `counter_type` spelling from `"Retain"` to `"retain"` (lowercase) in §1.2 and §8. FontForge's Python binding is case-sensitive and only accepts the lowercase spelling (`co_types` flaglist in `fontforge/python.cpp`); the capitalized form raises `ValueError: Unknown counter type` at runtime.
 **Revision 1.4** — Sync to implementation (2026-08-14): the per-glyph `intersect()` cleanup deviation was **reverted** during Phase 2 (Boolean intersect destroyed 661 glyph outlines — plan Dead-End #11); the script follows the plan-exact pipeline (`changeWeight(34, "LCG", 0, 0, "retain")` → font-level `removeOverlap()` + `simplify()` → width 1060). Residual self-intersections (252 upright / 465 italic) are a documented limitation deferred to visual QA (§12). `validate-font` "no `Error in`" is unachievable for any source (inherited `Bad Glyph Name` ligature + `ChangeWeight` artifacts) — accepted by maintainer exception (§13). AC-003/004/005 evidenced via the new standard-make workflow `build-make.yml`; AC-006 via `custom-build`.
 **Revision 1.5** — Sync to plan v1.1 completion state (2026-08-14): plan `plan-design-medium-weight-v1.1.md` is `status: Complete` with all 18 tasks closed (TASK-004/007/008 carry ⚠️ markers documenting maintainer-accepted exceptions/deviations, not open work). §4.1 now specifies the CLI error contract (wrong argument count → usage + exit 1; `input == output` → error + exit 1) per the implemented `main()`; §6/§7 add the 12 mock-`fontforge` unit tests (81 total suite) and `tests/test_generate_medium_source.py`; §8 code sample replaced with the exact implemented script (no placeholders); §9 never-do list extended to the full CON-07 zero-touch set (`build.py`, `fontbuilder.py`, `features.py`); AC-007 gains the programming-symbol-cluster criterion from plan TASK-016.
+**Revision 1.6** — Code-review remediation sync (`plan/plan-refactor-medium-weight-v1.0.md` Phases 1–2, 2026-08-16): §5 AC-006 wording corrected to "the selected variant(s)" (DOC-003/B-08); §13 Nerd Font patching marked `not executed` — P2 optional, TASK-013(c) (REQ-002/B-02); §1.1 CON-07 enumeration qualified to the canonical 8-file set (DOC-001/B-05); §4.2 documents the `weight = "Medium"` property and §8 code sample includes it (SEC-002/B-04); §6/§7/§13 unit-test counts updated to 14 script tests / 83 total.
 
 ## 1. Purpose & Scope
 
@@ -25,7 +26,7 @@ The purpose of this specification is to define the exact behavior, inputs, and o
 
 ## 1.1 Out of Scope
 
-- Modifications to the existing `Makefile`, `config.schema.json`, `configure.py`, `custom-build.yml`, `custom_build_driver.py`, `build.py`, `fontbuilder.py`, `features.py`, or `generate-css-decl` (the full CON-07 zero-touch set; see §9).
+- Modifications to the existing `Makefile`, `config.schema.json`, `configure.py`, `custom-build.yml`, `custom_build_driver.py`, `build.py`, `fontbuilder.py`, or `features.py` (the CON-07 zero-touch set; see §9), nor to `generate-css-decl` (zero-touch by feature design — FR-05 requires it to read `os2_weight` dynamically without modification).
 - Algorithmic adjustment or manual tuning of individual glyph counter spaces within the script (this will be a manual post-generation task if necessary).
 - Generation of the Medium variant on-the-fly during standard builds.
 - Generation of weights other than 500 (Medium).
@@ -90,9 +91,12 @@ The script must explicitly set the following properties on the `fontforge.font` 
 | Property     | Value (Medium)               | Value (Medium Italic)               |
 | :----------- | :--------------------------- | :---------------------------------- |
 | `os2_weight` | `500`                        | `500`                               |
+| `weight`     | `Medium`                     | `Medium`                            |
 | `familyname` | `Fantasque Sans Mono`        | `Fantasque Sans Mono`               |
 | `fontname`   | `FantasqueSansMono-Medium`   | `FantasqueSansMono-MediumItalic`    |
 | `fullname`   | `Fantasque Sans Mono Medium` | `Fantasque Sans Mono Medium Italic` |
+
+`weight` is set to `"Medium"` so the generated sources do not inherit the stale `Weight: Regular` / `Weight: Book` strings from their inputs (code-review remediation finding B-04, refactor plan SEC-002).
 
 The script must also update the SFNT names in `font.appendSFNTName('English (US)', ...)`:
 - `Family`: `"Fantasque Sans Mono"`
@@ -109,14 +113,14 @@ For Medium Italic, the script must additionally preserve `italicangle` and the O
 - **AC-003**: The system shall compile the Medium variants correctly into TTF, OTF, and web fonts for all variant permutations (Normal, LargeLineHeight, NoLoopK, LargeLineHeight-NoLoopK) in the appropriate `Variants/` subdirectories when `make` is executed, without any modifications to `Makefile`.
 - **AC-004**: The system shall generate a valid CSS declaration for the Medium variants specifying `font-weight: 500`, with `font-style: normal` for Medium and `font-style: italic` for Medium Italic, referencing WOFF2 and WOFF files in the `src` descriptor.
 - **AC-005**: The system shall include Medium and Medium Italic font files (TTF, OTF) plus their WOFF and WOFF2 web fonts in the release archives produced by `Scripts/zip-all-variants`.
-- **AC-006**: Given a `workflow_dispatch` trigger of `custom-build.yml`, When the workflow runs, Then Medium and Medium Italic variants are compiled and packaged without any workflow modifications, and the uploaded release artifact contains the Medium and Medium Italic font files for the selected variant.
+- **AC-006**: Given a `workflow_dispatch` trigger of `custom-build.yml`, When the workflow runs, Then Medium and Medium Italic variants are compiled and packaged without any workflow modifications, and the uploaded release artifact contains the Medium and Medium Italic font files for the selected variant(s).
 - **AC-007**: Given the generated Medium sources, When a maintainer performs visual inspection of the core ASCII glyphs (A–Z, a–z, 0–9) in FontForge or on a rendered specimen page, Then the glyphs are legible at 12px, 14px, and 16px, dense glyphs (`e`, `a`, `s`, `@`, `%`, `&`, `8`, `#`) retain discernible inner counters, programming symbol clusters (`->`, `=>`, `!=`, `//`, `/*`, `*/`, `||`, `&&`, `<=`, `>=`, `::`, `<-`, `++`, `--`) render without glyph collisions, and at least one maintainer records approval via PR review comment or approval.
 
 ## 6. Test Automation Strategy & Testing Seams
 
 - **Testing Seams**: The boundary is the standard `Makefile` build output and the output of `Scripts/validate-font`.
 - **Test Levels**: 
-  - **Unit Testing**: `tests/test_generate_medium_source.py` — 12 tests with a fake `fontforge` module injected into `sys.modules` (the CI runner has no real `fontforge`). Covers: CLI argument-count contract (REQ-02), `input == output` guard (CON-06), upright/italic metadata mapping (CON-04, §4.2), `changeWeight(34, "LCG", 0, 0, "retain")` call, `removeOverlap`/`simplify` invocation and runtime order (CON-03), width enforcement to 1060 (CON-02), save-target correctness (CON-06). Run `pytest tests/` — full suite is 81 tests (69 existing + 12 new), 0 failures.
+  - **Unit Testing**: `tests/test_generate_medium_source.py` — 14 tests with a fake `fontforge` module injected into `sys.modules` (the CI runner has no real `fontforge`). Covers: CLI argument-count contract (REQ-02), `input == output` guard (CON-06), upright/italic metadata mapping including `font.weight == "Medium"` (CON-04, §4.2), `changeWeight(34, "LCG", 0, 0, "retain")` call, `removeOverlap`/`simplify` invocation and runtime order including `selection.all()` (CON-03), width enforcement to 1060 (CON-02), save-target correctness (CON-06). Run `pytest tests/` — full suite is 83 tests (69 existing + 14 new), 0 failures.
   - **Validation Testing**: Run `Scripts/validate-font` against the newly generated `Sources/FantasqueSansMono-Medium.sfdir`.
   - **Monospace Integrity**: Verify all glyph advance widths in the output `.sfdir` files equal `1060`.
 
@@ -127,7 +131,7 @@ For Medium Italic, the script must additionally preserve `italicangle` and the O
 
 ### Project Structure
 - `Scripts/generate-medium-source.py`: [NEW] The Python script that generates the font sources.
-- `tests/test_generate_medium_source.py`: [NEW] 12 unit tests using a fake `fontforge` module (see §6).
+- `tests/test_generate_medium_source.py`: [NEW] 14 unit tests using a fake `fontforge` module (see §6).
 - `Sources/FantasqueSansMono-Medium.sfdir`: [NEW] Output directory (to be committed).
 - `Sources/FantasqueSansMono-MediumItalic.sfdir`: [NEW] Output directory (to be committed).
 
@@ -135,7 +139,7 @@ For Medium Italic, the script must additionally preserve `italicangle` and the O
 - **Generate Sources:** `python Scripts/generate-medium-source.py Sources/FantasqueSansMono-Regular.sfdir Sources/FantasqueSansMono-Medium.sfdir`
 - **Build Fonts:** `make`
 - **Validate Sources:** `Scripts/validate-font Sources/FantasqueSansMono-Medium.sfdir`
-- **Unit Tests:** `python -m pytest tests/` (81 tests, 0 failures)
+- **Unit Tests:** `python -m pytest tests/` (83 tests, 0 failures)
 
 ## 8. Code Style & Conventions
 
@@ -153,6 +157,7 @@ EMBOLDEN_TYPE = "LCG"
 COUNTER_TYPE = "retain"  # lowercase only; FontForge binding is case-sensitive
 MONOSPACE_WIDTH = 1060   # CON-02
 MEDIUM_WEIGHT = 500      # CON-04
+MEDIUM_WEIGHT_NAME = "Medium"  # §4.2; kills stale "Regular"/"Book" inheritance
 
 FAMILY_NAME = "Fantasque Sans Mono"
 ITALIC_PREFIX = "FantasqueSansMono-Italic"
@@ -181,6 +186,7 @@ def generate_medium(input_sfdir, output_sfdir):
 
     # Weight and family metadata (CON-04, section 4.2).
     font.os2_weight = MEDIUM_WEIGHT
+    font.weight = MEDIUM_WEIGHT_NAME
     font.familyname = FAMILY_NAME
     font.fontname = names["fontname"]
     font.fullname = names["fullname"]
@@ -255,13 +261,13 @@ Visual QA must additionally confirm that programming symbol clusters (`->`, `=>`
 
 ## 13. Validation Criteria
 
-- Unit suite: `python -m pytest tests/` passes with 0 failures (81 tests: 69 existing + 12 new for the generation script).
+- Unit suite: `python -m pytest tests/` passes with 0 failures (83 tests: 69 existing + 14 new for the generation script).
 - `Scripts/validate-font` reports no `Error in ...` messages **beyond the documented baseline/artifact profile** for both Medium and Medium Italic sources (inherited `Bad Glyph Name` on `slash_asterisk_asterisk_slash.liga` + documented `ChangeWeight` artifacts — accepted by maintainer exception; exit code is always `0` by design, so output inspection is the effective signal).
 - SFNT metadata reports `font-weight: 500`.
 - Advance width strictly equals `1060` across all glyphs.
 - Successfully verified by `make` and outputs standard TTF, OTF, and web font formats. AC-003/004/005 are evidenced via the standard-make workflow `.github/workflows/build-make.yml` (`make clean && make`, full `Variants/` upload); AC-006 via the `custom-build` workflow dispatch (compiles and packages the selected variant with no workflow modifications).
 - Release archives produced by `Scripts/zip-all-variants` include Medium and Medium Italic TTF/OTF files plus WOFF/WOFF2 web fonts for all variant permutations.
-- **Nerd Font Patching**: Successfully patches when NerdFontPatching is enabled, generating "Fantasque Sans Mono Nerd Font Medium" and "Fantasque Sans Mono Nerd Font Medium Italic".
+- **Nerd Font Patching** (`not executed` — P2 optional, TASK-013(c)): not verified by a `custom-build` dispatch with `NerdFontPatching=true`; the expected outputs ("Fantasque Sans Mono Nerd Font Medium" / "Fantasque Sans Mono Nerd Font Medium Italic") remain unrecorded until such a dispatch runs.
 
 ## 14. Related Specifications / Further Reading
 
