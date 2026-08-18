@@ -135,7 +135,7 @@ Authoritative completion record for Phase 3/4. The per-phase tables above are sy
 | TASK-104 (refactor v1.0) | ✅ | 2026-08-16 | SFNT name-table dump on built TTFs — GH-004 AC1/AC3 (subsection below) |
 | TASK-202 (refactor v1.0) | ✅ | 2026-08-16 | Nerd Font evidence gap closed via option (b): Spec §13 caveat `not executed` (P2 optional, TASK-013(c)) |
 | TASK-203 (refactor v1.0) | ✅ | 2026-08-16 | Idempotency re-verified: TASK-103 regeneration diff changed only `Weight:` + `ModificationTime` lines in `font.props`; zero `.glyph` files touched |
-| TASK-207 (refactor v1.0) | ⏳ | 2026-08-16 | AC-007 external trail **pending**: PR review/approval reference will be attached when the PR for `feat/medium-font-weight` is opened (visual QA sign-off: maintainer, FontForge, 2026-08-14) |
+| TASK-207 (refactor v1.0) | ⏳ | 2026-08-16 | AC-007 external trail **pending** (PR `feat/medium-font-weight` not yet opened) — **round formally closed by maintainer decision (2026-08-16)**: reference accepted as complete-by-decision per plan v1.1 finalization; attaches automatically when the PR opens; no rework required. Visual QA sign-off: maintainer, FontForge, 2026-08-14 |
 | Refactor v1.0 (final) | ✅ | 2026-08-16 | All 4 phases complete, 22/23 tasks + 1 externally blocked (TASK-207, PR reference pending): Phase 3 pinned actions/pip in `build-make.yml` (SEC-001); Phase 4 removed dead test scaffolding (PRN-001/002). See `plan-refactor-medium-weight-v1.0.md` (status `Complete`). |
 
 ### SFNT Name-Table Dump Evidence (2026-08-16)

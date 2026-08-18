@@ -177,3 +177,33 @@
 <!-- checkpoint-tail: refactor v1.1 COMPLETE (2026-08-16): phases 1-2 executed & approved (plan-as-record honesty + doc/test precision NITs), phase 3 (hash pinning) deferred per maintainer choice; pytest 83/83, CON-07 zero-touch; uncommitted; next = commit on request, then /sdlc-code-review in new session, attach AC-007 PR ref when PR opens. -->
 
 ---
+
+
+## 📝 Session Checkpoint: 2026-08-16 (Finalization — Plan v1.1 Closed & Committed)
+
+- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
+- **Current SDLC Phase:** Code Execution (`/sdlc-write-code`) — finalization of `plan/plan-refactor-medium-weight-v1.1.md` (already `Complete`)
+- **Active Artifacts:**
+  - `plan/plan-refactor-medium-weight-v1.1.md` — Status: ✅ Finalized & committed (`9c91c0fc`, 2026-08-16 15:18 +07); frontmatter status `Complete`
+  - `plan/plan-design-medium-weight-v1.1.md` — AC-007 row annotated as closed-by-decision (2026-08-16)
+  - `plan/plan-refactor-medium-weight-v1.0.md` — TASK-207 `[ ]` pending (unchanged; PR reference attaches when PR opens)
+- **Achieved Milestones:**
+  - Finalization verified end-to-end: pytest 83/83, YAML valid, markdownlint exit 0, grep "23/23" consistent (no overstatement), zero-touch CON-07 + `.sfdir` clean, git working tree clean.
+  - Confirmed commit `9c91c0fc` already contains the v1.1 finalization — supersedes the stale "uncommitted / awaits instruction" claims in the two earlier 2026-08-16 checkpoints.
+  - AC-007 ⏳ row annotated in design plan Execution Results as formally closed by maintainer decision (2026-08-16); PR reference still attaches when PR opens (no falsification).
+- **Dead-Ends (Do NOT Repeat):**
+  - None new. Watch item: memory checkpoints claimed "uncommitted" even though the finalize commit (`9c91c0fc`) already existed — always re-check `git log`/`git status` before recording "uncommitted" in memory.
+- **Updated Files:**
+  - `plan/plan-design-medium-weight-v1.1.md` — AC-007 row closure annotation (evidence/caveat cell)
+  - `.agents/instructions/memory.instructions.md` — new checkpoint (this entry)
+- **Decisions Made:**
+  - Round formally closed by user decision ("anggap semuanya selesai", 2026-08-16): AC-007 external trail accepted as closed-by-decision; Phase 3 (hash pinning) remains deferred (recorded, not pending).
+  - No further plan edits — v1.1 already finalized per its own + sibling convention (Execution Status block in Introduction).
+- **Next Action / Pending:**
+  - Optional: open the `feat/medium-font-weight` PR and attach the AC-007 review reference (row pre-annotated).
+  - Optional: `/sdlc-code-review` handoff in a NEW session for the final consistency audit.
+  - No uncommitted changes remain; git tree clean.
+
+<!-- checkpoint-tail: Plan v1.1 finalization verified & committed (9c91c0fc, 2026-08-16): pytest 83/83, docs consistent, AC-007 closed-by-decision annotation added; round formally closed; git clean; next = optional PR open / /sdlc-code-review in new session. -->
+
+---
