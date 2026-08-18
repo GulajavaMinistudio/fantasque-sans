@@ -40,3 +40,7 @@ _Avoid_: Patched font, icon font
 **Nerd Font Archive**:
 The standalone deliverable containing all Nerd Font Variant font files plus the patcher-stamped manifest, packaged separately from the base build archives.
 _Avoid_: patched archive, icon archive, NF bundle
+
+**SemiBold**:
+A Fantasque Sans Mono weight variant positioned between Medium (CSS weight 500) and Bold (CSS weight 700) at CSS weight 600.
+_Avoid_: semibold, semi bold, demi bold, DemiBold
