@@ -12,6 +12,7 @@
 > This section accumulates cross-session knowledge that must survive compaction.
 > Compaction history (condensed 2026-08-16): all sessions from 2026-07-24 through 2026-08-13 were compacted in multiple passes; all knowledge was promoted to this Knowledge Base at the time. The detailed per-pass log was removed in the 2026-08-16 cleanup (user request).
 > Compaction 2026-08-18: the two older Medium-refactor checkpoints (Code-Review Remediation, Refactor v1.1) were compacted; 4 lessons promoted; the Finalization checkpoint retained for Medium-round continuity.
+> Compaction 2026-08-20 (user request): the 2026-08-16 Finalization and 2026-08-18 PRD-v1.0 checkpoints were compacted; 4 lessons promoted to this Knowledge Base; replaced by the 2026-08-20 PRD-v1.1 checkpoint.
 > Updated during Compaction Mode (Workflow 4). Do NOT delete entries here.
 
 ### Architecture & Patterns
@@ -63,6 +64,10 @@
 - **Plan-as-Record Honesty**: Plans must never overstate completion; externally blocked tasks are recorded honestly (e.g., "22/23 + 1 externally blocked", TASK-207 `[ ]` pending with annotation) rather than "23/23 ✅". [Source: Session 2026-08-16]
 - **Memory Status Claims Verification**: Before recording git-state claims (e.g., "uncommitted") in memory checkpoints, re-check `git log`/`git status` — stale claims mislead later sessions. [Source: Session 2026-08-16]
 - **Accepted-Deviation Markers at PRD v1.0**: Record known accepted-deviation markers (residual algorithmic artifacts, validation baseline profiles) directly in PRD v1.0 acceptance criteria instead of deferring them to a later remediation round. [Source: Session 2026-08-18]
+- **Weight-Generation Commit Discipline**: Commit generated `.sfdir` sources to a temporary feature branch; merge to `master` only after maintainer visual QA sign-off (GH-006) — do not repeat Medium's pre-QA master commit. [Source: Session 2026-08-18, PRD SemiBold FR-03/GH-006]
+- **Stroke Calibration Contract (Algorithmic Weight)**: Select the highest stroke in the target band (e.g., 55–70 em-units) that passes the "discernible counters" visual gate; if none pass, descend step-wise (50, then the hard floor 45). If the gate fails at/above the floor, the single-pass approach is declared failed and escalated to a maintainer decision (re-scope / abandon / manual fix) — never silently ship a lighter clone. Manual per-glyph fixes are NOT an automatic fallback (maintainer-request only). [Source: Session 2026-08-20, PRD v1.1 FR-01/§8.3/GH-006]
+- **Exact-Marker Compliance in Audit Reports**: When marking remediation status on an audit report, keep the mandated marker verbatim (`REMEDIATION STATUS: RESOLVED` per AGENTS.md/skill template); add supplementary status (e.g., `IMPLEMENTATION STATUS: IMPLEMENTED`) as a SEPARATE block — never by editing the required marker. [Source: Session 2026-08-20, advisory]
+- **Claim-File Consistency Verification (Post-Fix)**: Before declaring a doc finding resolved, re-grep/verify the exact changed phrases so claims (e.g., "phrase removed", "score 100") match the file state — claim↔file mismatches are flagged as blockers by advisories. [Source: Session 2026-08-20, advisory]
 
 ### Dead-Ends (Do NOT Repeat)
 
@@ -84,7 +89,7 @@
 
 <!-- Stable metrics that serve as reference points (test counts, coverage, performance baselines). -->
 - **Test Suite**: 83/83 pytest — 69 existing + 14 in `tests/test_generate_medium_source.py` (12 original + 2 `font.weight` tests added in refactor Phase 1). [Source: Session 2026-08-16, verified after every refactor phase]
-- **Knowledge Base Size**: 11 Dead-Ends + 40 Architecture & Patterns (1 retired). [Source: Session 2026-08-16 cleanup]
+- **Knowledge Base Size**: 11 Dead-Ends + 44 Architecture & Patterns (1 retired; +4 promoted 2026-08-20). [Source: Session 2026-08-16 cleanup, updated 2026-08-20]
 - **Plan-Refactor Execution (2026-07-30)**: 16 tasks across 3 phases, all completed in single session; 13/13 acceptance criteria met; pytest 62/62 PASS; CON-001 preserved. [Source: Session 2026-07-30, plan-refactor-code-review v1.0]
 - **Nerd Font Patcher Integration (2026-08-12)**: 32 tasks across 4 phases, all complete; 14/14 acceptance criteria (AC-101..AC-114); `configure.py` WORKFLOW_VERSION 1.4. Feature ready for PR/release merge. [Source: Session 2026-08-12 Phase 4]
 - **End-to-End Build**: 8 iteration cycles to first successful CI run (issues #1–#8). [Source: Session 2026-07-30, first end-to-end run 30520458083]
@@ -101,64 +106,40 @@
 
 ---
 
-## 📝 Session Checkpoint: 2026-08-16 (Finalization — Plan v1.1 Closed & Committed)
+## 📝 Session Checkpoint: 2026-08-20 (PRD SemiBold — Clarification Remediation → PRD v1.1)
 
 - **Active Memory Path:** `.agents/instructions/memory.instructions.md`
-- **Current SDLC Phase:** Code Execution (`/sdlc-write-code`) — finalization of `plan/plan-refactor-medium-weight-v1.1.md` (already `Complete`)
+- **Current SDLC Phase:** PRD Phase (`/sdlc-draft-prd`) — remediation complete; PRD v1.1 ready; next = `/sdlc-define-specs` or `/sdlc-clarify-reqs` in a NEW session
 - **Active Artifacts:**
-  - `plan/plan-refactor-medium-weight-v1.1.md` — Status: ✅ Finalized & committed (`9c91c0fc`, 2026-08-16 15:18 +07); frontmatter status `Complete`
-  - `plan/plan-design-medium-weight-v1.1.md` — AC-007 row annotated as closed-by-decision (2026-08-16)
-  - `plan/plan-refactor-medium-weight-v1.0.md` — TASK-207 `[ ]` pending (unchanged; PR reference attaches when PR opens)
+  - `docs/prd-20260818-1636-semibold-font-weight.md` — Status: ✅ DRAFT v1.1 (2026-08-20; all clarification findings applied; projected readiness 100/100)
+  - `docs/audit/clarification-report-semibold-font-weight-2026-08-20.md` — Status: ✅ RESOLVED & IMPLEMENTED (exact-marker `REMEDIATION STATUS: RESOLVED` block + separate `IMPLEMENTATION STATUS: IMPLEMENTED` note)
+  - `docs/discovery-draft-20260818-1625-semibold-font-weight.md` — unchanged (approved)
+  - `CONTEXT.md` — unchanged (SemiBold term already present; no new domain terms)
 - **Achieved Milestones:**
-  - Finalization verified end-to-end: pytest 83/83, YAML valid, markdownlint exit 0, grep "23/23" consistent (no overstatement), zero-touch CON-07 + `.sfdir` clean, git working tree clean.
-  - Confirmed commit `9c91c0fc` already contains the v1.1 finalization — supersedes the stale "uncommitted / awaits instruction" claims in the two earlier 2026-08-16 checkpoints.
-  - AC-007 ⏳ row annotated in design plan Execution Results as formally closed by maintainer decision (2026-08-16); PR reference still attaches when PR opens (no falsification).
+  - PRD v1.0 → v1.1: applied all 4 Resolved Items + 7 Auto-Resolved items from the Clarification Report (Review Iteration 2, score 95/100).
+  - Stroke calibration contract encoded (band 55–70, grid 50/60/70, floor 45, escalation on failure) in FR-01, §5.3, §8.3, §9.2, GH-006 AC3/AC4.
+  - SVG added to output-format enumerations (FR-04, GH-003 AC1, GH-005 AC3, GH-007 AC2) — repo-verified (fontbuilder.py:114, custom_build_driver.py:253, generate-css-decl:51, packaging.sh:113).
+  - `Scripts/generate-css-decl` added to CON-07 zero-touch enumeration (§2.3, §7.3, GH-003 AC3); `zip-all-variants` auto-discovery verified (`find "$variants"/*`).
+  - §7.1: Adoption Rate metric removed; "valid" glyph-issue triage + editor-compat measurement method defined; §7.2 marks Release Bundle Completeness as sole quantitative adoption metric.
+  - Advisory-driven cleanup: literal `"ask first" boundary` remnant removed from §8.3; grep-verified zero residual old phrases.
 - **Dead-Ends (Do NOT Repeat):**
-  - None new. Watch item: memory checkpoints claimed "uncommitted" even though the finalize commit (`9c91c0fc`) already existed — always re-check `git log`/`git status` before recording "uncommitted" in memory.
+  - **Attempted:** Kept literal `(replaces any "ask first" boundary)` in §8.3 as documentation of the replacement.
+  - **Reason:** Advisory blocker — the resolution says the phrase is *replaced*, so any literal remnant contradicts the "removed" claim.
+  - **Note:** After resolving a doc finding, re-grep the exact phrase to prove zero residual occurrences before claiming completion (see KB Claim-File Consistency Verification).
+  - **Attempted:** Changed the audit-report marker to `REMEDIATION STATUS: RESOLVED & IMPLEMENTED`.
+  - **Reason:** Advisory blocker — AGENTS.md/skill mandate the exact marker `REMEDIATION STATUS: RESOLVED`; altering it breaks compliance.
+  - **Note:** Keep required markers verbatim; add supplementary status as a separate block (see KB Exact-Marker Compliance in Audit Reports).
 - **Updated Files:**
-  - `plan/plan-design-medium-weight-v1.1.md` — AC-007 row closure annotation (evidence/caveat cell)
-  - `.agents/instructions/memory.instructions.md` — new checkpoint (this entry)
+  - `docs/prd-20260818-1636-semibold-font-weight.md` — v1.0 → v1.1 (18 surgical edits; version/date bump 2026-08-20)
+  - `docs/audit/clarification-report-semibold-font-weight-2026-08-20.md` — added exact `REMEDIATION STATUS: RESOLVED` block + separate `IMPLEMENTATION STATUS: IMPLEMENTED` block; Target Document line notes v1.0 → v1.1
 - **Decisions Made:**
-  - Round formally closed by user decision ("anggap semuanya selesai", 2026-08-16): AC-007 external trail accepted as closed-by-decision; Phase 3 (hash pinning) remains deferred (recorded, not pending).
-  - No further plan edits — v1.1 already finalized per its own + sibling convention (Execution Status block in Introduction).
+  - Stroke calibration contract locked (promoted to KB): highest stroke in 55–70 band passing the "discernible counters" gate; descend 50 → 45 floor; fail at/above floor → maintainer decision; manual fixes only on maintainer request.
+  - Weight-generation commit discipline (promoted to KB): temporary feature branch; merge to `master` only after maintainer visual QA sign-off (GH-006).
+  - Spec strategy (from compacted 2026-08-18 checkpoint, still valid): separate spec file `spec-design-semibold-weight.md` (KB Spec Modular Escalation).
 - **Next Action / Pending:**
-  - Optional: open the `feat/medium-font-weight` PR and attach the AC-007 review reference (row pre-annotated).
-  - Optional: `/sdlc-code-review` handoff in a NEW session for the final consistency audit.
-  - No uncommitted changes remain; git tree clean.
+  - Handoff: `/sdlc-define-specs` (Option A) or `/sdlc-clarify-reqs` (Option B) in a NEW session with `@docs/prd-20260818-1636-semibold-font-weight.md` (v1.1).
+  - Medium round (optional, still open): open `feat/medium-font-weight` PR + attach AC-007 review reference.
 
-<!-- checkpoint-tail: Plan v1.1 finalization verified & committed (9c91c0fc, 2026-08-16): pytest 83/83, docs consistent, AC-007 closed-by-decision annotation added; round formally closed; git clean; next = optional PR open / /sdlc-code-review in new session. -->
-
----
-
-## 📝 Session Checkpoint: 2026-08-18 (PRD SemiBold — Discovery Approval + PRD v1.0 Drafted)
-
-- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
-- **Current SDLC Phase:** PRD Phase (`/sdlc-draft-prd`) — PRD v1.0 drafted; awaiting user review, then `/sdlc-clarify-reqs` checkpoint in a new session
-- **Active Artifacts:**
-  - `docs/discovery-draft-20260818-1625-semibold-font-weight.md` — Status: ✅ Approved (Phase 0; untracked in git)
-  - `docs/prd-20260818-1636-semibold-font-weight.md` — Status: ✅ DRAFT v1.0 (markdownlint clean; awaiting clarification checkpoint)
-  - `CONTEXT.md` — Status: ✅ Updated (SemiBold term + `_Avoid_` list)
-- **Achieved Milestones:**
-  - Discovery (Phase 0) approved: SemiBold weight 600 + SemiBold Italic, reusing the Medium algorithmic `ChangeWeight` approach; zero-touch CON-07 integration proven by the Medium precedent.
-  - PRD v1.0 drafted per the Mandatory Template: 9 functional requirements (P0/P1/P2), 3 personas, 8 user stories (GH-001..GH-008), 3-phase milestone plan (3–5 days).
-  - Clarification answers locked by the user: visual QA follows the Medium accepted-deviation precedent; release = additive bundling with the next release; primary business driver = weight ladder completeness; Nerd Font = FR-09 P2 with Medium-style caveat.
-  - `accepted-deviation` markers recorded upfront in PRD v1.0 (GH-001 AC3, GH-003 AC4) — not deferred to a remediation round (Medium lesson).
-  - SemiBold glossary term resolved in `CONTEXT.md`: `SemiBold` (CSS weight 600). _Avoid_: semibold, semi bold, demi bold, DemiBold.
-- **Dead-Ends (Do NOT Repeat):**
-  - None this session. Reuse KB DE #11 (never per-glyph `intersect()`); the SemiBold pipeline inherits the Medium plan-exact cleanup.
-- **Updated Files:**
-  - `docs/prd-20260818-1636-semibold-font-weight.md` — NEW (v1.0 DRAFT)
-  - `CONTEXT.md` — SemiBold glossary term added
-  - `docs/discovery-draft-20260818-1625-semibold-font-weight.md` — unchanged (approval recorded per user statement)
-- **Decisions Made:**
-  - Stroke reference (~55–70 em-units) left as an explicit assumption for Phase 1 specimen calibration at candidate values (50/60/70) against the Medium/Bold neighbors.
-  - Commit discipline: generated sources go to a temporary feature branch; merge to `master` only after maintainer visual QA sign-off (GH-006) — do not repeat Medium's pre-QA master commit.
-  - Spec strategy locked: separate spec file `spec-design-semibold-weight.md` (modular-escalation pattern).
-- **Next Action / Pending:**
-  - User to review the PRD; optionally create GitHub issues for GH-001..GH-008 (offer made).
-  - Handoff: `/sdlc-clarify-reqs` in a NEW session with `@docs/prd-20260818-1636-semibold-font-weight.md`.
-  - Then `/sdlc-define-specs` → `spec-design-semibold-weight.md`.
-
-<!-- checkpoint-tail: PRD SemiBold v1.0 drafted (2026-08-18): weight 600 + Italic, Medium-pattern reuse, accepted-deviation markers upfront, feature-branch commit discipline, CONTEXT.md term added; next = /sdlc-clarify-reqs in new session. -->
+<!-- checkpoint-tail: PRD SemiBold remediated v1.0 → v1.1 (2026-08-20): 4 resolutions + 7 auto-resolutions applied, calibration rule/floor/escalation encoded, SVG enumerated, audit report RESOLVED & IMPLEMENTED (exact marker preserved); next = /sdlc-define-specs or /sdlc-clarify-reqs in new session. -->
 
 ---
