@@ -143,3 +143,100 @@
 <!-- checkpoint-tail: PRD SemiBold remediated v1.0 → v1.1 (2026-08-20): 4 resolutions + 7 auto-resolutions applied, calibration rule/floor/escalation encoded, SVG enumerated, audit report RESOLVED & IMPLEMENTED (exact marker preserved); next = /sdlc-define-specs or /sdlc-clarify-reqs in new session. -->
 
 ---
+
+## 📝 Session Checkpoint: 2026-08-20 (Status Review & Handoff Decision)
+
+- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
+- **Current SDLC Phase:** PRD Phase (`/sdlc-draft-prd`) — closed at v1.1; awaiting `/sdlc-define-specs` in NEW session
+- **Active Artifacts:**
+  - `docs/prd-20260818-1636-semibold-font-weight.md` — Status: ✅ DRAFT v1.1 (2026-08-20; projected 100/100)
+  - `docs/audit/clarification-report-semibold-font-weight-2026-08-20.md` — Status: ✅ RESOLVED & IMPLEMENTED
+  - `docs/discovery-draft-20260818-1625-semibold-font-weight.md` — unchanged (approved)
+  - `CONTEXT.md` — unchanged
+- **Achieved Milestones:**
+  - Status review session — read memory.instructions.md, presented current state to user.
+  - Confirmed PRD v1.1 (SemiBold remediation) is ready for handoff.
+  - User decision: handoff to `/sdlc-define-specs` in a NEW chat session.
+  - Strict Session Isolation enforced (refused intra-session phase switch per AGENTS.md §8).
+- **Dead-Ends (Do NOT Repeat):**
+  - None new this session (read-only review).
+- **Updated Files:**
+  - None — read-only memory check + handoff decision only.
+- **Decisions Made:**
+  - Handoff target: `/sdlc-define-specs` with `@docs/prd-20260818-1636-semibold-font-weight.md` (v1.1) as mandatory input.
+  - Spec strategy: separate file `spec-design-semibold-weight.md` (per KB "Spec Modular Escalation" pattern).
+  - No KB promotion this round (no new durable lesson surfaced).
+- **Next Action / Pending:**
+  - User opens a NEW chat session and invokes `/sdlc-define-specs` with PRD v1.1 attached.
+  - Medium round remains optional pending `feat/medium-font-weight` PR open + AC-007 review reference.
+
+<!-- checkpoint-tail: Status review 2026-08-20 closed; PRD v1.1 ready for /sdlc-define-specs in new session; no working-tree changes; handoff decided, no KB promotion this round. -->
+
+---
+## 📝 Session Checkpoint: 2026-08-20 (Spec SemiBold — Clarification, Review Iteration 1)
+
+- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
+- **Current SDLC Phase:** Spec Clarification (`/sdlc-clarify-reqs`) on `spec/spec-design-semibold-weight.md` — session complete; spec remediation + re-audit pending
+- **Active Artifacts:**
+  - `spec/spec-design-semibold-weight.md` — Status: 🔄 In Progress (Readiness Score: **77/100 — Below Threshold**; remediation NOT yet applied)
+  - `docs/audit/clarification-report-spec-semibold-weight-2026-08-20.md` — Status: 🔄 NEW file saved (Review Iteration 1; Below Threshold; NO `REMEDIATION STATUS: RESOLVED` marker — allowed only after the spec author remediates and file claims are verified)
+  - `docs/prd-20260818-1636-semibold-font-weight.md` — unchanged (v1.1)
+  - `CONTEXT.md` — unchanged (no new domain term)
+- **Achieved Milestones:**
+  - Interrogated the SemiBold spec; verified all codebase claims accurate (`validate-font` exit 0, `generate-css-decl` dynamic reads, `zip-all-variants` discovery, Makefile wildcard, `Scripts/custom_build_driver.py::find_sfdirs()`, 83-test baseline, Italic source `Weight: Book`).
+  - Four user-resolved ambiguities (all Option A) recorded as Critical Findings → Resolved Items: Q1 `font.weight` acceptance gate, Q2 italic AND calibration gate, Q3 two-sided neighbor-distinctness gate, Q4 idempotency verification path.
+  - Three minor items classified: Q5 grid wording `[Assumed / Backlog]`, Q6 "unit-test runner" terminology `[Assumed / Auto-Resolved]`, Q7 input-validation `[Assumed / Backlog]`.
+- **Dead-Ends (Do NOT Repeat):**
+  - **Attempted:** Cited FontForge `knownweights`/`realweights` tables as the `font.weight` setter contract ("Demi" as required value).
+  - **Reason:** Those tables belong to PS name parsing (`_GetModifiers`), not the setter; the claim was unfounded and pushed a fallback that violates the `_Avoid_` list (DemiBold).
+  - **Note:** Frame binding-behavior unknowns as empirical verification gates, never as pre-committed naming fallbacks.
+  - **Attempted:** Presented the projected post-remediation score (94/100) as the spec file's current state ("resolutions encoded").
+  - **Reason:** The resolutions were session agreements not yet written into the file; claim-file mismatch flagged as blocker.
+  - **Note:** Report current file score vs projected score separately; re-audit after remediation (see KB Claim-File Consistency Verification).
+- **Updated Files:**
+  - `docs/audit/clarification-report-spec-semibold-weight-2026-08-20.md` — created (mandatory template; 77/100 Below Threshold; 4 blockers, 4 resolved items, 3 assumed/backlog; no User Decision Prompt block at score < 80)
+- **Decisions Made:**
+  - Q1: Phase 1 empirical gate — dump from built TTF/OTF: `font.weight`, `Weight:` in `font.props`, SFNT IDs 2/4/6, ID 16/17 side-effect check, `os2_weight` = 600; evidence verbatim in `plan/` Execution Results (PR description only a copy).
+  - Q2: "Discernible counters" = AND gate upright + italic at every candidate; italic failure → descend per locked 70→60→50→45; escalate only if none passes both.
+  - Q3: Neighbor comparison = two-sided gate (clearly > Medium, clearly < Bold) in the selection loop; failure → descend; escalate when none passes all gates.
+  - Q4: Idempotency verified per TEST-005 precedent (two clean runs, `.glyph`/metrics identical; `font.props` diffed per-field, only `ModificationTime`-type metadata may differ).
+- **Next Action / Pending:**
+  - Spec author (`/sdlc-define-specs`) applies Resolutions Q1–Q4 + wording Q5/Q6 to `spec/spec-design-semibold-weight.md` — resolutions still pending, NOT applied.
+  - Author then runs the Remediation Sequence (projected 94/100; append `REMEDIATION STATUS: RESOLVED` only after actual update + verification) and triggers a re-audit.
+  - Spec must NOT be declared ready for the next phase at 77/100.
+
+<!-- checkpoint-tail: Spec SemiBold clarification (2026-08-20): 77/100 Below Threshold; Q1-Q4 resolutions agreed but pending spec author; report saved without RESOLVED marker; re-audit required after remediation. -->
+
+---
+
+## 📝 Session Checkpoint: 2026-08-20 (Plan SemiBold — Clarification + Remediation)
+
+- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
+- **Current SDLC Phase:** Planning (`/sdlc-clarify-reqs` on Plan → `/sdlc-plan-tasks` remediation) — complete; plan ready; next = `/sdlc-write-code` in a NEW session
+- **Active Artifacts:**
+  - `plan/plan-design-semibold-weight-v1.0.md` — Status: ✅ Remediated (Readiness projected **100/100**; all 8 §4 fixes from the clarification report applied)
+  - `docs/audit/clarification-report-plan-semibold-weight-2026-08-20.md` — Status: ✅ RESOLVED (exact `REMEDIATION STATUS: RESOLVED` marker block added at top; original score 96/100)
+  - `spec/spec-design-semibold-weight.md` — unchanged this session (v1.1)
+  - `docs/prd-20260818-1636-semibold-font-weight.md` — unchanged (v1.1)
+  - `CONTEXT.md` — unchanged (no new domain term)
+- **Achieved Milestones:**
+  - Plan clarification (`/sdlc-clarify-reqs`): 7 grill questions (Q1–Q7), all resolved Option A; saved clarification report (Review Iteration 1, **96/100**, Good Enough).
+  - Verified codebase facts: Italic source `Weight: Book` & Regular `Weight: Regular` (§4.2.1 gate premise factually correct); single root `Makefile` wildcard + `Scripts/generate-font-variants` fan out the 4 permutations (Normal/LargeLineHeight/NoLoopK/LargeLineHeight-NoLoopK); `Scripts/generate-css-decl` writes `Webfonts/<basename>-decl.css` reading `os2_weight`/`italicangle` at runtime.
+  - Plan remediation (`/sdlc-plan-tasks`, `[bypass-sdlc]`): rewrote plan applying all 8 §4 fixes — **reorder** (TASK-006/TASK-007 moved to Phase 2, post-push), `INF-001`/`P-ASSUMPTION-002` → GitHub Actions CI like Medium, TASK-004 per-candidate CI loop + `Normal` scope + mandatory Q3 auditable evidence, TASK-005/006 uniform `make`, TASK-006 artifacts #1&#2 from `font.weight` TTF/OTF (`.sfdir` `font.props` dropped) + ID 1 added, TASK-011 "5→3 weights", TASK-022 PR-approval sign-off + `Normal` scope, FILE-005/rollback updated.
+  - Appended exact `REMEDIATION STATUS: RESOLVED` block to the clarification report; projected readiness **100/100**.
+- **Dead-Ends (Do NOT Repeat):**
+  - None new this session (clarification + remediation only; prior spec-round dead-ends already in KB).
+- **Updated Files:**
+  - `plan/plan-design-semibold-weight-v1.0.md` — full rewrite (~87KB) applying 8 clarification fixes; phase reorder; `Execution Results` tables corrected (ID 1 added, `font.props` removed).
+  - `docs/audit/clarification-report-plan-semibold-weight-2026-08-20.md` — added exact `REMEDIATION STATUS: RESOLVED` block at top.
+- **Decisions Made:**
+  - Empirical gates (calibration TASK-004, `font.weight` gate TASK-006, idempotency TASK-007) execute in **GitHub Actions CI** (`build-make.yml`), same path as the Medium build — NOT locally, NOT pre-commit. Feature branch MUST be pushed before the gates run.
+  - Calibration = per-candidate full CI cycle (edit `STROKE_WIDTH` → commit → push → `build-make.yml` → download TTF → inspect `Normal` permutation locally); candidates 70/60/50/45.
+  - Q3 "clearly heavier/lighter" stays maintainer judgment but requires **auditable evidence**: side-by-side specimen captures (Medium vs candidate vs Bold at 12/14/16px) + stem-width ratio estimate recorded in `Execution Results`.
+  - Visual QA (TASK-022) sign-off = **PR review approval** (recorded evidence); self-review only with single-maintainer note + attached specimens; scoped to `Normal` permutation (glyph geometry identical across permutations).
+  - Existing monospace weights = **3** (Regular/Medium/Bold), not 5.
+- **Next Action / Pending:**
+  - Handoff: `/sdlc-write-code` in a NEW session with `@plan/plan-design-semibold-weight-v1.0.md` + `@spec/spec-design-semibold-weight.md` + relevant source files (`Scripts/generate-medium-source.py`, `Sources/FantasqueSansMono-Italic.sfdir/font.props`).
+  - Medium round (optional, still open): open `feat/medium-font-weight` PR + attach AC-007 review reference.
+
+<!-- checkpoint-tail: Plan SemiBold clarified (7 grills, 96/100) + remediated (8 fixes applied, reorder to post-push CI gates, REMEDIATION STATUS: RESOLVED, projected 100/100); next = /sdlc-write-code in new session. -->
