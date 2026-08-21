@@ -240,3 +240,41 @@
   - Medium round (optional, still open): open `feat/medium-font-weight` PR + attach AC-007 review reference.
 
 <!-- checkpoint-tail: Plan SemiBold clarified (7 grills, 96/100) + remediated (8 fixes applied, reorder to post-push CI gates, REMEDIATION STATUS: RESOLVED, projected 100/100); next = /sdlc-write-code in new session. -->
+
+---
+
+## 📝 Session Checkpoint: 2026-08-21 (SemiBold — Phase 1 Code Execution Complete)
+
+- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
+- **Current SDLC Phase:** Code Execution (`/sdlc-write-code`) — Phase 1 **COMPLETE** (TASK-001..009); Phase 2 in progress (TASK-010/014 ✅, TASK-006/007 evidence recorded, TASK-011/012/013 pending on `build-make.yml` dispatch)
+- **Active Artifacts:**
+  - `plan/plan-design-semibold-weight-v1.1.md` — Status: 🔄 In Progress (Phase 1 tasks marked ✅; `Execution Results` updated: calibration LOCKED 70, TASK-006 Run A/B tables, idempotency, Phase 1+2 records; **plan edits UNCOMMITTED** — pending user instruction, Git protocol)
+  - `spec/spec-design-semibold-weight.md` — Status: ✅ (v1.1, unchanged)
+  - `docs/prd-20260818-1636-semibold-font-weight.md` — Status: ✅ (v1.1, unchanged)
+  - `Scripts/generate-semibold-source.py` — Status: ✅ committed (`30936705`, `STROKE_WIDTH = 70`)
+  - `Sources/FantasqueSansMono-SemiBold.sfdir` + `SemiBoldItalic.sfdir` — Status: ✅ committed (`30936705`, stroke 70; 1042/1046 glyphs, all widths 1060)
+  - `tests/test_generate_semibold_source.py` — Status: ✅ committed (`30e9e159`, 14 tests)
+- **Achieved Milestones:**
+  - **Calibration LOCKED: `STROKE_WIDTH = 70` em-units** (§4.3 composite AND gate). Candidate 70 passes: upright + italic counters discernible at 12/14/16px (specimens `D:/tmp-semibold-calibration/specimens/`), Q3 two-sided neighbor gate (≈2.06× Medium numerical / 1.6–1.8× visual; ≈0.7× Bold). Evidence from CI-built artifacts — Custom Build run `32461218479` @ `30936705` (fork Iosevka-Mayukai, branch `feature/semibold-weight`).
+  - TASK-006 `font.weight` gate: Run A + Run B, 5 artifacts each from CI-built TTFs — **ALL PASS** (SFNT IDs 1/2/4/6 correct, no ID 16/17, `usWeightClass` 600, `macStyle` italic + `italicAngle` -11 on Run B).
+  - TASK-007 idempotency: `.glyph` files byte-identical; `font.props` differs **only** in `ModificationTime` (1787297903 vs 1787297943).
+  - TASK-014 zero-touch audit: **clean** vs merge-base `311ebe70` AND vs `bcbbce10`; Medium script/sources untouched; zero-touch set untouched.
+  - Full suite: **97/97 pass, 0 failures** (83 baseline + 14 new; re-run 2026-08-21).
+- **Dead-Ends (Do NOT Repeat):**
+  - **Attempted:** None new. **Caution verified:** `master` = `311ebe70` has the misleading title "feat: add SemiBold and SemiBold Italic variants" but is a **docs-only commit** (plan v1.0/spec/PRD/reports — `git show --name-only` verified; `Scripts/generate-semibold-source.py` NOT on master) → **no REQ-10 violation**. Always verify commit contents before assuming a master-merge violation.
+- **Updated Files:**
+  - `plan/plan-design-semibold-weight-v1.1.md` — Execution Update block; Phase-1 table (TASK-004/005/008 ✅); Phase-2 table (TASK-010/006/007/014 ✅); calibration table (70 LOCKED); TASK-006 Run A/B tables (filled); idempotency results; Phase 2 execution record. **UNCOMMITTED.**
+- **Decisions Made:**
+  - Rule-6 stroke record: **PR description only** (user chose — no amend/force-push; preserves SHA `30936705` evidence traceability). Prepared text recorded in plan.
+  - `build-make.yml` evidence: **user dispatches manually** from Actions UI on `feature/semibold-weight` (TASK-011/013/017).
+  - TASK-006/007 evidence path: CI-built artifacts (Custom Build) + local real-FontForge dry-runs — deviation from the CI-execution plan recorded in `Execution Results`; build-make re-confirmation pending.
+- **Next Action / Pending:**
+  - Commit the plan v1.1 updates (user instruction required — Git protocol; optionally amend `30936705` message later).
+  - User dispatches `build-make.yml` on `feature/semibold-weight` → verify TASK-011 (4 permutations × TTF/OTF/WOFF/WOFF2/SVG), TASK-013 (CSS decl 600), TASK-017 (green + full `Variants/` upload), TASK-019 (zip contents).
+  - TASK-012 `validate-font` on both sources (needs FontForge — CI runner or container; expected only the maintainer baseline exception: `slash_asterisk_asterisk_slash.liga` + `ChangeWeight` artifacts).
+  - Retrieve CI-runner FontForge version (auth-gated logs) to complete the TASK-006 tables.
+  - Then TASK-015 VERIFY → TASK-016 approval → Phase 3 (TASK-017..021) → Phase 4 visual QA TASK-022 (both specimens) + merge.
+
+<!-- checkpoint-tail: SemiBold Phase 1 complete (2026-08-21): stroke 70 LOCKED via CI-built specimens, sources committed/pushed @ 30936705, TASK-006/007/014 evidence recorded in plan v1.1 (uncommitted); next = user dispatches build-make.yml for TASK-011/013/017. -->
+
+---
