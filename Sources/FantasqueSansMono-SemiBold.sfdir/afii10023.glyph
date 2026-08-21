@@ -1,0 +1,11 @@
+StartChar: afii10023
+Encoding: 1025 1025 737
+Width: 1060
+VWidth: -6
+Flags: HW
+LayerCount: 2
+Back
+Refer: 87 203 N 1 0 0 1 0 0 2
+Fore
+Refer: 87 203 N 1 0 0 1 0 0 2
+EndChar

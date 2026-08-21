@@ -1,0 +1,10 @@
+StartChar: Alphatonos
+Encoding: 902 902 410
+Width: 1060
+VWidth: 0
+Flags: HW
+LayerCount: 2
+Fore
+Refer: 392 900 S 1 0 0 1 -185.441 -33 2
+Refer: 368 913 N 1 0 0 1 0 0 3
+EndChar

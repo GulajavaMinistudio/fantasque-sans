@@ -1,0 +1,10 @@
+StartChar: Epsilontonos
+Encoding: 904 904 407
+Width: 1060
+VWidth: 0
+Flags: HW
+LayerCount: 2
+Fore
+Refer: 392 900 N 0.903507 0 0 1 -241 -16 2
+Refer: 371 917 N 0.937574 0 0 1 127 0 3
+EndChar

@@ -1,0 +1,30 @@
+StartChar: uni250B
+Encoding: 9483 9483 574
+Width: 1060
+VWidth: 0
+Flags: HW
+LayerCount: 2
+Fore
+SplineSet
+400 1591 m 1
+ 730 1591 l 1
+ 730 1205 l 1
+ 400 1205 l 1
+ 400 1591 l 1
+400 1068 m 1
+ 730 1068 l 1
+ 730 682 l 1
+ 400 682 l 1
+ 400 1068 l 1
+400 511 m 1
+ 730 511 l 1
+ 730 125 l 1
+ 400 125 l 1
+ 400 511 l 1
+400 -12 m 1
+ 730 -12 l 1
+ 730 -398 l 1
+ 400 -398 l 1
+ 400 -12 l 1
+EndSplineSet
+EndChar

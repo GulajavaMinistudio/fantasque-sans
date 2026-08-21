@@ -1,0 +1,10 @@
+StartChar: ograve
+Encoding: 242 242 135
+Width: 1060
+VWidth: -2
+Flags: HW
+LayerCount: 2
+Fore
+Refer: 320 768 S 1 0 0 1 -20 -214 2
+Refer: 14 111 N 1 0 0 1 0 0 3
+EndChar

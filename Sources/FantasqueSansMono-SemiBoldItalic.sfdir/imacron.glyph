@@ -1,0 +1,10 @@
+StartChar: imacron
+Encoding: 299 299 235
+Width: 1060
+VWidth: 32
+Flags: HW
+LayerCount: 2
+Fore
+Refer: 324 772 S 1 0 0 1 -1.66849 -292 2
+Refer: 177 305 N 1 0 0 1 0 0 3
+EndChar

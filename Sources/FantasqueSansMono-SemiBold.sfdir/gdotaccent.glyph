@@ -1,0 +1,16 @@
+StartChar: gdotaccent
+Encoding: 289 289 227
+Width: 1060
+VWidth: 32
+Flags: HW
+LayerCount: 2
+Fore
+SplineSet
+449 1108 m 1
+ 449 1403 l 1
+ 754 1403 l 1
+ 754 1108 l 1
+ 449 1108 l 1
+EndSplineSet
+Refer: 6 103 N 1 0 0 1 0 0 3
+EndChar

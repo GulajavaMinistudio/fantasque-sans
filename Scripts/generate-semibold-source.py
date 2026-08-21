@@ -28,7 +28,7 @@ import fontforge
 # escalates to a maintainer decision.
 # Reference value 60 (mid candidate grid) — final value locked during
 # Phase 1 calibration BEFORE sources are committed.
-STROKE_WIDTH = 60
+STROKE_WIDTH = 70
 # ChangeWeight embolden type (accepted by FontForge as "LCG" or "lcg").
 EMBOLDEN_TYPE = "LCG"
 # Counter handling: "retain" keeps inner counters as wide as before.
