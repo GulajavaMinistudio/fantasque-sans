@@ -69,7 +69,13 @@ jobs:
           # pytest/jsonschema match the local macro-gate environment as of
           # 2026-08-16; `future` is CI-only (legacy `past.builtins` import,
           # not present locally).
-          sudo pip3 install --break-system-packages --no-cache-dir \
+          # --ignore-installed: ubuntu-latest (rolling) runners now ship
+          # apt/dpkg python3-jsonschema 4.10.3 without a pip RECORD file;
+          # pip cannot uninstall it even with --break-system-packages
+          # ("Cannot uninstall ... RECORD file not found" — pip PR #13941
+          # recommends --ignore-installed). Overlays the pinned 4.26.0
+          # without touching the distro package; pins stay intact (2026-08-24).
+          sudo pip3 install --break-system-packages --no-cache-dir --ignore-installed \
             pytest==9.1.1 \
             jsonschema==4.26.0 \
             future==1.0.0
