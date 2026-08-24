@@ -278,3 +278,39 @@
 <!-- checkpoint-tail: SemiBold Phase 1 complete (2026-08-21): stroke 70 LOCKED via CI-built specimens, sources committed/pushed @ 30936705, TASK-006/007/014 evidence recorded in plan v1.1 (uncommitted); next = user dispatches build-make.yml for TASK-011/013/017. -->
 
 ---
+
+## 📝 Session Checkpoint: 2026-08-24 (SemiBold — Phase 2 ✅ + Phase 3 ✅ + Phase 4 partial)
+
+- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
+- **Current SDLC Phase:** Code Execution (`/sdlc-write-code`) — Phase 2 **COMPLETE**, Phase 3 **COMPLETE**, Phase 4 **IN PROGRESS** (TASK-022/023/025 = maintainer actions; TASK-024 items a/b/c/e verified locally)
+- **Active Artifacts:**
+  - `plan/plan-design-semibold-weight-v1.1.md` — Status: 🔄 In Progress (Phase 2/3 tables ✅ per task; Phase 4 partial; frontmatter `last_updated: 2026-08-24`; Execution Update (2026-08-24) block added; dead references cleaned) — **committed by user `b3c5f3cc`, NOT pushed**
+  - `.github/workflows/build-make.yml` — Status: ✅ fix `--ignore-installed` — **committed `a2900777` AND pushed** (origin + github)
+  - `spec/spec-design-semibold-weight.md` — unchanged (v1.1)
+  - `docs/prd-20260818-1636-semibold-font-weight.md` — unchanged (v1.1)
+- **Achieved Milestones:**
+  - **TASK-012 ✅ (2026-08-24)**: `validate-font` executed LOCALLY with FontForge 20251009 (previously blocked — FontForge now at `D:\Aplikasi\FontForgeBuilds`). Signal = baseline-exception only, proven equal to accepted Medium: bitmask classes SemiBold/SemiBoldItalic are subsets of Medium/MediumItalic sets (upright `0x88022c` identical; Italic `0x8022c` vs `0xc022e` same classes); `slash_asterisk_asterisk_slash.liga` Bad Glyph Name present in both. No new error class.
+  - **CI env fix (build-make.yml)**: first re-dispatch failed — `ERROR: Cannot uninstall jsonschema 4.10.3, RECORD file not found` (ubuntu-latest ships apt/dpkg `python3-jsonschema`; pip cannot uninstall dpkg packages even with `--break-system-packages`). Fix: `--ignore-installed` on the pinned pip install (pip PR #13941 remedy; pins/SEC-001 intact). `custom-build.yml` unaffected (unpinned install).
+  - **TASK-011/013/015/016 ✅ (2026-08-24)**: `build-make.yml` re-dispatch run `32688722643` GREEN — artifact `standard-build-variants-32688722643-1` verified via `D:/tmp/verify_buildmake.py` → **224/224 checks PASS** (4 permutations × 8 basenames × TTF/OTF/WOFF/WOFF2/SVG; SemiBold `-decl.css` with `font-weight: 600` + correct style; 4 archives contain SemiBold `.ttf`/`.otf`). Approvals TASK-016/021 granted by user.
+  - **TASK-017/019/020 ✅ (Phase 3)**: standard-make evidence 224/224; archive inspection passed; zero-touch re-check empty.
+  - **TASK-018 ✅ (AC-009)**: custom-build release artifact `D:/tmp-semibold-dryrun/TTF-24082026-1044` contains SemiBold/SemiBoldItalic `.ttf`+`.woff`+`.woff2`; (a) zero-touch workflow + `find_sfdirs()` auto-discovery; OTF/SVG **code-evidenced** (driver Phase D, lines 245–253), not artifact-verified (downloaded subset is TTF-only — honest limitation).
+  - **TASK-006 build-make re-confirmation CLOSED**: SFNT dump of build-make TTFs (`standard-build-variants-32688722643-1/Normal/TTF/`) matches all 5 artifacts (IDs 1/2/4/6 correct, no 16/17, `usWeightClass` 600, Italic flag + angle −11).
+  - **TASK-024 partial (local)**: (a) pytest **97/97**; (b) validate-font baseline-only; (c) **0 non-1060 glyphs** (1042/1046); (e) zero-regression 0 lines vs merge-base. (d) fresh `make` evidenced by green CI run (not re-run locally — make/toolchain absent).
+  - Plan-as-record: frontmatter bump, Execution Update (2026-08-24) block, TASK-009 ✅ backfill, TASK-011..021 ✅, removed duplicate TASK-020 ⏳ entry, "TASK-019 partial" → ✅, closed all "build-make re-confirmation pending" references.
+- **Dead-Ends (Do NOT Repeat):**
+  - **Attempted:** Verify build-make artifact with helper assuming basename `FantasqueSansMono-RegularItalic`. **Reason:** 20 false FAILs — the family names the Regular italic simply `Italic` (not `RegularItalic`). **Note:** Always enumerate actual basenames from the artifact (`ls Normal/TTF/`) before writing verifier assumptions. [Flag for KB promotion on next compaction: generalizable lesson for font-family artifact audits.]
+  - **Attempted:** Rely on the downloaded custom-build artifact subset for OTF/SVG evidence. **Reason:** `TTF-24082026-1044` is TTF-only; OTF/SVG presence recorded as code-evidenced only. **Note:** When download tar/zip naming is format-scoped, state artifact-verified vs code-evidenced explicitly.
+- **Updated Files:**
+  - `plan/plan-design-semibold-weight-v1.1.md` — Phase 2/3 records + Phase 4 partial; frontmatter; Execution Update block; TASK-009 backfill; TASK-006 re-confirmation closure (committed `b3c5f3cc` by user, **unpushed**)
+  - `.github/workflows/build-make.yml` — added `--ignore-installed` + comment (committed `a2900777`, pushed)
+  - `D:/tmp/verify_buildmake.py` — throwaway verifier (OUTSIDE repo, CON-07 safe); patched basename list to actual family naming
+- **Decisions Made:**
+  - Continue Phase 3 then Phase 4 — approvals TASK-016/021 granted interactively by user.
+  - Plan + workflow changes committed by USER (`b3c5f3cc`, `a2900777`) — no auto-commit by agent (Git protocol honored).
+  - Working tree currently **clean** (verified 2026-08-24); `b3c5f3cc` (plan) still needs push if remote sync desired.
+- **Next Action / Pending:**
+  - **Phase 4 maintainer actions** (awaiting user): TASK-022 visual QA sign-off (open PR `feature/semibold-weight`, approve as recorded sign-off, attach specimens `D:/tmp-semibold-calibration/specimens/` neighbor-{12,14,16}px.png + italic-{12,14,16}px.png, explicit AC-007 statement) → TASK-023 merge to master → TASK-024 final gate (items a/b/c/e already verified) → TASK-025 final approval.
+  - Optional: push `b3c5f3cc`; retrieve CI-runner FontForge version (auth-gated logs) to complete TASK-006 tables.
+  - Medium round (optional, still open): open `feat/medium-font-weight` PR + attach AC-007 review reference.
+
+<!-- checkpoint-tail: SemiBold Phase 2+3 complete (2026-08-24): CI env fix `--ignore-installed` (dpkg jsonschema RECORD conflict), build-make run 32688722643 green — 224/224 verify PASS, TASK-011/012/013/015/016/017/018/019/020/021 ✅, TASK-006 re-confirmation closed; Phase 4 TASK-024 items a-e local-verified; plan committed b3c5f3cc (unpushed) + workflow a2900777 (pushed); next = user visual QA TASK-022 + PR + merge. -->
