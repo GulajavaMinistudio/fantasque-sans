@@ -314,3 +314,33 @@
   - Medium round (optional, still open): open `feat/medium-font-weight` PR + attach AC-007 review reference.
 
 <!-- checkpoint-tail: SemiBold Phase 2+3 complete (2026-08-24): CI env fix `--ignore-installed` (dpkg jsonschema RECORD conflict), build-make run 32688722643 green — 224/224 verify PASS, TASK-011/012/013/015/016/017/018/019/020/021 ✅, TASK-006 re-confirmation closed; Phase 4 TASK-024 items a-e local-verified; plan committed b3c5f3cc (unpushed) + workflow a2900777 (pushed); next = user visual QA TASK-022 + PR + merge. -->
+
+---
+
+## 📝 Session Checkpoint: 2026-08-24 (SemiBold — Phase 4 CLOSED, feature Complete)
+
+- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
+- **Current SDLC Phase:** Code Execution (`/sdlc-write-code`) — Phase 4 **CLOSED**; feature **COMPLETE**; awaiting user decision on the optional Medium round
+- **Active Artifacts:**
+  - `plan/plan-design-semibold-weight-v1.2.md` — Status: ✅ **COMPLETE** (2026-08-24; frontmatter version 1.2 / status `Complete` / `date_completed`; Phase 4 table TASK-022..025 ✅; closure Execution Update block; FILE-005 synced to v1.2) — committed `bdcaa102` + pushed to `origin` (GulajavaMinistudio) + `github` (Iosevka-Mayukai)
+  - `spec/spec-design-semibold-weight.md` — Status: ✅ (v1.1, unchanged)
+  - `docs/prd-20260818-1636-semibold-font-weight.md` — Status: ✅ (v1.1, unchanged)
+- **Achieved Milestones:**
+  - User fast-forward merged `feature/semibold-weight` → `master` @ `cdb4f5ee` (linear, **no merge commit, no PR opened**) and pushed to `origin` + `github` (verified 2026-08-24; `master..feature` empty = fully merged).
+  - **TASK-022 ✅** — sign-off recorded as **single-maintainer direct sign-off deviation** (no PR approval; AC-007 SATISFIED on BOTH upright + italic specimens, scoped `Normal`; specimens `D:/tmp-semibold-calibration/specimens/` neighbor-{12,14,16}px.png + italic-{12,14,16}px.png). **TASK-023 ✅** merge @ `cdb4f5ee`. **TASK-024 ✅** final gate re-verified **post-merge**: pytest 97/97, Medium + zero-touch diffs vs `311ebe70` empty, post-merge merge-base diff trivially empty. **TASK-025 ✅** final approval.
+  - Plan v1.1 → **v1.2 closure** (plan-as-record): `git mv` rename, frontmatter Complete, `Execution Update (2026-08-24, Phase 4 — CLOSED)` block, markdownlint 0 issues. Commit `bdcaa102` pushed to both remotes.
+- **Dead-Ends (Do NOT Repeat):**
+  - **Attempted:** Merging the feature branch without opening a PR (direct fast-forward) leaves NO GitHub PR-approval sign-off evidence.
+  - **Reason:** The plan's TASK-022 sign-off mechanism is the PR review approval; omitting the PR breaks that evidence chain.
+  - **Note:** Record such deviations explicitly in the plan as a single-maintainer direct sign-off (plan-as-record honesty) instead of silently claiming the PR mechanism was used. [Consider KB promotion on next compaction.]
+- **Updated Files:**
+  - `plan/plan-design-semibold-weight-v1.1.md` → `plan/plan-design-semibold-weight-v1.2.md` — rename + Phase 4 closure edits (TASK-022..025 ✅ + dates, Execution Update block, FILE-005) — committed `bdcaa102`, pushed (repo file; this memory file is unchanged)
+- **Decisions Made:**
+  - Plan closure executed with explicit user consent (`Finalisasi lengkap`: post-merge re-verify + plan Complete + commit + push + memory checkpoint).
+  - Working tree clean post-push; AGENTS.md memory path unchanged (still valid).
+- **Next Action / Pending:**
+  - **Medium round (optional, still open):** open `feat/medium-font-weight` PR + attach AC-007 review reference.
+  - Optional (historical nice-to-have): retrieve CI-runner FontForge version (auth-gated logs) to complete TASK-006 tables — feature already merged.
+  - SemiBold ships additively per CON-05 (next regular release bundle).
+
+<!-- checkpoint-tail: SemiBold feature COMPLETE (2026-08-24): user merged feature/semibold-weight → master (fast-forward @ cdb4f5ee, no PR, pushed origin+github); plan closed v1.1 → v1.2 (TASK-022..025 ✅, direct sign-off deviation recorded; commit bdcaa102 pushed); TASK-024 re-verified post-merge (pytest 97/97, zero-regression clean); next optional = Medium round PR. -->
