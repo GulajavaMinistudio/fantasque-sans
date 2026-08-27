@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
+## [1.9.0] - 2026-08-27
+
+### Added
+- Medium and Medium Italic font weights (algorithmic stroke-widening from Regular)
+- SemiBold and SemiBold Italic font weights (algorithmic stroke-widening from Regular)
+- Custom Build workflow via GitHub Actions (`workflow_dispatch` with `large_line_height`, `no_loop_k`, `nerd_font_patching`, `auto_release`, `dry_run` inputs)
+- Optional Nerd Font Patcher integration as a Custom Build post-processing step
+- Standard `make` CI workflow to evidence acceptance criteria not covered by Custom Build (AC-003/004/005)
+- `Scripts/configure.py` configurator and `Scripts/custom_build_driver.py` Stage 1 driver for the Custom Build pipeline
+- Multi-stage Docker build (`Dockerfile`) targeting Ubuntu 26.04 with FontForge from default repos and a Python 3.14 packaging stage
+- `docs/CUSTOM-BUILD.md` Fork Owner guide and `docs/ARCHITECTURE.md` repository architecture map
+- Architectural Decision Records `docs/adr/0001-multi-stage-docker-legacy-tools.md` and `docs/adr/0002-multi-stage-docker-deferred-engine-port.md`
+
 ## [1.8.0] - 2019-11-16
 
 ### Added

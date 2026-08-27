@@ -51,7 +51,7 @@ Stylistic set(s)
 ### `ss01`: nondescript `k`
 
 No ~~distractive~~ lovely loop.
-[Get the pre-activated version here](https://github.com/belluzj/fantasque-sans/releases/download/v1.8.0/FantasqueSansMono-NoLoopK.zip)
+[Get the pre-activated version here](https://github.com/belluzj/fantasque-sans/releases/download/v1.9.0/FantasqueSansMono-NoLoopK.zip)
 or see the [issue #67](https://github.com/belluzj/fantasque-sans/issues/67)
 for techniques to activate the stylistic set.
 
