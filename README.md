@@ -69,8 +69,8 @@ Github](http://github.com/belluzj/cosmic-sans-neue/issues) if you stumble upon
 bad design or rendering problems (with screen shot if possible), or if you need
 more characters, or if you want to compliment me (I love compliments).
 
-Building with GitHub Actions (Custom Build)
--------------------------------------------
+Building with GitHub Actions
+----------------------------
 
 Need a Variant of Fantasque Sans Mono that is not in the official
 releases? The Custom Build workflow lets you compile a personalized
@@ -83,7 +83,7 @@ build archive plus a tagged GitHub Release.
 > runs the legacy `make` pipeline and uploads the complete `Variants/`
 > tree as a workflow artifact.
 
-#### Step 1 — Fork this repository
+### Step 1 — Fork this repository
 
 Click the **Fork** button at the top-right of
 [github.com/belluzj/fantasque-sans](https://github.com/belluzj/fantasque-sans)
@@ -91,19 +91,24 @@ and pick your personal account as the destination. Custom Build runs
 entirely on your fork's GitHub Actions runners, so your own copy is
 your isolated build environment.
 
-#### Step 2 — Enable GitHub Actions on your fork
+### Step 2 — Enable GitHub Actions on your fork
 
 Open the **Actions** tab on your fork. If GitHub shows a banner asking
 you to opt in, click **I understand my workflows, go ahead and enable
 them**. Forks disable workflows by default for security; enabling once
 is sufficient for all future runs.
 
-#### Step 3 — Open the **Custom Build** workflow
+The workflow files must be present on your fork's default branch to
+appear in the sidebar — a fresh fork of this repository already has
+them. No secrets or personal access tokens are required: both
+workflows run with the default `GITHUB_TOKEN`.
+
+### Step 3 — Open the **Custom Build** workflow
 
 In the left sidebar of the Actions tab, select **Custom Build**. Then
 click the green **Run workflow** button on the right.
 
-#### Step 4 — Adjust the five boolean inputs (optional)
+### Step 4 — Adjust the five boolean inputs (optional)
 
 The Run workflow form shows five checkboxes. Leave them at the defaults
 for a `Normal` Variant, or tick the boxes that match the Variant you
@@ -121,14 +126,16 @@ For the full description of each Option, precedence rules,
 `config.json` persistence, and CLI triggering, see
 [`docs/CUSTOM-BUILD.md`](docs/CUSTOM-BUILD.md).
 
-#### Step 5 — Run the workflow
+### Step 5 — Run the workflow
 
 Click the green **Run workflow** button at the bottom of the form. The
 yellow dot turns into an animated spinner while the run is in progress.
 Typical wall-clock time is **5–15 minutes** depending on GitHub runner
 availability and whether the optional Nerd Font patching step runs.
+Starting a new run while another one is in progress cancels the
+earlier run automatically.
 
-#### Step 6 — Download the result
+### Step 6 — Download the result
 
 Once the run finishes (green checkmark), download the result from
 either channel:
@@ -138,16 +145,43 @@ either channel:
 - **Releases** page of your fork — persistent, discoverable from your
   fork's sidebar; useful for archiving a specific configuration.
 
-Each successful run produces two archives:
+Each successful run publishes up to two artifacts:
 
-- `fantasque-sans-custom-build-{run_id}-{run_attempt}.zip` / `.tar.gz`
-  — the base build (TTF, OTF, WOFF, WOFF2, SVG)
-- `fantasque-sans-nerd-font.zip` / `.tar.gz` — **only** when
-  `nerd_font_patching` is enabled; contains the same fonts plus
-  10,000+ developer icons
+- `fantasque-sans-custom-build-{run_id}-{run_attempt}` — the base
+  build. It contains `fantasque-sans-custom-build.zip` and
+  `fantasque-sans-custom-build.tar.gz` (TTF, OTF, WOFF, WOFF2, SVG),
+  plus `manifest.json` (with the SHA-256 checksum of every font
+  file), `LICENSE.txt`, and `README.md`.
+- `nerd-font-build` — **only** when `nerd_font_patching` is enabled
+  **and patching succeeds**.
+  It contains `fantasque-sans-nerd-font.zip` and
+  `fantasque-sans-nerd-font.tar.gz`: the same fonts plus 10,000+
+  developer icons.
+
+The same font archives are attached to the tagged Release, so you can
+also download them from the Releases page without unpacking the
+artifacts. If the Nerd Font patcher image cannot be pulled (for
+example, Docker Hub is rate-limited), the workflow skips patching
+with a warning and the base build still completes.
 
 For command-line triggering, troubleshooting, and reproducible builds
 via `config.json`, see [`docs/CUSTOM-BUILD.md`](docs/CUSTOM-BUILD.md).
+
+### Alternative: Standard Build (make)
+
+To build the complete variant tree (all weights and all formats)
+instead of a single configuration:
+
+1. On the Actions tab, select **Standard Build (make)** in the left
+   sidebar.
+2. Click **Run workflow** — this workflow takes no inputs.
+3. Wait for the run to finish. It builds the entire `Variants/` tree
+   through `make`, so it is slower than Custom Build.
+4. Download the `standard-build-variants-{run_id}-{run_attempt}`
+   artifact from the run page; it contains the full `Variants/` tree.
+
+This workflow only uploads an artifact — it does not create a
+Release.
 
 Installation
 ------------

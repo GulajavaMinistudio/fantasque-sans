@@ -15,7 +15,7 @@ If you are a font *user*, see the [main README](../README.md) for installation.
 ## Getting Started
 
 This guide walks you from a fresh fork to a downloadable build of your custom
-Variant in five steps. Total wall-clock time: about 5–15 minutes depending on
+Variant in six steps. Total wall-clock time: about 5–15 minutes depending on
 GitHub Actions runner availability.
 
 ### 1. Fork this repository
@@ -28,21 +28,23 @@ Pick your personal account as the destination.
 copy of the repository. Your fork is an isolated build environment — no other
 fork's builds or releases affect yours.
 
-### 2. Open the Actions tab
+### 2. Enable GitHub Actions on your fork
 
-On **your fork**, click the **Actions** tab in the top navigation. If prompted,
-enable workflows for the fork by clicking **I understand my workflows, go ahead
-and enable them**.
+Open the **Actions** tab on your fork. If GitHub shows a banner asking
+you to opt in, click **I understand my workflows, go ahead and enable
+them**. Forks disable workflows by default for security; enabling once
+is sufficient for all future runs.
 
-**Why:** GitHub disables workflows on forks by default for security. The
-**Custom Build** workflow is published by the **upstream** repository
-(`belluzj/fantasque-sans`), so the first time you visit the Actions tab on a
-fresh fork you may need to opt in.
+The workflow files must be present on your fork's default branch to
+appear in the sidebar — a fresh fork of this repository already has
+them. No secrets or personal access tokens are required: the workflow
+runs with the default `GITHUB_TOKEN`.
 
-### 3. Click "Custom Build" → "Run workflow"
+### 3. Open the Custom Build workflow
 
-In the left sidebar, select **Custom Build**, then click the green
-**Run workflow** button on the right.
+In the left sidebar of the Actions tab, select **Custom Build**. Then
+click the green **Run workflow** button on the right — this opens the
+input form.
 
 **Why:** `workflow_dispatch` is the only trigger exposed for this workflow
 (by design — it is a manual, on-demand build). There are no scheduled runs
@@ -76,12 +78,26 @@ When `nerd_font_patching` is enabled, the Custom Build workflow runs [Nerd Fonts
 * **Separate Archive:** Patched fonts are packaged into a separate `fantasque-sans-nerd-font.zip` and `.tar.gz` archive to preserve the base build's compact size.
 * **File Size:** Expect the Nerd Font archive size to increase to ~30–40 MB due to the high volume of added icon glyphs.
 
-### 5. Download the result
+### 5. Run the workflow
+
+Click the green **Run workflow** button at the bottom of the form. The
+yellow dot turns into an animated spinner while the run is in progress.
+Starting a new run while another one is in progress cancels the earlier
+run automatically.
+
+**Why:** A run executes the Docker-based build on a GitHub-hosted
+runner. The workflow's concurrency guard cancels superseded runs on
+the same ref to save runner minutes.
+
+### 6. Download the result
 
 Wait for the run to finish (the yellow dot turns ✅). Then either:
 
-- **Artifacts** tab of the run page — download `fantasque-sans-custom-build-{run_id}-{run_attempt}.zip`
-  or the matching `.tar.gz`.
+- **Artifacts** tab of the run page — download the
+  `fantasque-sans-custom-build-{run_id}-{run_attempt}` artifact. It
+  contains `fantasque-sans-custom-build.zip` and
+  `fantasque-sans-custom-build.tar.gz`, plus `manifest.json`,
+  `LICENSE.txt`, and `README.md`.
 - **Releases** page of your fork — every successful run also publishes a
   GitHub Release with the same archives attached.
 
@@ -194,7 +210,7 @@ gh workflow run custom-build.yml \
   -f nerd_font_patching=true
 ```
 
-The four `-f` flags are the same booleans as the form inputs. To see the
+The five `-f` flags are the same booleans as the form inputs. To see the
 resulting run, list recent workflow runs:
 
 ```sh
@@ -214,7 +230,7 @@ gh run download <run-id> \
 
 ### "Invalid config.json: 'X' must be a boolean, got Y"
 
-Your `config.json` has a value of the wrong type for one of the four Options.
+Your `config.json` has a value of the wrong type for one of the five Options.
 The error message names the exact key and the offending type.
 
 Common causes:
@@ -282,7 +298,7 @@ If the failure is reproducible:
 
 ### I need a build Option that isn't in the form
 
-The four boolean Options in the form are the complete public V1 surface.
+The five boolean Options in the form are the complete public V1 surface.
 Other Variants (e.g. the `spacing` preset) are **out of scope for V1** and
 require local `make` from the legacy `Scripts/build.py` until V2 lands.
 
