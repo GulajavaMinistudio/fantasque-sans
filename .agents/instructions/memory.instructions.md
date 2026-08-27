@@ -13,6 +13,7 @@
 > Compaction history (condensed 2026-08-16): all sessions from 2026-07-24 through 2026-08-13 were compacted in multiple passes; all knowledge was promoted to this Knowledge Base at the time. The detailed per-pass log was removed in the 2026-08-16 cleanup (user request).
 > Compaction 2026-08-18: the two older Medium-refactor checkpoints (Code-Review Remediation, Refactor v1.1) were compacted; 4 lessons promoted; the Finalization checkpoint retained for Medium-round continuity.
 > Compaction 2026-08-20 (user request): the 2026-08-16 Finalization and 2026-08-18 PRD-v1.0 checkpoints were compacted; 4 lessons promoted to this Knowledge Base; replaced by the 2026-08-20 PRD-v1.1 checkpoint.
+> Compaction 2026-08-27 (user request): six checkpoints from 2026-08-20 through 2026-08-24 (Phase 2+3) were compacted; 3 dead-ends were promoted and the test-suite baseline was updated. The 2026-08-24 Phase 4 CLOSED and 2026-08-27 README checkpoints were retained.
 > Updated during Compaction Mode (Workflow 4). Do NOT delete entries here.
 
 ### Architecture & Patterns
@@ -84,12 +85,15 @@
 | 9 | **Assume versioned Docker tag exists on Docker Hub (`nerdfonts/patcher:v3.5.0`)** | Docker Hub repo `nerdfonts/patcher` does not publish version tags like `v3.5.0`; only `latest` is published. Pulling `v3.5.0` returned `manifest unknown: manifest unknown`. | Use `PRIMARY_TAG: "nerdfonts/patcher:latest"` with fallback to `FALLBACK_TAG: "ghcr.io/cdalvaro/docker-nerd-fonts-patcher:latest"`. Export `used_tag` output from pull step. |
 | 10 | **Pass explicit `/in/${fname}` argument to `docker run nerdfonts/patcher` when `/in` contains multiple font files** | The container entrypoint script `gotta-patch-em-all-font-patcher!.sh` automatically scans `/in` and appends every font file found to `font-patcher`. Passing `/in/${fname}` explicitly caused `font-patcher` to receive 2 positional file arguments, crashing with `font-patcher: error: unrecognized arguments: /in/<file>`. | Create an isolated per-file input directory (`tmp-in-${fmt}`) containing only 1 target font file per `docker run` invocation, mount it to `/in`, and omit explicit filename/outputdir arguments from `docker run`. |
 | 11 | **Use per-glyph `glyph.intersect()` to clean up self-intersections after `changeWeight`** | `glyph.intersect()` is a Boolean intersect — "Leaves the areas where the contours of a glyph overlap" (fontforge/python.cpp). For glyphs whose contours do NOT overlap (outer ring + inner counter), it empties the foreground entirely. Destroyed the outlines of 661 glyphs on the Medium sources; the resulting "clean" validation was false-green because empty glyphs produce zero validation flags. | Never use `intersect()` for cleanup. `removeOverlap()` and `simplify()` are the only plan-safe cleanup operations; residual self-intersections are a documented limitation of algorithmic `ChangeWeight` deferred to visual QA. Verify any font-generating pipeline with a **foreground-preservation audit**: count glyphs where `len(glyph.foreground)==0 AND len(glyph.references)==0` and compare against the source baseline (flag profiles alone cannot detect emptied glyphs). |
+| 12 | Assume the artifact basename `FantasqueSansMono-RegularItalic` in a verifier | The family names the Regular italic face `Italic`, producing false failures. | Enumerate actual basenames from the downloaded artifact before writing verifier assumptions. |
+| 13 | Treat a TTF-only custom-build download as proof that OTF/SVG outputs exist | The downloaded subset contained only TTF files; OTF/SVG were supported by code but not artifact-verified. | Label code-evidenced and artifact-verified results separately and obtain format-specific evidence when required. |
+| 14 | Fast-forward merge a feature branch without opening a PR when PR approval is the planned sign-off | No GitHub PR review evidence exists for the acceptance criterion. | Open the planned PR or record the direct-maintainer sign-off deviation explicitly; never claim PR approval. |
 
 ### Key Metrics & Baselines
 
 <!-- Stable metrics that serve as reference points (test counts, coverage, performance baselines). -->
-- **Test Suite**: 83/83 pytest — 69 existing + 14 in `tests/test_generate_medium_source.py` (12 original + 2 `font.weight` tests added in refactor Phase 1). [Source: Session 2026-08-16, verified after every refactor phase]
-- **Knowledge Base Size**: 11 Dead-Ends + 44 Architecture & Patterns (1 retired; +4 promoted 2026-08-20). [Source: Session 2026-08-16 cleanup, updated 2026-08-20]
+- **Test Suite**: 97/97 pytest — 69 existing + 14 in `tests/test_generate_medium_source.py` + 14 in `tests/test_generate_semibold_source.py`. [Source: Session 2026-08-24, verified post-merge]
+- **Knowledge Base Size**: 14 Dead-Ends + 44 Architecture & Patterns (1 retired; 3 promoted 2026-08-27). [Source: Session 2026-08-27 compaction]
 - **Plan-Refactor Execution (2026-07-30)**: 16 tasks across 3 phases, all completed in single session; 13/13 acceptance criteria met; pytest 62/62 PASS; CON-001 preserved. [Source: Session 2026-07-30, plan-refactor-code-review v1.0]
 - **Nerd Font Patcher Integration (2026-08-12)**: 32 tasks across 4 phases, all complete; 14/14 acceptance criteria (AC-101..AC-114); `configure.py` WORKFLOW_VERSION 1.4. Feature ready for PR/release merge. [Source: Session 2026-08-12 Phase 4]
 - **End-to-End Build**: 8 iteration cycles to first successful CI run (issues #1–#8). [Source: Session 2026-07-30, first end-to-end run 30520458083]
@@ -106,214 +110,7 @@
 
 ---
 
-## 📝 Session Checkpoint: 2026-08-20 (PRD SemiBold — Clarification Remediation → PRD v1.1)
-
-- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
-- **Current SDLC Phase:** PRD Phase (`/sdlc-draft-prd`) — remediation complete; PRD v1.1 ready; next = `/sdlc-define-specs` or `/sdlc-clarify-reqs` in a NEW session
-- **Active Artifacts:**
-  - `docs/prd-20260818-1636-semibold-font-weight.md` — Status: ✅ DRAFT v1.1 (2026-08-20; all clarification findings applied; projected readiness 100/100)
-  - `docs/audit/clarification-report-semibold-font-weight-2026-08-20.md` — Status: ✅ RESOLVED & IMPLEMENTED (exact-marker `REMEDIATION STATUS: RESOLVED` block + separate `IMPLEMENTATION STATUS: IMPLEMENTED` note)
-  - `docs/discovery-draft-20260818-1625-semibold-font-weight.md` — unchanged (approved)
-  - `CONTEXT.md` — unchanged (SemiBold term already present; no new domain terms)
-- **Achieved Milestones:**
-  - PRD v1.0 → v1.1: applied all 4 Resolved Items + 7 Auto-Resolved items from the Clarification Report (Review Iteration 2, score 95/100).
-  - Stroke calibration contract encoded (band 55–70, grid 50/60/70, floor 45, escalation on failure) in FR-01, §5.3, §8.3, §9.2, GH-006 AC3/AC4.
-  - SVG added to output-format enumerations (FR-04, GH-003 AC1, GH-005 AC3, GH-007 AC2) — repo-verified (fontbuilder.py:114, custom_build_driver.py:253, generate-css-decl:51, packaging.sh:113).
-  - `Scripts/generate-css-decl` added to CON-07 zero-touch enumeration (§2.3, §7.3, GH-003 AC3); `zip-all-variants` auto-discovery verified (`find "$variants"/*`).
-  - §7.1: Adoption Rate metric removed; "valid" glyph-issue triage + editor-compat measurement method defined; §7.2 marks Release Bundle Completeness as sole quantitative adoption metric.
-  - Advisory-driven cleanup: literal `"ask first" boundary` remnant removed from §8.3; grep-verified zero residual old phrases.
-- **Dead-Ends (Do NOT Repeat):**
-  - **Attempted:** Kept literal `(replaces any "ask first" boundary)` in §8.3 as documentation of the replacement.
-  - **Reason:** Advisory blocker — the resolution says the phrase is *replaced*, so any literal remnant contradicts the "removed" claim.
-  - **Note:** After resolving a doc finding, re-grep the exact phrase to prove zero residual occurrences before claiming completion (see KB Claim-File Consistency Verification).
-  - **Attempted:** Changed the audit-report marker to `REMEDIATION STATUS: RESOLVED & IMPLEMENTED`.
-  - **Reason:** Advisory blocker — AGENTS.md/skill mandate the exact marker `REMEDIATION STATUS: RESOLVED`; altering it breaks compliance.
-  - **Note:** Keep required markers verbatim; add supplementary status as a separate block (see KB Exact-Marker Compliance in Audit Reports).
-- **Updated Files:**
-  - `docs/prd-20260818-1636-semibold-font-weight.md` — v1.0 → v1.1 (18 surgical edits; version/date bump 2026-08-20)
-  - `docs/audit/clarification-report-semibold-font-weight-2026-08-20.md` — added exact `REMEDIATION STATUS: RESOLVED` block + separate `IMPLEMENTATION STATUS: IMPLEMENTED` block; Target Document line notes v1.0 → v1.1
-- **Decisions Made:**
-  - Stroke calibration contract locked (promoted to KB): highest stroke in 55–70 band passing the "discernible counters" gate; descend 50 → 45 floor; fail at/above floor → maintainer decision; manual fixes only on maintainer request.
-  - Weight-generation commit discipline (promoted to KB): temporary feature branch; merge to `master` only after maintainer visual QA sign-off (GH-006).
-  - Spec strategy (from compacted 2026-08-18 checkpoint, still valid): separate spec file `spec-design-semibold-weight.md` (KB Spec Modular Escalation).
-- **Next Action / Pending:**
-  - Handoff: `/sdlc-define-specs` (Option A) or `/sdlc-clarify-reqs` (Option B) in a NEW session with `@docs/prd-20260818-1636-semibold-font-weight.md` (v1.1).
-  - Medium round (optional, still open): open `feat/medium-font-weight` PR + attach AC-007 review reference.
-
-<!-- checkpoint-tail: PRD SemiBold remediated v1.0 → v1.1 (2026-08-20): 4 resolutions + 7 auto-resolutions applied, calibration rule/floor/escalation encoded, SVG enumerated, audit report RESOLVED & IMPLEMENTED (exact marker preserved); next = /sdlc-define-specs or /sdlc-clarify-reqs in new session. -->
-
----
-
-## 📝 Session Checkpoint: 2026-08-20 (Status Review & Handoff Decision)
-
-- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
-- **Current SDLC Phase:** PRD Phase (`/sdlc-draft-prd`) — closed at v1.1; awaiting `/sdlc-define-specs` in NEW session
-- **Active Artifacts:**
-  - `docs/prd-20260818-1636-semibold-font-weight.md` — Status: ✅ DRAFT v1.1 (2026-08-20; projected 100/100)
-  - `docs/audit/clarification-report-semibold-font-weight-2026-08-20.md` — Status: ✅ RESOLVED & IMPLEMENTED
-  - `docs/discovery-draft-20260818-1625-semibold-font-weight.md` — unchanged (approved)
-  - `CONTEXT.md` — unchanged
-- **Achieved Milestones:**
-  - Status review session — read memory.instructions.md, presented current state to user.
-  - Confirmed PRD v1.1 (SemiBold remediation) is ready for handoff.
-  - User decision: handoff to `/sdlc-define-specs` in a NEW chat session.
-  - Strict Session Isolation enforced (refused intra-session phase switch per AGENTS.md §8).
-- **Dead-Ends (Do NOT Repeat):**
-  - None new this session (read-only review).
-- **Updated Files:**
-  - None — read-only memory check + handoff decision only.
-- **Decisions Made:**
-  - Handoff target: `/sdlc-define-specs` with `@docs/prd-20260818-1636-semibold-font-weight.md` (v1.1) as mandatory input.
-  - Spec strategy: separate file `spec-design-semibold-weight.md` (per KB "Spec Modular Escalation" pattern).
-  - No KB promotion this round (no new durable lesson surfaced).
-- **Next Action / Pending:**
-  - User opens a NEW chat session and invokes `/sdlc-define-specs` with PRD v1.1 attached.
-  - Medium round remains optional pending `feat/medium-font-weight` PR open + AC-007 review reference.
-
-<!-- checkpoint-tail: Status review 2026-08-20 closed; PRD v1.1 ready for /sdlc-define-specs in new session; no working-tree changes; handoff decided, no KB promotion this round. -->
-
----
-## 📝 Session Checkpoint: 2026-08-20 (Spec SemiBold — Clarification, Review Iteration 1)
-
-- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
-- **Current SDLC Phase:** Spec Clarification (`/sdlc-clarify-reqs`) on `spec/spec-design-semibold-weight.md` — session complete; spec remediation + re-audit pending
-- **Active Artifacts:**
-  - `spec/spec-design-semibold-weight.md` — Status: 🔄 In Progress (Readiness Score: **77/100 — Below Threshold**; remediation NOT yet applied)
-  - `docs/audit/clarification-report-spec-semibold-weight-2026-08-20.md` — Status: 🔄 NEW file saved (Review Iteration 1; Below Threshold; NO `REMEDIATION STATUS: RESOLVED` marker — allowed only after the spec author remediates and file claims are verified)
-  - `docs/prd-20260818-1636-semibold-font-weight.md` — unchanged (v1.1)
-  - `CONTEXT.md` — unchanged (no new domain term)
-- **Achieved Milestones:**
-  - Interrogated the SemiBold spec; verified all codebase claims accurate (`validate-font` exit 0, `generate-css-decl` dynamic reads, `zip-all-variants` discovery, Makefile wildcard, `Scripts/custom_build_driver.py::find_sfdirs()`, 83-test baseline, Italic source `Weight: Book`).
-  - Four user-resolved ambiguities (all Option A) recorded as Critical Findings → Resolved Items: Q1 `font.weight` acceptance gate, Q2 italic AND calibration gate, Q3 two-sided neighbor-distinctness gate, Q4 idempotency verification path.
-  - Three minor items classified: Q5 grid wording `[Assumed / Backlog]`, Q6 "unit-test runner" terminology `[Assumed / Auto-Resolved]`, Q7 input-validation `[Assumed / Backlog]`.
-- **Dead-Ends (Do NOT Repeat):**
-  - **Attempted:** Cited FontForge `knownweights`/`realweights` tables as the `font.weight` setter contract ("Demi" as required value).
-  - **Reason:** Those tables belong to PS name parsing (`_GetModifiers`), not the setter; the claim was unfounded and pushed a fallback that violates the `_Avoid_` list (DemiBold).
-  - **Note:** Frame binding-behavior unknowns as empirical verification gates, never as pre-committed naming fallbacks.
-  - **Attempted:** Presented the projected post-remediation score (94/100) as the spec file's current state ("resolutions encoded").
-  - **Reason:** The resolutions were session agreements not yet written into the file; claim-file mismatch flagged as blocker.
-  - **Note:** Report current file score vs projected score separately; re-audit after remediation (see KB Claim-File Consistency Verification).
-- **Updated Files:**
-  - `docs/audit/clarification-report-spec-semibold-weight-2026-08-20.md` — created (mandatory template; 77/100 Below Threshold; 4 blockers, 4 resolved items, 3 assumed/backlog; no User Decision Prompt block at score < 80)
-- **Decisions Made:**
-  - Q1: Phase 1 empirical gate — dump from built TTF/OTF: `font.weight`, `Weight:` in `font.props`, SFNT IDs 2/4/6, ID 16/17 side-effect check, `os2_weight` = 600; evidence verbatim in `plan/` Execution Results (PR description only a copy).
-  - Q2: "Discernible counters" = AND gate upright + italic at every candidate; italic failure → descend per locked 70→60→50→45; escalate only if none passes both.
-  - Q3: Neighbor comparison = two-sided gate (clearly > Medium, clearly < Bold) in the selection loop; failure → descend; escalate when none passes all gates.
-  - Q4: Idempotency verified per TEST-005 precedent (two clean runs, `.glyph`/metrics identical; `font.props` diffed per-field, only `ModificationTime`-type metadata may differ).
-- **Next Action / Pending:**
-  - Spec author (`/sdlc-define-specs`) applies Resolutions Q1–Q4 + wording Q5/Q6 to `spec/spec-design-semibold-weight.md` — resolutions still pending, NOT applied.
-  - Author then runs the Remediation Sequence (projected 94/100; append `REMEDIATION STATUS: RESOLVED` only after actual update + verification) and triggers a re-audit.
-  - Spec must NOT be declared ready for the next phase at 77/100.
-
-<!-- checkpoint-tail: Spec SemiBold clarification (2026-08-20): 77/100 Below Threshold; Q1-Q4 resolutions agreed but pending spec author; report saved without RESOLVED marker; re-audit required after remediation. -->
-
----
-
-## 📝 Session Checkpoint: 2026-08-20 (Plan SemiBold — Clarification + Remediation)
-
-- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
-- **Current SDLC Phase:** Planning (`/sdlc-clarify-reqs` on Plan → `/sdlc-plan-tasks` remediation) — complete; plan ready; next = `/sdlc-write-code` in a NEW session
-- **Active Artifacts:**
-  - `plan/plan-design-semibold-weight-v1.0.md` — Status: ✅ Remediated (Readiness projected **100/100**; all 8 §4 fixes from the clarification report applied)
-  - `docs/audit/clarification-report-plan-semibold-weight-2026-08-20.md` — Status: ✅ RESOLVED (exact `REMEDIATION STATUS: RESOLVED` marker block added at top; original score 96/100)
-  - `spec/spec-design-semibold-weight.md` — unchanged this session (v1.1)
-  - `docs/prd-20260818-1636-semibold-font-weight.md` — unchanged (v1.1)
-  - `CONTEXT.md` — unchanged (no new domain term)
-- **Achieved Milestones:**
-  - Plan clarification (`/sdlc-clarify-reqs`): 7 grill questions (Q1–Q7), all resolved Option A; saved clarification report (Review Iteration 1, **96/100**, Good Enough).
-  - Verified codebase facts: Italic source `Weight: Book` & Regular `Weight: Regular` (§4.2.1 gate premise factually correct); single root `Makefile` wildcard + `Scripts/generate-font-variants` fan out the 4 permutations (Normal/LargeLineHeight/NoLoopK/LargeLineHeight-NoLoopK); `Scripts/generate-css-decl` writes `Webfonts/<basename>-decl.css` reading `os2_weight`/`italicangle` at runtime.
-  - Plan remediation (`/sdlc-plan-tasks`, `[bypass-sdlc]`): rewrote plan applying all 8 §4 fixes — **reorder** (TASK-006/TASK-007 moved to Phase 2, post-push), `INF-001`/`P-ASSUMPTION-002` → GitHub Actions CI like Medium, TASK-004 per-candidate CI loop + `Normal` scope + mandatory Q3 auditable evidence, TASK-005/006 uniform `make`, TASK-006 artifacts #1&#2 from `font.weight` TTF/OTF (`.sfdir` `font.props` dropped) + ID 1 added, TASK-011 "5→3 weights", TASK-022 PR-approval sign-off + `Normal` scope, FILE-005/rollback updated.
-  - Appended exact `REMEDIATION STATUS: RESOLVED` block to the clarification report; projected readiness **100/100**.
-- **Dead-Ends (Do NOT Repeat):**
-  - None new this session (clarification + remediation only; prior spec-round dead-ends already in KB).
-- **Updated Files:**
-  - `plan/plan-design-semibold-weight-v1.0.md` — full rewrite (~87KB) applying 8 clarification fixes; phase reorder; `Execution Results` tables corrected (ID 1 added, `font.props` removed).
-  - `docs/audit/clarification-report-plan-semibold-weight-2026-08-20.md` — added exact `REMEDIATION STATUS: RESOLVED` block at top.
-- **Decisions Made:**
-  - Empirical gates (calibration TASK-004, `font.weight` gate TASK-006, idempotency TASK-007) execute in **GitHub Actions CI** (`build-make.yml`), same path as the Medium build — NOT locally, NOT pre-commit. Feature branch MUST be pushed before the gates run.
-  - Calibration = per-candidate full CI cycle (edit `STROKE_WIDTH` → commit → push → `build-make.yml` → download TTF → inspect `Normal` permutation locally); candidates 70/60/50/45.
-  - Q3 "clearly heavier/lighter" stays maintainer judgment but requires **auditable evidence**: side-by-side specimen captures (Medium vs candidate vs Bold at 12/14/16px) + stem-width ratio estimate recorded in `Execution Results`.
-  - Visual QA (TASK-022) sign-off = **PR review approval** (recorded evidence); self-review only with single-maintainer note + attached specimens; scoped to `Normal` permutation (glyph geometry identical across permutations).
-  - Existing monospace weights = **3** (Regular/Medium/Bold), not 5.
-- **Next Action / Pending:**
-  - Handoff: `/sdlc-write-code` in a NEW session with `@plan/plan-design-semibold-weight-v1.0.md` + `@spec/spec-design-semibold-weight.md` + relevant source files (`Scripts/generate-medium-source.py`, `Sources/FantasqueSansMono-Italic.sfdir/font.props`).
-  - Medium round (optional, still open): open `feat/medium-font-weight` PR + attach AC-007 review reference.
-
-<!-- checkpoint-tail: Plan SemiBold clarified (7 grills, 96/100) + remediated (8 fixes applied, reorder to post-push CI gates, REMEDIATION STATUS: RESOLVED, projected 100/100); next = /sdlc-write-code in new session. -->
-
----
-
-## 📝 Session Checkpoint: 2026-08-21 (SemiBold — Phase 1 Code Execution Complete)
-
-- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
-- **Current SDLC Phase:** Code Execution (`/sdlc-write-code`) — Phase 1 **COMPLETE** (TASK-001..009); Phase 2 in progress (TASK-010/014 ✅, TASK-006/007 evidence recorded, TASK-011/012/013 pending on `build-make.yml` dispatch)
-- **Active Artifacts:**
-  - `plan/plan-design-semibold-weight-v1.1.md` — Status: 🔄 In Progress (Phase 1 tasks marked ✅; `Execution Results` updated: calibration LOCKED 70, TASK-006 Run A/B tables, idempotency, Phase 1+2 records; **plan edits UNCOMMITTED** — pending user instruction, Git protocol)
-  - `spec/spec-design-semibold-weight.md` — Status: ✅ (v1.1, unchanged)
-  - `docs/prd-20260818-1636-semibold-font-weight.md` — Status: ✅ (v1.1, unchanged)
-  - `Scripts/generate-semibold-source.py` — Status: ✅ committed (`30936705`, `STROKE_WIDTH = 70`)
-  - `Sources/FantasqueSansMono-SemiBold.sfdir` + `SemiBoldItalic.sfdir` — Status: ✅ committed (`30936705`, stroke 70; 1042/1046 glyphs, all widths 1060)
-  - `tests/test_generate_semibold_source.py` — Status: ✅ committed (`30e9e159`, 14 tests)
-- **Achieved Milestones:**
-  - **Calibration LOCKED: `STROKE_WIDTH = 70` em-units** (§4.3 composite AND gate). Candidate 70 passes: upright + italic counters discernible at 12/14/16px (specimens `D:/tmp-semibold-calibration/specimens/`), Q3 two-sided neighbor gate (≈2.06× Medium numerical / 1.6–1.8× visual; ≈0.7× Bold). Evidence from CI-built artifacts — Custom Build run `32461218479` @ `30936705` (fork Iosevka-Mayukai, branch `feature/semibold-weight`).
-  - TASK-006 `font.weight` gate: Run A + Run B, 5 artifacts each from CI-built TTFs — **ALL PASS** (SFNT IDs 1/2/4/6 correct, no ID 16/17, `usWeightClass` 600, `macStyle` italic + `italicAngle` -11 on Run B).
-  - TASK-007 idempotency: `.glyph` files byte-identical; `font.props` differs **only** in `ModificationTime` (1787297903 vs 1787297943).
-  - TASK-014 zero-touch audit: **clean** vs merge-base `311ebe70` AND vs `bcbbce10`; Medium script/sources untouched; zero-touch set untouched.
-  - Full suite: **97/97 pass, 0 failures** (83 baseline + 14 new; re-run 2026-08-21).
-- **Dead-Ends (Do NOT Repeat):**
-  - **Attempted:** None new. **Caution verified:** `master` = `311ebe70` has the misleading title "feat: add SemiBold and SemiBold Italic variants" but is a **docs-only commit** (plan v1.0/spec/PRD/reports — `git show --name-only` verified; `Scripts/generate-semibold-source.py` NOT on master) → **no REQ-10 violation**. Always verify commit contents before assuming a master-merge violation.
-- **Updated Files:**
-  - `plan/plan-design-semibold-weight-v1.1.md` — Execution Update block; Phase-1 table (TASK-004/005/008 ✅); Phase-2 table (TASK-010/006/007/014 ✅); calibration table (70 LOCKED); TASK-006 Run A/B tables (filled); idempotency results; Phase 2 execution record. **UNCOMMITTED.**
-- **Decisions Made:**
-  - Rule-6 stroke record: **PR description only** (user chose — no amend/force-push; preserves SHA `30936705` evidence traceability). Prepared text recorded in plan.
-  - `build-make.yml` evidence: **user dispatches manually** from Actions UI on `feature/semibold-weight` (TASK-011/013/017).
-  - TASK-006/007 evidence path: CI-built artifacts (Custom Build) + local real-FontForge dry-runs — deviation from the CI-execution plan recorded in `Execution Results`; build-make re-confirmation pending.
-- **Next Action / Pending:**
-  - Commit the plan v1.1 updates (user instruction required — Git protocol; optionally amend `30936705` message later).
-  - User dispatches `build-make.yml` on `feature/semibold-weight` → verify TASK-011 (4 permutations × TTF/OTF/WOFF/WOFF2/SVG), TASK-013 (CSS decl 600), TASK-017 (green + full `Variants/` upload), TASK-019 (zip contents).
-  - TASK-012 `validate-font` on both sources (needs FontForge — CI runner or container; expected only the maintainer baseline exception: `slash_asterisk_asterisk_slash.liga` + `ChangeWeight` artifacts).
-  - Retrieve CI-runner FontForge version (auth-gated logs) to complete the TASK-006 tables.
-  - Then TASK-015 VERIFY → TASK-016 approval → Phase 3 (TASK-017..021) → Phase 4 visual QA TASK-022 (both specimens) + merge.
-
-<!-- checkpoint-tail: SemiBold Phase 1 complete (2026-08-21): stroke 70 LOCKED via CI-built specimens, sources committed/pushed @ 30936705, TASK-006/007/014 evidence recorded in plan v1.1 (uncommitted); next = user dispatches build-make.yml for TASK-011/013/017. -->
-
----
-
-## 📝 Session Checkpoint: 2026-08-24 (SemiBold — Phase 2 ✅ + Phase 3 ✅ + Phase 4 partial)
-
-- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
-- **Current SDLC Phase:** Code Execution (`/sdlc-write-code`) — Phase 2 **COMPLETE**, Phase 3 **COMPLETE**, Phase 4 **IN PROGRESS** (TASK-022/023/025 = maintainer actions; TASK-024 items a/b/c/e verified locally)
-- **Active Artifacts:**
-  - `plan/plan-design-semibold-weight-v1.1.md` — Status: 🔄 In Progress (Phase 2/3 tables ✅ per task; Phase 4 partial; frontmatter `last_updated: 2026-08-24`; Execution Update (2026-08-24) block added; dead references cleaned) — **committed by user `b3c5f3cc`, NOT pushed**
-  - `.github/workflows/build-make.yml` — Status: ✅ fix `--ignore-installed` — **committed `a2900777` AND pushed** (origin + github)
-  - `spec/spec-design-semibold-weight.md` — unchanged (v1.1)
-  - `docs/prd-20260818-1636-semibold-font-weight.md` — unchanged (v1.1)
-- **Achieved Milestones:**
-  - **TASK-012 ✅ (2026-08-24)**: `validate-font` executed LOCALLY with FontForge 20251009 (previously blocked — FontForge now at `D:\Aplikasi\FontForgeBuilds`). Signal = baseline-exception only, proven equal to accepted Medium: bitmask classes SemiBold/SemiBoldItalic are subsets of Medium/MediumItalic sets (upright `0x88022c` identical; Italic `0x8022c` vs `0xc022e` same classes); `slash_asterisk_asterisk_slash.liga` Bad Glyph Name present in both. No new error class.
-  - **CI env fix (build-make.yml)**: first re-dispatch failed — `ERROR: Cannot uninstall jsonschema 4.10.3, RECORD file not found` (ubuntu-latest ships apt/dpkg `python3-jsonschema`; pip cannot uninstall dpkg packages even with `--break-system-packages`). Fix: `--ignore-installed` on the pinned pip install (pip PR #13941 remedy; pins/SEC-001 intact). `custom-build.yml` unaffected (unpinned install).
-  - **TASK-011/013/015/016 ✅ (2026-08-24)**: `build-make.yml` re-dispatch run `32688722643` GREEN — artifact `standard-build-variants-32688722643-1` verified via `D:/tmp/verify_buildmake.py` → **224/224 checks PASS** (4 permutations × 8 basenames × TTF/OTF/WOFF/WOFF2/SVG; SemiBold `-decl.css` with `font-weight: 600` + correct style; 4 archives contain SemiBold `.ttf`/`.otf`). Approvals TASK-016/021 granted by user.
-  - **TASK-017/019/020 ✅ (Phase 3)**: standard-make evidence 224/224; archive inspection passed; zero-touch re-check empty.
-  - **TASK-018 ✅ (AC-009)**: custom-build release artifact `D:/tmp-semibold-dryrun/TTF-24082026-1044` contains SemiBold/SemiBoldItalic `.ttf`+`.woff`+`.woff2`; (a) zero-touch workflow + `find_sfdirs()` auto-discovery; OTF/SVG **code-evidenced** (driver Phase D, lines 245–253), not artifact-verified (downloaded subset is TTF-only — honest limitation).
-  - **TASK-006 build-make re-confirmation CLOSED**: SFNT dump of build-make TTFs (`standard-build-variants-32688722643-1/Normal/TTF/`) matches all 5 artifacts (IDs 1/2/4/6 correct, no 16/17, `usWeightClass` 600, Italic flag + angle −11).
-  - **TASK-024 partial (local)**: (a) pytest **97/97**; (b) validate-font baseline-only; (c) **0 non-1060 glyphs** (1042/1046); (e) zero-regression 0 lines vs merge-base. (d) fresh `make` evidenced by green CI run (not re-run locally — make/toolchain absent).
-  - Plan-as-record: frontmatter bump, Execution Update (2026-08-24) block, TASK-009 ✅ backfill, TASK-011..021 ✅, removed duplicate TASK-020 ⏳ entry, "TASK-019 partial" → ✅, closed all "build-make re-confirmation pending" references.
-- **Dead-Ends (Do NOT Repeat):**
-  - **Attempted:** Verify build-make artifact with helper assuming basename `FantasqueSansMono-RegularItalic`. **Reason:** 20 false FAILs — the family names the Regular italic simply `Italic` (not `RegularItalic`). **Note:** Always enumerate actual basenames from the artifact (`ls Normal/TTF/`) before writing verifier assumptions. [Flag for KB promotion on next compaction: generalizable lesson for font-family artifact audits.]
-  - **Attempted:** Rely on the downloaded custom-build artifact subset for OTF/SVG evidence. **Reason:** `TTF-24082026-1044` is TTF-only; OTF/SVG presence recorded as code-evidenced only. **Note:** When download tar/zip naming is format-scoped, state artifact-verified vs code-evidenced explicitly.
-- **Updated Files:**
-  - `plan/plan-design-semibold-weight-v1.1.md` — Phase 2/3 records + Phase 4 partial; frontmatter; Execution Update block; TASK-009 backfill; TASK-006 re-confirmation closure (committed `b3c5f3cc` by user, **unpushed**)
-  - `.github/workflows/build-make.yml` — added `--ignore-installed` + comment (committed `a2900777`, pushed)
-  - `D:/tmp/verify_buildmake.py` — throwaway verifier (OUTSIDE repo, CON-07 safe); patched basename list to actual family naming
-- **Decisions Made:**
-  - Continue Phase 3 then Phase 4 — approvals TASK-016/021 granted interactively by user.
-  - Plan + workflow changes committed by USER (`b3c5f3cc`, `a2900777`) — no auto-commit by agent (Git protocol honored).
-  - Working tree currently **clean** (verified 2026-08-24); `b3c5f3cc` (plan) still needs push if remote sync desired.
-- **Next Action / Pending:**
-  - **Phase 4 maintainer actions** (awaiting user): TASK-022 visual QA sign-off (open PR `feature/semibold-weight`, approve as recorded sign-off, attach specimens `D:/tmp-semibold-calibration/specimens/` neighbor-{12,14,16}px.png + italic-{12,14,16}px.png, explicit AC-007 statement) → TASK-023 merge to master → TASK-024 final gate (items a/b/c/e already verified) → TASK-025 final approval.
-  - Optional: push `b3c5f3cc`; retrieve CI-runner FontForge version (auth-gated logs) to complete TASK-006 tables.
-  - Medium round (optional, still open): open `feat/medium-font-weight` PR + attach AC-007 review reference.
-
-<!-- checkpoint-tail: SemiBold Phase 2+3 complete (2026-08-24): CI env fix `--ignore-installed` (dpkg jsonschema RECORD conflict), build-make run 32688722643 green — 224/224 verify PASS, TASK-011/012/013/015/016/017/018/019/020/021 ✅, TASK-006 re-confirmation closed; Phase 4 TASK-024 items a-e local-verified; plan committed b3c5f3cc (unpushed) + workflow a2900777 (pushed); next = user visual QA TASK-022 + PR + merge. -->
+<!-- Checkpoints from 2026-08-20 through 2026-08-24 (Phase 2+3) were compacted on 2026-08-27; durable knowledge was promoted to the Knowledge Base above. -->
 
 ---
 
@@ -344,3 +141,34 @@
   - SemiBold ships additively per CON-05 (next regular release bundle).
 
 <!-- checkpoint-tail: SemiBold feature COMPLETE (2026-08-24): user merged feature/semibold-weight → master (fast-forward @ cdb4f5ee, no PR, pushed origin+github); plan closed v1.1 → v1.2 (TASK-022..025 ✅, direct sign-off deviation recorded; commit bdcaa102 pushed); TASK-024 re-verified post-merge (pytest 97/97, zero-regression clean); next optional = Medium round PR. -->
+
+---
+
+## 📝 Session Checkpoint: 2026-08-27 (README — Documentation Update)
+
+- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
+- **Current SDLC Phase:** Documentation (`/sdlc-generate-docs`) — README update complete
+- **Active Artifacts:**
+  - `README.md` — Status: 🔄 Updated and uncommitted; documents the current weight family, Nerd Font option, and GitHub Actions workflows
+  - `docs/CUSTOM-BUILD.md` — Status: ✅ Existing guide verified; already documents Nerd Font configuration
+  - `.github/workflows/custom-build.yml` — Status: ✅ Verified; five boolean inputs including `nerd_font_patching`
+  - `.github/workflows/build-make.yml` — Status: ✅ Verified; standard `make` build with `Variants/` artifact upload
+- **Achieved Milestones:**
+  - Updated the weights section to document Regular, Medium, SemiBold, and Bold, each with upright and italic variants (eight faces total).
+  - Added a concise provenance note stating that Medium and SemiBold are derived from the Regular design through an algorithmic stroke-widening process.
+  - Updated the Custom Build section from four to five boolean inputs and documented the optional Nerd Font Patcher v3.5.0 output archive.
+  - Documented the Standard Build (make) workflow and its GitHub Actions artifact output.
+  - Verified terminology against `CONTEXT.md`, verified claims against the repository, and passed `markdownlint` 0.49.1 with exit code 0.
+- **Dead-Ends (Do NOT Repeat):**
+  - None. This was a documentation-only update; no application code or tests were changed.
+- **Updated Files:**
+  - `README.md` — surgical updates to the weights and Custom Build sections.
+  - `.agents/instructions/memory.instructions.md` — appended this session checkpoint.
+- **Decisions Made:**
+  - Use the approved PRD, Spec, Plan, workflow YAML, and `CONTEXT.md` files in the repository as documentation sources of truth.
+  - Keep the README update in Markdown and limit the scope to two existing sections; retain detailed operational instructions in `docs/CUSTOM-BUILD.md`.
+- **Next Action / Pending:**
+  - User should review and commit the uncommitted `README.md` change.
+  - Optional: update the README's release link or changelog references in a separate documentation task if needed.
+
+<!-- checkpoint-tail: README updated on 2026-08-27 with current Medium/SemiBold weights, Nerd Font patching, and Standard/Custom GitHub Actions workflows; markdownlint passed; README remains uncommitted. -->

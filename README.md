@@ -29,9 +29,12 @@ Consolas a lot in my programming life, so it may have some points in common.
 Weights, variants and glyph coverage
 ------------------------------------
 
-The font includes a bold version, with the same metrics as the regular one.
-Both versions include the same ranges of characters : latin letters, some
-accented glyphs (quite a lot), some greek letters, some arrows.
+The family now includes four weights — Regular, Medium, SemiBold, and Bold —
+each with an upright and an italic variant, for eight faces in total. All
+faces share the same monospace metrics and the same ranges of characters:
+latin letters, some accented glyphs (quite a lot), some greek letters, some
+arrows. Medium and SemiBold are derived from the Regular design through an
+algorithmic stroke-widening process.
 
 Please note that I have not tested all of the glyphs I have drawn (some letters
 have those two layers of crazy accents that I have never witnessed before), so
@@ -73,10 +76,20 @@ Need a Variant of Fantasque Sans Mono that is not in the official releases?
 The Custom Build workflow lets you compile a personalized variant directly
 from GitHub Actions — no local toolchain required. Fork the repo, open the
 Actions tab, click **Run workflow** on the *Custom Build* workflow, adjust
-the four boolean inputs, and download the result as a zip/tar.gz archive
-and a tagged GitHub Release. Store your preferences in a `config.json` at
-your fork's root for reproducible builds. See
-[`docs/CUSTOM-BUILD.md`](docs/CUSTOM-BUILD.md) for the full guide.
+the five boolean inputs, and download the result as a zip/tar.gz archive
+and a tagged GitHub Release. The optional `nerd_font_patching` input runs
+the [Nerd Font Patcher](https://github.com/ryanoasis/nerd-fonts) v3.5.0 to
+add 10,000+ developer icons (Powerline, Font Awesome, Material Design,
+Octicons, etc.), packaged in a separate `fantasque-sans-nerd-font.zip`
+archive. Store your preferences in a `config.json` at your fork's root for
+reproducible builds. See [`docs/CUSTOM-BUILD.md`](docs/CUSTOM-BUILD.md) for
+the full guide.
+
+A second workflow, *Standard Build (make)*, runs the full `make` pipeline
+and uploads the complete `Variants/` tree — all weights and variants in
+TTF, OTF, WOFF, WOFF2, and SVG formats, with matching CSS declarations —
+as a workflow artifact. Use it to build the whole family from GitHub
+Actions without any local toolchain.
 
 Installation
 ------------
