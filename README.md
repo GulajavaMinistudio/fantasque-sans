@@ -69,27 +69,85 @@ Github](http://github.com/belluzj/cosmic-sans-neue/issues) if you stumble upon
 bad design or rendering problems (with screen shot if possible), or if you need
 more characters, or if you want to compliment me (I love compliments).
 
-Custom Build
-------------
+Building with GitHub Actions (Custom Build)
+-------------------------------------------
 
-Need a Variant of Fantasque Sans Mono that is not in the official releases?
-The Custom Build workflow lets you compile a personalized variant directly
-from GitHub Actions — no local toolchain required. Fork the repo, open the
-Actions tab, click **Run workflow** on the *Custom Build* workflow, adjust
-the five boolean inputs, and download the result as a zip/tar.gz archive
-and a tagged GitHub Release. The optional `nerd_font_patching` input runs
-the [Nerd Font Patcher](https://github.com/ryanoasis/nerd-fonts) v3.5.1 to
-add 10,000+ developer icons (Powerline, Font Awesome, Material Design,
-Octicons, etc.), packaged in a separate `fantasque-sans-nerd-font.zip`
-archive. Store your preferences in a `config.json` at your fork's root for
-reproducible builds. See [`docs/CUSTOM-BUILD.md`](docs/CUSTOM-BUILD.md) for
-the full guide.
+Need a Variant of Fantasque Sans Mono that is not in the official
+releases? The Custom Build workflow lets you compile a personalized
+variant directly from GitHub Actions — no local toolchain required.
+Follow these six steps to go from a fresh fork to a downloadable
+build archive plus a tagged GitHub Release.
 
-A second workflow, *Standard Build (make)*, runs the full `make` pipeline
-and uploads the complete `Variants/` tree — all weights and variants in
-TTF, OTF, WOFF, WOFF2, and SVG formats, with matching CSS declarations —
-as a workflow artifact. Use it to build the whole family from GitHub
-Actions without any local toolchain.
+> **Looking for the full Variant tree (all weights, all formats)?**
+> Use the separate **Standard Build (make)** workflow instead — it
+> runs the legacy `make` pipeline and uploads the complete `Variants/`
+> tree as a workflow artifact.
+
+#### Step 1 — Fork this repository
+
+Click the **Fork** button at the top-right of
+[github.com/belluzj/fantasque-sans](https://github.com/belluzj/fantasque-sans)
+and pick your personal account as the destination. Custom Build runs
+entirely on your fork's GitHub Actions runners, so your own copy is
+your isolated build environment.
+
+#### Step 2 — Enable GitHub Actions on your fork
+
+Open the **Actions** tab on your fork. If GitHub shows a banner asking
+you to opt in, click **I understand my workflows, go ahead and enable
+them**. Forks disable workflows by default for security; enabling once
+is sufficient for all future runs.
+
+#### Step 3 — Open the **Custom Build** workflow
+
+In the left sidebar of the Actions tab, select **Custom Build**. Then
+click the green **Run workflow** button on the right.
+
+#### Step 4 — Adjust the five boolean inputs (optional)
+
+The Run workflow form shows five checkboxes. Leave them at the defaults
+for a `Normal` Variant, or tick the boxes that match the Variant you
+want:
+
+| Input                | Default | Effect                                                        |
+| -------------------- | ------- | ------------------------------------------------------------- |
+| `large_line_height`  | off     | Increases line-height metric for accented capital rendering.  |
+| `no_loop_k`          | off     | Uses the straight, non-looped variant of lowercase `k`.       |
+| `no_calt`            | off     | Disables programming-ligature contextual alternates.          |
+| `use_hinted`         | on      | Runs `ttfautohint` on TTFs for screen rendering.              |
+| `nerd_font_patching` | off     | Adds 10,000+ developer icons via [Nerd Fonts](https://github.com/ryanoasis/nerd-fonts) v3.5.1 in a separate archive. |
+
+For the full description of each Option, precedence rules,
+`config.json` persistence, and CLI triggering, see
+[`docs/CUSTOM-BUILD.md`](docs/CUSTOM-BUILD.md).
+
+#### Step 5 — Run the workflow
+
+Click the green **Run workflow** button at the bottom of the form. The
+yellow dot turns into an animated spinner while the run is in progress.
+Typical wall-clock time is **5–15 minutes** depending on GitHub runner
+availability and whether the optional Nerd Font patching step runs.
+
+#### Step 6 — Download the result
+
+Once the run finishes (green checkmark), download the result from
+either channel:
+
+- **Artifacts** tab of the run page — single-run archive that expires
+  after the retention window (default 90 days for public forks).
+- **Releases** page of your fork — persistent, discoverable from your
+  fork's sidebar; useful for archiving a specific configuration.
+
+Each successful run produces two archives:
+
+- `fantasque-sans-custom-build-{run_id}-{run_attempt}.zip` / `.tar.gz`
+  — the base build (TTF, OTF, WOFF, WOFF2, SVG)
+- `fantasque-sans-nerd-font.zip` / `.tar.gz` — **only** when
+  `nerd_font_patching` is enabled; contains the same fonts plus
+  10,000+ developer icons
+
+For command-line triggering, troubleshooting, and reproducible builds
+via `config.json`, see [`docs/CUSTOM-BUILD.md`](docs/CUSTOM-BUILD.md).
 
 Installation
 ------------
