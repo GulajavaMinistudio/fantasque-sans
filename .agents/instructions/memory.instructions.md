@@ -172,3 +172,35 @@
   - Optional: update the README's release link or changelog references in a separate documentation task if needed.
 
 <!-- checkpoint-tail: README updated on 2026-08-27 with current Medium/SemiBold weights, Nerd Font patching, and Standard/Custom GitHub Actions workflows; markdownlint passed; README remains uncommitted. -->
+
+## 📝 Session Checkpoint: 2026-08-27 (Docs Audit — GitHub Actions Consistency Fix)
+
+- **Active Memory Path:** `.agents/instructions/memory.instructions.md`
+- **Current SDLC Phase:** Documentation (`/sdlc-generate-docs`) — documentation audit + consistency fix complete
+- **Active Artifacts:**
+  - `README.md` — Status: 🔄 Updated, uncommitted; GitHub Actions section audited + minor fixes applied
+  - `docs/CUSTOM-BUILD.md` — Status: 🔄 Updated, uncommitted; step count and wording synchronized with README
+  - `.github/workflows/custom-build.yml` — Status: ✅ Verified as documentation source of truth
+  - `.github/workflows/build-make.yml` — Status: ✅ Verified as documentation source of truth
+- **Achieved Milestones:**
+  - Audited the README "Building with GitHub Actions" section claim-by-claim against both workflow YAMLs, `Scripts/packaging.sh`, and `Scripts/generate-other-formats`: all claims verified (inputs, defaults, artifact names/contents, retention 90d, concurrency cancel, Nerd Font v3.5.1, GITHUB_TOKEN only, Standard Build artifact-only).
+  - Fixed `docs/CUSTOM-BUILD.md`: three "four" → "five" option-count errors (CLI flags, troubleshooting, V1 surface).
+  - Rewrote CUSTOM-BUILD.md step 2 (removed misleading "published by the upstream repository"; workflows live on fork default branch) and restructured Getting Started from five to six steps (added "Run the workflow" step) to match README.
+  - `README.md`: converted seven `####` H4 headings to `###` H3 per `markdown.instructions.md`; sharpened the `nerd-font-build` bullet to "only when enabled **and patching succeeds**".
+  - Post-edit verification: no stray "four" (only the valid 4-weights reference), step numbering 1–6 aligned in both docs, CRLF preserved.
+- **Dead-Ends (Do NOT Repeat):**
+  - **Attempted:** Text-based `replace` edits (plain old_text matching) on the two docs.
+  - **Reason:** Both files use CRLF line endings; multi-line LF old_text never matches, and `readSeek_edit` requires fresh anchors before editing.
+  - **Note:** For CRLF files, check with `file <path>` first, then use anchor-based variants (`set_line` / `replace_lines`) after `readSeek_digest`/`readSeek_grep`. [Consider KB promotion on next compaction.]
+- **Updated Files:**
+  - `docs/CUSTOM-BUILD.md` — +29/−16: "four"→"five" ×3, step 2 & 3 rewrite, new step 5, intro "six steps"
+  - `README.md` — +9/−8: H4→H3 ×7, `nerd-font-build` bullet wording
+  - `.agents/instructions/memory.instructions.md` — appended this session checkpoint
+- **Decisions Made:**
+  - User approved Option C: fix all findings (🔴 four→five, 🟡 wording + step-count sync, minor H4/wording) in both documents.
+  - `CONTEXT.md` left untouched (out of approved scope); its "Workflow" glossary entry is stale and flagged as a follow-up recommendation.
+- **Next Action / Pending:**
+  - User should review and commit `README.md` + `docs/CUSTOM-BUILD.md` — both also contain pre-existing uncommitted changes from the earlier 2026-08-27 README session, so review the full diff before committing.
+  - Optional: update `CONTEXT.md` "Workflow" definition (currently says "the `.github/workflows/custom-build.yml` GitHub Actions file in the upstream repository" — outdated: two workflow files exist and workflows run on forks).
+
+<!-- checkpoint-tail: Docs audit (2026-08-27): README GitHub Actions section verified consistent with workflow YAMLs; fixed CUSTOM-BUILD.md (four→five ×3, six-step restructure, fork wording) + README (H4→H3, nerd-font bullet); both docs uncommitted, layered on earlier README session edits; CONTEXT.md "Workflow" entry stale (flagged, unchanged). -->
