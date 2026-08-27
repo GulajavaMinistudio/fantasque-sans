@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
+### Changed
+- Bump the Nerd Font Patcher version stamped into `nerd_font_version` from v3.5.0 to v3.5.1 in the Custom Build workflow (`NerdFontPatching`)
+
 ## [1.9.0] - 2026-08-27
 
 ### Added

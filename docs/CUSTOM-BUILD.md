@@ -69,7 +69,7 @@ local `make` output.
 
 #### Nerd Fonts (Optional)
 
-When `nerd_font_patching` is enabled, the Custom Build workflow runs [Nerd Fonts Patcher](https://github.com/ryanoasis/nerd-fonts) v3.5.0 over the generated TTF and OTF fonts.
+When `nerd_font_patching` is enabled, the Custom Build workflow runs [Nerd Fonts Patcher](https://github.com/ryanoasis/nerd-fonts) v3.5.1 over the generated TTF and OTF fonts.
 
 * **Icon coverage:** `--complete` mode patches over 10,000 developer icons from Powerline, Font Awesome, Material Design, Octicons, Codicons, Devicons, and Weather Icons.
 * **Font types:** Mono fonts (`FantasqueSansMono-*`) are patched with `--mono --adjust-line-height` for terminal grid alignment. Proportional fonts (`FantasqueSans`) are patched with `--adjust-line-height`.

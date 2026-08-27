@@ -78,7 +78,7 @@ from GitHub Actions — no local toolchain required. Fork the repo, open the
 Actions tab, click **Run workflow** on the *Custom Build* workflow, adjust
 the five boolean inputs, and download the result as a zip/tar.gz archive
 and a tagged GitHub Release. The optional `nerd_font_patching` input runs
-the [Nerd Font Patcher](https://github.com/ryanoasis/nerd-fonts) v3.5.0 to
+the [Nerd Font Patcher](https://github.com/ryanoasis/nerd-fonts) v3.5.1 to
 add 10,000+ developer icons (Powerline, Font Awesome, Material Design,
 Octicons, etc.), packaged in a separate `fantasque-sans-nerd-font.zip`
 archive. Store your preferences in a `config.json` at your fork's root for

@@ -174,7 +174,9 @@ jobs:
 
       # -----------------------------------------------------------------------
       # 7.1 Pull Nerd Fonts Patcher image (Plan TASK-014, REQ-002, CON-004, GUD-004).
-      # Pinned to nerdfonts/patcher:v3.5.0. Failure is trapped via set +e so
+      # Resolved to nerdfonts/patcher:latest (Nerd Fonts v3.5.1; Docker Hub publishes
+      # no per-version tags for this image, see docs/audit/clarification-report-nerd-font-patcher-2026-08-12.md).
+      # Failure is trapped via set +e so
       # base build proceeds uninterrupted.
       # -----------------------------------------------------------------------
       - name: Pull Nerd Fonts Patcher image
@@ -282,7 +284,7 @@ jobs:
           set +e
           package_ok=true
           cp output/manifest.json nf-staging/manifest.json.tmp
-          jq '. + {"nerd_font_version": "3.5.0"}' nf-staging/manifest.json.tmp > nf-staging/manifest.json
+          jq '. + {"nerd_font_version": "3.5.1"}' nf-staging/manifest.json.tmp > nf-staging/manifest.json
           rm -f nf-staging/manifest.json.tmp
           cp LICENSE.txt README.md nf-staging/
 
@@ -295,7 +297,7 @@ jobs:
           set -e
 
           if [ $rc -eq 0 ]; then
-            jq '. + {"nerd_font_version": "3.5.0"}' output/manifest.json > output/manifest.json.tmp && mv output/manifest.json.tmp output/manifest.json
+            jq '. + {"nerd_font_version": "3.5.1"}' output/manifest.json > output/manifest.json.tmp && mv output/manifest.json.tmp output/manifest.json
             echo "package_ok=true" >> "$GITHUB_OUTPUT"
             echo "Nerd Font archives packaged successfully."
           else
@@ -366,7 +368,7 @@ jobs:
             if [ "${{ steps.nf_enable.outputs.nerd_font_patching }}" != "true" ]; then
               echo "**NerdFontPatching:** disabled"
             elif [ "${{ steps.nf_package.outputs.package_ok }}" = "true" ]; then
-              echo "**NerdFontPatching:** enabled (nerdfonts/patcher v3.5.0) — ${{ steps.nf_patch.outputs.nf_file_count }} files patched in ${{ steps.nf_patch.outputs.nf_duration_s }}s"
+              echo "**NerdFontPatching:** enabled (nerdfonts/patcher v3.5.1) — ${{ steps.nf_patch.outputs.nf_file_count }} files patched in ${{ steps.nf_patch.outputs.nf_duration_s }}s"
             else
               echo "**NerdFontPatching:** enabled (FAILED — base build unaffected)"
             fi

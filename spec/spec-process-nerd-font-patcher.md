@@ -1,6 +1,6 @@
 ---
 title: Technical Specification — Nerd Font Patcher Integration (Stage 3)
-version: 1.1
+version: 1.1.1
 date_created: 2026-08-11
 owner: Fantasque Sans Mono Core Team
 tags: [spec, github-actions, custom-build, nerd-fonts, docker, post-build-patching]
@@ -110,7 +110,7 @@ Stage naming used in this specification:
   - GitHub CLI — `gh workflow run custom-build.yml --field nerd_font_patching=true`.
   - Resolution SHALL follow the existing precedence hierarchy (form > config.json > defaults) and SHALL be written into `manifest.json` under `resolved_options`.
 - **REQ-002 (Nerd Font Patching Execution)** (P0): When `NerdFontPatching` resolves to `true`, the workflow SHALL execute the Nerd Fonts Patcher against every generated TTF and OTF file **after** Stage 2 packaging completes, using:
-  - the `nerdfonts/patcher` Docker image **pinned** to tag `v3.5.0` (initial; see CON-004);
+  - the `nerdfonts/patcher` Docker image resolved via `:latest` with a `ghcr.io/cdalvaro/docker-nerd-fonts-patcher:latest` fallback (see §16 for tag-resolution policy; CON-004 literal pinning to a Nerd Fonts release tag is infeasible because Docker Hub does not publish such tags);
   - `--complete` — include all icon sets;
   - `--mono` — applied ONLY to Mono variants (`FantasqueSansMono-*`), never to the proportional variant;
   - `--adjust-line-height` — applied to all variants;
@@ -118,7 +118,7 @@ Stage naming used in this specification:
   - `--careful` — MUST NOT be used.
   - Exactly **10 patcher invocations**: 4 Mono weights (Regular, Bold, Italic, BoldItalic) × 2 formats (TTF, OTF) + 1 proportional (FantasqueSans) × 2 formats.
 - **REQ-003 (Nerd Font Output Packaging)** (P0): Patched fonts SHALL be packaged into separate archives `fantasque-sans-nerd-font.zip` and `fantasque-sans-nerd-font.tar.gz`, each containing `TTF/`, `OTF/`, `manifest.json` (base manifest + NF metadata), `LICENSE.txt`, and `README.md`. The base build archives MUST remain unchanged.
-- **REQ-004 (Manifest Metadata Extension)** (P0): When patching succeeds, `manifest.json` SHALL include a top-level `nerd_font_version` string (e.g., `"3.5.0"` — tag without the leading `v`), and `resolved_options.NerdFontPatching` SHALL reflect the resolved boolean.
+- **REQ-004 (Manifest Metadata Extension)** (P0): When patching succeeds, `manifest.json` SHALL include a top-level `nerd_font_version` string (e.g., `"3.5.1"` — tag without the leading `v`; current stamp value tracked in §16.4), and `resolved_options.NerdFontPatching` SHALL reflect the resolved boolean.
 - **REQ-005 (Release Integration)** (P0): When `NerdFontPatching` is enabled, the GitHub Release SHALL include the Nerd Font archives as additional assets, the release title SHALL include the `NerdFont` label, and the release notes SHALL mention the patcher version.
 - **REQ-006 (Graceful Failure Handling)** (P0): The base build MUST NEVER fail due to a Nerd Font failure — whether at image pull, patching, or packaging. Each failure mode SHALL log a clear `::warning::` message, skip the dependent Nerd Font steps, and record the failure in the job summary.
 - **REQ-007 (Job Summary Enhancement)** (P1): The job summary SHALL display one of: `NerdFontPatching: disabled`, `NerdFontPatching: enabled (nerdfonts/patcher vX.Y.Z)`, or `NerdFontPatching: enabled (FAILED — base build unaffected)`, plus (on success) the number of patched files and total patching duration.
@@ -227,7 +227,7 @@ The existing §4.6 schema of the upstream spec is extended **additively** (both 
     "UseHinted": true,
     "NerdFontPatching": false
   },
-  "nerd_font_version": "3.5.0"
+  "nerd_font_version": "3.5.1"
 }
 ```
 
@@ -271,7 +271,7 @@ Location: `.github/workflows/custom-build.yml` — inserted between Step 7 (Run 
 
 | Step | Condition | Behavior | Failure handling |
 | ---- | --------- | -------- | ---------------- |
-| **7.1 Pull patcher image** | `nerd_font_patching == 'true'` | `docker pull nerdfonts/patcher:v3.5.0`; sets `pull_ok=true` or `pull_ok=false` + `nf_failure=image-pull` | Warning `::warning::Failed to pull nerdfonts/patcher:v3.5.0 (Docker Hub down/rate-limited). Skipping Nerd Font patching — base build unaffected.`; exit 0 |
+| **7.1 Pull patcher image** | `nerd_font_patching == 'true'` | `docker pull nerdfonts/patcher:latest` (with `ghcr.io/cdalvaro/docker-nerd-fonts-patcher:latest` fallback — see §16); sets `pull_ok=true` or `pull_ok=false` + `nf_failure=image-pull` | Warning `::warning::Failed to pull the Nerd Fonts Patcher image (Docker Hub down/rate-limited). Skipping Nerd Font patching — base build unaffected.`; exit 0 |
 | **7.2 Patch fonts** | `pull_ok == 'true'` | Creates `nf-staging/TTF` + `nf-staging/OTF`; runs 10 `docker run` invocations per §4.6.1; records `patch_ok`, `nf_file_count`, `nf_duration_s` | On any invocation failure: abort remaining patches, `::warning::` naming the file, `patch_ok=false`; exit 0 |
 | **7.3 Package NF archives** | `patch_ok == 'true'` | Assembles `output/fantasque-sans-nerd-font.zip` + `.tar.gz` from `nf-staging` plus NF-stamped manifest, `LICENSE.txt`, `README.md`; sets `package_ok` | On failure: remove partial archives, `::warning::`, `package_ok=false`; exit 0. `output/manifest.json` is stamped with `nerd_font_version` ONLY after archives succeed (ASSUMPTION-004) |
 | **7.4 Upload NF artifact** | `package_ok == 'true'` | `actions/upload-artifact@v4`, name `nerd-font-build`, path `output/fantasque-sans-nerd-font.zip` + `output/fantasque-sans-nerd-font.tar.gz`, `if-no-files-found: error` | N/A (step skipped when not applicable) |
@@ -347,14 +347,14 @@ Acceptance criteria map 1:1 to the PRD user stories (GH-001 … GH-014) and use 
 - **AC-103 (GH-003, gh CLI)**: Given `gh workflow run custom-build.yml --field nerd_font_patching=true`, When the run starts, Then the value is mapped through `FORM_KEY_TO_OPTION["nerd_font_patching"]` and resolves `NerdFontPatching=true`.
 - **AC-104 (GH-004, valid output)**: Given `NerdFontPatching=true` and a successful run, Then Mono TTF/OTF variants are patched with `--complete --mono --adjust-line-height`, the proportional variant with `--complete --adjust-line-height` (no `--mono`), `--careful` is absent, all 10 files are patched, the image tag is pinned, every patched file passes `fontTools` structure validation, and each contains ≥ 10,000 glyphs.
 - **AC-105 (GH-005, separate packaging)**: Given a successful Nerd Font run, Then `fantasque-sans-nerd-font.zip` and `.tar.gz` exist containing `TTF/`, `OTF/`, `manifest.json`, `LICENSE.txt`, `README.md`, and the base archives contain only unpatched fonts.
-- **AC-106 (GH-006, manifest metadata)**: Given a successful Nerd Font run, Then `manifest.json` includes `"nerd_font_version": "3.5.0"`; Given a run with `NerdFontPatching=false`, Then the key is absent; `resolved_options.NerdFontPatching` always reflects the resolved boolean.
+- **AC-106 (GH-006, manifest metadata)**: Given a successful Nerd Font run, Then `manifest.json` includes `"nerd_font_version": "3.5.1"` (the current stamp value; the stamp is the single source of truth for the Nerd Fonts release baked into the patched archive — see §16 for tag-resolution policy); Given a run with `NerdFontPatching=false`, Then the key is absent; `resolved_options.NerdFontPatching` always reflects the resolved boolean.
 - **AC-107 (GH-007, graceful failure)**: Given a Docker pull failure or a patching/packaging failure, Then the workflow logs a clear warning, skips the remaining Nerd Font steps, produces/uploads the base archives normally, creates the release with base assets only, writes `NerdFontPatching: enabled (FAILED — base build unaffected)` to the job summary, and exits with code 0.
 - **AC-108 (GH-008, job summary)**: Given any run, Then the job summary shows exactly one of the three FR-007 status lines; on success it additionally shows patched file count and duration.
 - **AC-109 (GH-009, release label)**: Given `NerdFontPatching=true` with success, Then the release title contains `NerdFont` and the notes describe the patcher version and icon sets; Given `false`, Then the title contains no `NerdFont` label.
 - **AC-110 (GH-010, documentation)**: Given the merged feature, Then `docs/CUSTOM-BUILD.md` includes the `Nerd Font Patching` options-table row (description and default `Off`), a Nerd Fonts explanation, a `config.json` example with `"NerdFontPatching": true`, a `gh workflow run` example with `--field nerd_font_patching=true`, the separate-archive explanation, and the size-increase note.
 - **AC-111 (GH-011, backward compatibility)**: Given `NerdFontPatching=false`, Then no new workflow step executes, output archives are byte-identical to V1 for the same option combination, existing `config.json` files without the key remain valid, and `NerdFontPatching` is NOT in `OPTION_TO_DRIVER_FLAG`. (All tests and fixtures that hard-code the 4-option surface are updated to 5 options per ASSUMPTION-009; all semantic tests pass unchanged.)
 - **AC-112 (GH-012, proportional variant)**: Given `NerdFontPatching=true`, Then `FantasqueSans.ttf`/`.otf` are patched without `--mono`, with `--complete` and `--adjust-line-height`, and included in the Nerd Font archive.
-- **AC-113 (GH-013, version pinning)**: Given any run with patching enabled, Then the workflow references `nerdfonts/patcher:v3.5.0` (never `latest`), the pinned version is documented in `custom-build.yml` and `docs/CUSTOM-BUILD.md`, and recorded as `nerd_font_version` on success.
+- **AC-113 (GH-013, version stamping)**: Given any run with patching enabled, Then the workflow references `nerdfonts/patcher:latest` (with `ghcr.io/cdalvaro/docker-nerd-fonts-patcher:latest` fallback — see §16 for the rationale and tag-resolution policy), the Nerd Fonts release version is documented in `custom-build.yml` and `docs/CUSTOM-BUILD.md`, and recorded as `nerd_font_version` on success.
 - **AC-114 (GH-014, unit tests)**: Then `tests/test_configure.py` verifies `NerdFontPatching` exists in `DEFAULTS` with `False`, `"nerd_font_patching"` maps to `"NerdFontPatching"` in `FORM_KEY_TO_OPTION`, the option is NOT in `OPTION_TO_DRIVER_FLAG`, the schema/defaults-sync test passes with the updated schema, and precedence tests cover the option flowing through config.json, form data, and CLI overrides.
 
 ## 6. Test Automation Strategy & Testing Seams
@@ -378,7 +378,7 @@ Prefer the highest existing seam; introduce new seams only where the boundary ge
 
 - Existing fixtures in `tests/fixtures/configs/` remain; no new config fixtures required (option is boolean, covered by parametrized tests).
 - `tests/fixtures/manifest_schema.json` is extended with the two optional fields (see §4.4).
-- Integration runs use real `nerdfonts/patcher:v3.5.0` pulls on the test fork; cleanup of test releases/artifacts follows the existing troubleshooting docs.
+- Integration runs use real `nerdfonts/patcher:latest` pulls (with the `ghcr.io` fallback — see §16) on the test fork; cleanup of test releases/artifacts follows the existing troubleshooting docs.
 
 ### 6.4 CI/CD Integration
 
@@ -477,7 +477,7 @@ Workflow step style (comment header + guarded failure capture per GUD-004):
 
 - Keep all Stage 3 changes **additive**; never modify a base artifact.
 - Add unit tests for every changed behavior (micro-level mandate) and run the full suite (`pytest tests/ -v`) before committing (macro-level mandate).
-- Pin the patcher tag (`v3.5.0`); never use `latest`.
+- Pin the patcher tag (current stamp `3.5.1`; literal Docker tag pinning is infeasible — see §16); never assume `:latest` and `:vX.Y.Z` carry the same payload.
 - Guard every Stage 3 step so a non-zero exit is captured as an output, not propagated (GUD-004); use `::warning::` diagnostics.
 - Quote all paths in shell/`docker run` (patched filenames contain spaces).
 - Update `test_schema_has_four_boolean_properties` and the three other mechanical 4-option fixtures to the 5-option surface (ASSUMPTION-009).
@@ -527,7 +527,7 @@ Should a future change alter the stage architecture (e.g., moving the patcher in
 
 ### Third-Party Services
 
-- **SVC-001**: `nerdfonts/patcher` Docker image `v3.5.0` — contains FontForge + `font-patcher` script + `src/glyphs/` icon sources. Required capability: patch TTF/OTF with `--complete`, `--mono`, `--adjust-line-height`, `--outputdir`. Trusted as maintained by the official Nerd Fonts organization. SLA assumption: no uptime guarantee; must degrade gracefully.
+- **SVC-001**: `nerdfonts/patcher` Docker image — contains FontForge + `font-patcher` script + `src/glyphs/` icon sources. Image is pulled via `:latest` with a `ghcr.io/cdalvaro/docker-nerd-fonts-patcher:latest` fallback (the Nerd Fonts release version is recorded separately as `nerd_font_version` in `manifest.json`; current stamp: `3.5.1` as of addendum §16 — historical stamps listed in §16.4). Required capability: patch TTF/OTF with `--complete`, `--mono`, `--adjust-line-height`, `--outputdir`. Trusted as maintained by the official Nerd Fonts organization. SLA assumption: no uptime guarantee; must degrade gracefully.
 
 ### Infrastructure Dependencies
 
@@ -592,3 +592,54 @@ Full compliance with this specification requires:
 | ------- | ---- | ------ | ------- |
 | 1.0 | 2026-08-11 | Specification Architect | Initial version based on approved PRD `docs/prd-20260811-1351-nerd-font-patcher.md`. User confirmed ASSUMPTION-001 (font staging via `packaging.sh` copy into `output/`). |
 | 1.1 | 2026-08-12 | Specification Architect | Remediation of Clarification Report [Review Iteration 2] (conditional staging, generalized test tracking, run manifest clarification, edge cases). |
+| 1.1.1 | 2026-08-27 | Specification Architect (amendment) | Addendum §16 — Docker Hub `nerdfonts/patcher` does not publish per-release version tags; recorded implementation deviates from CON-004 / AC-113 by using `:latest` + `ghcr.io` fallback with a manual `nerd_font_version` stamp. Nerd Fonts Patcher version bumped from v3.5.0 to v3.5.1. |
+
+---
+
+## 16. Addendum (2026-08-27) — Patcher Image Tag Resolution
+
+### 16.1 Background
+
+Section 3.2 `CON-004` (Patcher Version Pinning) prescribes that the `nerdfonts/patcher` image MUST be pinned to an immutable version tag (initial: `v3.5.0`) and that `:latest` is strictly prohibited. Section 5 `AC-113` further requires that the workflow reference the pinned tag (never `latest`) and that the pinned version be documented in `custom-build.yml` and `docs/CUSTOM-BUILD.md`, and recorded as `nerd_font_version` on success.
+
+### 16.2 Reality on Docker Hub
+
+The Docker Hub repository [`nerdfonts/patcher`](https://hub.docker.com/r/nerdfonts/patcher) does not publish per-release version tags that mirror Nerd Fonts release versions (e.g., `v3.5.0`, `v3.5.1`). Pulling `nerdfonts/patcher:v3.5.0` returns `manifest unknown: manifest unknown`. The repository only publishes:
+
+- `latest` and `master` (floating tags that point to the most recently pushed image)
+- Image-toolchain version tags (e.g., `4.27.3`, `4.27.2`) that reflect the internal `font-patcher` build number, **not** the Nerd Fonts release number
+
+Because of this, CON-004 cannot be satisfied literally with a Nerd Fonts release tag.
+
+### 16.3 Resolution
+
+The workflow `.github/workflows/custom-build.yml` deviates from CON-004 / AC-113 in the following controlled, documented manner:
+
+1. **Image reference.** The host runner pulls `nerdfonts/patcher:latest` as `PRIMARY_TAG`, falling back to `ghcr.io/cdalvaro/docker-nerd-fonts-patcher:latest` as `FALLBACK_TAG`. Both pulls are wrapped in `set +e` so a failure degrades gracefully (the base build proceeds unaffected).
+2. **Version stamp.** Because the image cannot be pinned to a Nerd Fonts release tag, the workflow emits the expected Nerd Fonts release version as the `nerd_font_version` field in `manifest.json` via `jq '. + {"nerd_font_version": "<X.Y.Z>"}'`. This stamp is the single source of truth for the release version baked into the Nerd Font Variant archive and the base build manifest.
+3. **Documentation.** The stamp string is mirrored in `docs/CUSTOM-BUILD.md`, `README.md`, and `CHANGELOG.md` so the user-visible version stays in lockstep with what the workflow actually produces.
+4. **Reproducibility note.** This stamp is a *claim* about the contents of the `latest` image at the time of stamping; it is not a cryptographic guarantee. A consumer requiring bit-for-bit reproducibility should verify against the upstream Nerd Fonts release artifacts (`https://github.com/ryanoasis/nerd-fonts/releases/tag/v3.5.1`).
+
+### 16.4 Version timeline
+
+| Stamp | Nerd Fonts release | Date in repo | Notes |
+| ----- | ------------------ | ------------ | ----- |
+| `3.5.0` | v3.5.0 | 2026-08-12 (release `1.9.0`) | Initial launch stamp; corresponds to the first Custom Build runs with `NerdFontPatching=true`. |
+| `3.5.1` | v3.5.1 | 2026-08-27 | Bugfix release upstream (Devicons update, SpaceMono ligature removal, subdir flattening). Bumped via workflow YAML stamp only; no other contract changes. |
+
+### 16.5 Procedure for future bumps
+
+To advance the stamped version (e.g., from `3.5.1` to the next Nerd Fonts release):
+
+1. Verify the upstream release exists at `https://github.com/ryanoasis/nerd-fonts/releases/tag/<vX.Y.Z>`.
+2. Verify that Docker Hub `nerdfonts/patcher:latest` was re-pushed *after* the upstream release date (compare `last_updated` against the GitHub release `published_at`).
+3. Update the two `nerd_font_version` stamp occurrences in `.github/workflows/custom-build.yml` (the `nf-staging/manifest.json` injection and the `output/manifest.json` injection).
+4. Update the version reference in `docs/CUSTOM-BUILD.md`, `README.md`, and the comment block on `Pull Nerd Fonts Patcher image` in the workflow.
+5. Add a `### Changed` entry to `CHANGELOG.md` under `## Unreleased`.
+6. Amend this addendum: append a new row to §16.4 and bump the spec version (patch bump: `1.1.x`).
+
+No change to `CON-004`, `AC-113`, or `SVC-001` is required by a version bump — those references remain authoritative for the *shape* of the contract; only the version values change.
+
+### 16.6 Scope of this addendum
+
+This addendum records an existing implementation reality and the procedure that was already in use at the time of release `1.9.0`. It does not relax the spirit of CON-004 / AC-113 (immutability, reproducibility, documentation); it documents why literal pinning is infeasible and what compensating controls are in place. Should Docker Hub ever publish Nerd Fonts release tags, CON-004 should be re-enabled and this addendum retired.
